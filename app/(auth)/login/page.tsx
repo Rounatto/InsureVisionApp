@@ -3,194 +3,76 @@
 import Link from "next/link";
 
 export default function Login() {
-    return (
-        <div className="container">
-            <div className="glass-card">
-                
-                {/* Section Gauche */}
-                <div className="left-side"></div>
+  return (
+    <div className="flex min-h-screen w-full items-center justify-center bg-[url('/background.jpg')] bg-cover bg-center p-4">
+      <div className="flex w-full max-w-5xl min-h-[90vh] overflow-hidden rounded-[30px] bg-white/10">
+        <div className="hidden md:block md:w-[45%]" />
 
-                {/* Section Droite */}
-                <div className="right-side">
-                    <div className="form-wrapper">
-                        <img src="logo(3).JPG" className="logo" alt="Logo" />
-                        
-                        <h1>Welcome Back</h1>
-                        <p className="subtitle">Enter your email and password to access your account</p>
+        <div className="flex w-full md:w-[55%] flex-col items-center justify-center rounded-[15px] bg-white px-4">
+          <div className="flex w-full max-w-[400px] flex-col items-center">
+            <img src="/logo(3).JPG" className="mb-5 h-auto w-20 object-contain" alt="Logo" />
 
-                        <div className="form-container">
-                            <label className="bold-label">Email</label>
-                            <input type="email" name="email" placeholder="Enter email" className="input-field" />
-                            
-                            <label className="bold-label spacer">Password</label>
-                            <input type="password" name="password" placeholder="Enter password" className="input-field" />
+            <h1 className="mb-[2px] mt-5 text-4xl text-black">Welcome Back</h1>
+            <p className="mb-[10px] text-center text-sm text-black">
+              Enter your email and password to access your account
+            </p>
 
-                            <div className="button-center">
-                                <Link href="/dashboard" className="login-btn">
-                                    <span>Se connecter</span>
-                                </Link>
-                            </div>
+            <div className="flex w-full flex-col bg-white p-5 text-black">
+              <label className="font-bold">Email</label>
+              <input
+                type="email"
+                name="email"
+                placeholder="Enter email"
+                className="mb-[10px] w-full rounded-[10px] border border-gray-300 p-2"
+              />
 
-                            <div>
-                                <p className="signup-text">
-                                    Don't have an account? 
-                                    <Link href="/register">
-                                        <span className="signup-link">Sign up</span>
-                                    </Link>
-                                </p>
-                            </div>
+              <label className="mt-[10px] font-bold">Password</label>
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter password"
+                className="mb-[10px] w-full rounded-[10px] border border-gray-300 p-2"
+              />
 
-                            <div className="back-container">
-                                <Link href="/" className="back-btn">Back</Link>
-                            </div>
-                        </div>
+              <div className="flex justify-center">
+                <Link
+                  href="/dashboard"
+                  className="mt-[30px] inline-block rounded-[10px] bg-green-600 px-5 py-2.5"
+                >
+                  <span className="font-bold text-white">Se connecter</span>
+                </Link>
+              </div>
+
+              {/* Google UI only */}
+              <button
+                type="button"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-gray-300 px-4 py-2.5 font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
+                  <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
+                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"/>
+                  <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"/>
+                  <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"/>
+                </svg>
+                Continue with Google
+              </button>
+                <div className="mt-3 text-center">
+                    <Link href="/forgot-password" className="text-sm font-medium text-emerald-700 hover:underline">
+                        Forgot password?
+                    </Link>
                     </div>
-                </div>
+
+              <p className="mt-10 text-center text-black">
+                Don&apos;t have an account?
+                <Link href="/register">
+                  <span className="ml-[5px] text-lg font-bold text-black">Sign up</span>
+                </Link>
+              </p>
+
             </div>
-
-            <style jsx>{`
-                .container {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    width: 100%;
-                    background-image: url('/background.jpg');
-                    background-size: cover;
-                    background-position: center;
-                }
-
-                .glass-card {
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: center;
-                    align-items: center;
-                    height: 95vh;
-                    width: 60%;
-                    background-color: rgba(255,255,255,0.1);
-                    border-radius: 30px;
-                    overflow: hidden;
-                }
-
-                .left-side {
-                    width: 45%;
-                    background-color: transparent;
-                    height: 90vh;
-                    margin-left: 10px;
-                }
-
-                .right-side {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100%;
-                    border-radius: 15px;
-                    width: 55%;
-                    background-color: #fff;
-                }
-
-                .form-wrapper {
-                    width: 100%;
-                    max-width: 400px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                .logo {
-                    width: 80px;
-                    height: auto;
-                    margin-bottom: 20px;
-                    object-fit: contain;
-                }
-
-                h1 {
-                    color: black;
-                    font-size: 36px;
-                    margin-bottom: 2px;
-                    margin-top: 20px;
-                }
-
-                .subtitle {
-                    color: black;
-                    margin-bottom: 10px;
-                    font-size: 14px;
-                }
-
-                .form-container {
-                    background-color: white;
-                    display: flex;
-                    flex-direction: column;
-                    padding: 20px;
-                    color: black;
-                    width: 400px;
-                }
-
-                .bold-label {
-                    font-weight: bold;
-                }
-
-                .spacer {
-                    margin-top: 10px;
-                }
-
-                .input-field {
-                    border: 1px solid #ccc;
-                    padding: 8px;
-                    border-radius: 10px;
-                    margin-bottom: 10px;
-                }
-
-                .button-center {
-                    display: flex;
-                    justify-content: center;
-                }
-                
-                :global(.login-btn) {
-                    background-color: green !important;
-                    margin-top: 30px;
-                    padding: 10px 20px;
-                    border-radius: 10px;
-                    cursor: pointer;
-                    text-decoration: none !important;
-                    display: inline-block;
-                }
-
-                :global(.login-btn span) {
-                    color: white !important;
-                    font-weight: bold;
-                }
-
-                .signup-text {
-                    text-align: center;
-                    margin-top: 100px;
-                    color: black;
-                }
-
-                .signup-link {
-                    color: black;
-                    font-weight: bold;
-                    font-size: 18px;
-                    margin-left: 5px;
-                    cursor: pointer;
-                }
-
-                .back-container {
-                    display: flex;
-                    justify-content: left;
-                    margin-top: 70px;
-                    width: 100%;
-                }
-
-                .back-btn {
-                    color: black;
-                    font-size: 20px;
-                    font-weight: bold;
-                    text-decoration: none;
-                    cursor: pointer;
-                }
-            `}</style>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
