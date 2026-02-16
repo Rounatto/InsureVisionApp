@@ -1,4 +1,4 @@
-// Prisma schema for InsureVision App
+// Prisma schema for InsureVisionApp
 // NextAuth v5 compatible models + custom fields
 
 generator client {
