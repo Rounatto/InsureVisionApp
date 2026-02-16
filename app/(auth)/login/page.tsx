@@ -12,73 +12,79 @@ export default function Login() {
       <ThemeSwitcher />
 
       {/* CARTE PRINCIPALE */}
-      <div className="flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-white">
+      <div className="flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-white font-sans">
         
-        {/* CÔTÉ GAUCHE - MAINTENANT DYNAMIQUE */}
+        {/* SECTION GAUCHE */}
         <div className="hidden md:flex md:w-1/2 flex-col justify-between bg-[url('/background2.jpg')] bg-cover bg-center p-12 relative">
-          {/* Overlay sombre pour la lisibilité */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none" />
           
-          {/* HAUT : Branding */}
           <div className="relative z-10 flex items-center gap-3">
-            <span className="text-xs font-bold tracking-widest uppercase text-primary brightness-150 transition-colors duration-300">
+            <span className="text-xs font-bold tracking-widest uppercase text-left-dynamic brightness-150 transition-colors duration-300">
               InsureVision AI
             </span>
-            <div className="h-[1px] w-12 bg-primary/50 transition-colors duration-300"></div>
+            <div className="h-[1px] w-12 bg-left-dynamic/50 transition-colors duration-300"></div>
           </div>
 
-          {/* BAS : Proposition de Valeur (DYNAMIQUE) */}
           <div className="relative z-10 mb-4">
-            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-primary brightness-125 transition-colors duration-300">
+            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-left-dynamic brightness-125 transition-colors duration-300">
               Smart<br />Damage<br />Estimation
             </h1>
-            <p className="text-sm text-primary/80 font-light leading-relaxed max-w-xs transition-colors duration-300">
+            <p className="text-sm text-left-dynamic/80 font-light leading-relaxed max-w-xs transition-colors duration-300">
               Upload detailed car photos and let our AI generate accurate repair costs in seconds.
             </p>
             
-            {/* Badge de confiance */}
             <div className="mt-6 flex items-center gap-3 opacity-90">
                 <div className="flex -space-x-2">
                     <div className="h-6 w-6 rounded-full border border-white bg-gray-500"></div>
                     <div className="h-6 w-6 rounded-full border border-white bg-gray-400"></div>
                     <div className="h-6 w-6 rounded-full border border-white bg-gray-300"></div>
                 </div>
-                <span className="text-[10px] font-semibold tracking-wide uppercase text-primary/70 transition-colors duration-300">
+                <span className="text-[10px] font-semibold tracking-wide uppercase text-left-dynamic/70 transition-colors duration-300">
                   Trusted by Top Insurers
                 </span>
             </div>
           </div>
         </div>
 
-        {/* CÔTÉ DROIT (Formulaire) */}
-        <div className="flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-6">
-          <div className="flex-none flex justify-center pt-4 pb-4">
+        {/* SECTION DROITE */}
+        <div className="flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-6 justify-between bg-white">
+          <div className="flex-none flex justify-center pt-4">
             <InsureVisionLogo className="h-auto w-16" />
           </div>
 
           <div className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-serif text-primary italic mb-2 transition-colors duration-300">Welcome Back</h1>
-              <p className="text-xs text-primary/60 transition-colors duration-300">Enter your email and password to access your account</p>
+              <h1 className="text-4xl font-serif text-primary italic mb-2 transition-colors duration-300">
+                Welcome Back
+              </h1>
+              <p className="text-xs text-primary/60 transition-colors duration-300">
+                Enter your email and password to access your account
+              </p>
             </div>
 
-            <div className="flex flex-col gap-5 text-black">
+            <div className="flex flex-col gap-5">
+              {/* Email */}
               <div>
-                <label className="block mb-2 ml-1 text-xs font-medium text-primary/80 transition-colors duration-300">Email</label>
-                <input 
-                  type="email" 
-                  placeholder="Enter your email" 
-                  className="w-full rounded-full border border-gray-100 bg-gray-50 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-black placeholder-gray-400 transition-all" 
+                <label className="block mb-2 ml-1 text-xs font-medium text-primary/80 transition-colors duration-300">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="w-full rounded-full border border-gray-100 bg-gray-50 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-black placeholder-gray-400 transition-all duration-300"
                 />
               </div>
 
+              {/* Password */}
               <div>
-                <label className="block mb-2 ml-1 text-xs font-medium text-primary/80 transition-colors duration-300">Password</label>
+                <label className="block mb-2 ml-1 text-xs font-medium text-primary/80 transition-colors duration-300">
+                  Password
+                </label>
                 <div className="relative w-full">
-                  <input 
-                    type="password" 
-                    placeholder="Enter your password" 
-                    className="w-full rounded-full border border-gray-100 bg-gray-50 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-black placeholder-gray-400 transition-all" 
+                  <input
+                    type="password"
+                    placeholder="Enter your password"
+                    className="w-full rounded-full border border-gray-100 bg-gray-50 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-black placeholder-gray-400 transition-all duration-300"
                   />
                   <button className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -90,11 +96,12 @@ export default function Login() {
                 <label className="flex items-center gap-2 text-xs text-primary/70 cursor-pointer select-none transition-colors duration-300">
                   <input type="checkbox" className="rounded border-gray-300 accent-primary" /> Remember me
                 </label>
-                <Link href="/forgot-password" className="text-xs font-semibold hover:underline text-primary transition-colors duration-300">
+                <Link href="/forgot-password" title="Forgot Password" className="text-xs font-semibold text-primary hover:underline transition-colors duration-300">
                   Forgot Password
                 </Link>
               </div>
 
+              {/* Boutons */}
               <div className="flex flex-col gap-3 mt-2">
                 <button className="w-full rounded-full bg-primary py-4 font-bold text-white text-sm transition-all duration-300 active:scale-95 hover:opacity-90 cursor-pointer shadow-lg shadow-primary/20">
                   Sign In

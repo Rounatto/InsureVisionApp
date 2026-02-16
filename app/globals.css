@@ -1,23 +1,33 @@
 @import "tailwindcss";
 
 @theme inline {
+  /* Variables de base */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
-  /* C'est la ligne CRUCIALE qui fait marcher le changement de couleur */
+  /* COULEUR DYNAMIQUE : Utilisée pour les boutons, titres et liens */
   --color-primary: hsl(var(--primary));
+  
+  /* COULEUR GAUCHE DYNAMIQUE : Gère le contraste automatique (Blanc vs Thème) */
+  --color-left-dynamic: var(--left-text-color);
 }
 
 :root {
+  /* Couleurs de fond de l'application */
   --background: #ffffff;
   --foreground: #171717;
   
-  /* Couleur par défaut (NOIR ZINC) - C'est ça que le bouton "Sign In" utilisera */
+  /* VALEURS PAR DÉFAUT (Thème Zinc / Noir) */
+  /* --primary est en format HSL sans les parenthèses pour permettre l'opacité (ex: primary/20) */
   --primary: 240 5.9% 10%; 
+  
+  /* --left-text-color est géré par le ThemeSwitcher pour passer à 'white' si --primary est noir */
+  --left-text-color: white; 
 }
 
+/* Gestion du mode sombre du navigateur */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -25,8 +35,16 @@
   }
 }
 
+/* Styles de base pour le corps de la page */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Optionnel : Smooth transition pour tous les changements de couleur de thème */
+* {
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 }
