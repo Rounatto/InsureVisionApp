@@ -1,15 +1,21 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* C'est la ligne CRUCIALE qui fait marcher le changement de couleur */
+  --color-primary: hsl(var(--primary));
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  
+  /* Couleur par défaut (NOIR ZINC) - C'est ça que le bouton "Sign In" utilisera */
+  --primary: 240 5.9% 10%; 
 }
 
 @media (prefers-color-scheme: dark) {
