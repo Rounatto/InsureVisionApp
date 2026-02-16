@@ -1,0 +1,46 @@
+flowchart TD
+    Start([User opens /register]) --> Form[Fill form:<br/>Name, Email, Password, Confirm]
+
+    Form --> Choice{Which method?}
+
+    Choice -->|Email/Password| Submit["POST /api/auth/register<br/>{name, email, password, confirmPassword}"]
+    Choice -->|Google| Google["signIn('google')"]
+
+    Google --> GCallback["Google OAuth Flow<br/>→ /api/auth/callback/google"]
+    GCallback --> GCheck{User exists<br/>in DB?}
+    GCheck -->|No| GCreate["NextAuth auto-creates User<br/>+ Account via PrismaAdapter"]
+    GCheck -->|Yes| GLink["Links Google Account<br/>to existing User"]
+    GCreate --> JWT1["Create JWT Session"]
+    GLink --> JWT1
+    JWT1 --> Dashboard([Redirect to /dashboard])
+
+    Submit --> Parse["1. Parse JSON body"]
+    Parse --> Validate{"2. Zod Validation"}
+
+    Validate -->|Invalid| E400["400 Response<br/>{success: false,<br/>errors: [{field, message}]}"]
+    E400 --> ShowErr([Show field errors on form])
+
+    Validate -->|Valid| DupCheck{"3. Check email<br/>in database"}
+
+    DupCheck -->|Exists| E409["409 Response<br/>{success: false,<br/>message: 'Email already exists'}"]
+    E409 --> ShowDup([Show duplicate error])
+
+    DupCheck -->|New| Hash["4. bcrypt.hash(password, 12)"]
+    Hash --> Create["5. db.user.create()<br/>{name, email, hashedPassword}"]
+    Create --> Success["201 Response<br/>{success: true,<br/>user: {id, name, email}}"]
+    Success --> Redirect([Redirect to /login])
+
+    Create -.->|DB error| E500["500 Response<br/>{success: false,<br/>message: 'Something went wrong'}"]
+    E500 --> ShowGenErr([Show generic error])
+
+    classDef success fill:#10b981,stroke:#059669,color:#fff
+    classDef error fill:#ef4444,stroke:#dc2626,color:#fff
+    classDef process fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    classDef decision fill:#f59e0b,stroke:#d97706,color:#fff
+    classDef google fill:#4285f4,stroke:#2b6cb0,color:#fff
+
+    class Success,Dashboard,JWT1 success
+    class E400,E409,E500,ShowErr,ShowDup,ShowGenErr error
+    class Parse,Hash,Create,Submit,Form process
+    class Validate,DupCheck,Choice,GCheck decision
+    class Google,GCallback,GCreate,GLink google
