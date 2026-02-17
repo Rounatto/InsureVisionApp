@@ -1,0 +1,32 @@
+erDiagram
+    User {
+        String id PK
+        String name
+        String email UK
+        String password
+        DateTime createdAt
+    }
+
+    Account {
+        String id PK
+        String userId FK
+        String provider
+        String providerAccountId
+    }
+
+    Session {
+        String id PK
+        String userId FK
+        String sessionToken UK
+        DateTime expires
+    }
+
+    VerificationToken {
+        String identifier
+        String token
+        DateTime expires
+    }
+
+    User ||--o{ Account : "(1) ---- (0..n)"
+    User ||--o{ Session : "(1) ---- (0..n)"
+    User ||--o| VerificationToken : "(1) ---- (0..1)"

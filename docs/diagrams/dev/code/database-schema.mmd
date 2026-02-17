@@ -1,0 +1,47 @@
+erDiagram
+    User {
+        String id PK "cuid()"
+        String name "nullable"
+        String email UK "unique"
+        DateTime emailVerified "nullable"
+        String image "nullable"
+        String password "nullable (null for OAuth users)"
+        DateTime createdAt "default: now()"
+        DateTime updatedAt "auto-updated"
+    }
+
+    Account {
+        String id PK "cuid()"
+        String userId FK
+        String type
+        String provider
+        String providerAccountId
+        String refresh_token "nullable"
+        String access_token "nullable"
+        Int expires_at "nullable"
+        String token_type "nullable"
+        String scope "nullable"
+        String id_token "nullable"
+        String session_state "nullable"
+        DateTime createdAt "default: now()"
+        DateTime updatedAt "auto-updated"
+    }
+
+    Session {
+        String id PK "cuid()"
+        String sessionToken UK "unique"
+        String userId FK
+        DateTime expires
+        DateTime createdAt "default: now()"
+        DateTime updatedAt "auto-updated"
+    }
+
+    VerificationToken {
+        String identifier
+        String token
+        DateTime expires
+    }
+
+    User ||--o{ Account : "(1) ---- (0..n)"
+    User ||--o{ Session : "(1) ---- (0..n)"
+    User ||--o| VerificationToken : "(1) ---- (0..1)"
