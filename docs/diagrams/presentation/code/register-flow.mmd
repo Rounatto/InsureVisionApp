@@ -1,0 +1,18 @@
+flowchart TD
+    Start([User opens Register page]) --> Choice{Registration method?}
+
+    Choice -->|Email & Password| Submit[Submit form]
+    Choice -->|Google| Google[Google Sign-In]
+
+    Submit --> Validate{Valid input?}
+    Validate -->|No| Error1([Show validation errors])
+
+    Validate -->|Yes| CheckEmail{Email already used?}
+    CheckEmail -->|Yes| Error2([Show 'email exists' error])
+
+    CheckEmail -->|No| Create[Create account]
+    Create --> Success([Redirect to Login])
+
+    Google --> OAuth[Google authenticates user]
+    OAuth --> AutoCreate[Auto-create account]
+    AutoCreate --> Dashboard([Redirect to Dashboard])
