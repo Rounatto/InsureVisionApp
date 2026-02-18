@@ -10,11 +10,22 @@ export function ThemeSwitcher() {
   const applyMode = React.useCallback((nextMode: "light" | "dark") => {
     const root = document.documentElement
     root.classList.remove("theme-light", "theme-dark")
-    root.classList.add(nextMode === "dark" ? "theme-dark" : "theme-light")
+    let themeClass;
+    if (nextMode === "dark") {
+      themeClass = "theme-dark";
+    } else {
+      themeClass = "theme-light";
+    }
+    root.classList.add(themeClass)
   }, [])
 
   const toggleMode = () => {
-    const nextMode = mode === "dark" ? "light" : "dark"
+    let nextMode: "light" | "dark";
+    if (mode === "dark") {
+      nextMode = "light";
+    } else {
+      nextMode = "dark";
+    }
     setMode(nextMode)
     applyMode(nextMode)
     localStorage.setItem(THEME_STORAGE_KEY, nextMode)
@@ -22,7 +33,16 @@ export function ThemeSwitcher() {
 
   React.useEffect(() => {
     const storedMode = localStorage.getItem(THEME_STORAGE_KEY) as "light" | "dark" | null
-    const preferredMode = storedMode ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    let preferredMode: "light" | "dark";
+    if (storedMode !== null) {
+      preferredMode = storedMode;
+    } else {
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        preferredMode = "dark";
+      } else {
+        preferredMode = "light";
+      }
+    }
     setMode(preferredMode)
     applyMode(preferredMode)
   }, [applyMode])
