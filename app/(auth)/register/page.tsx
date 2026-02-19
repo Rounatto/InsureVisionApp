@@ -85,8 +85,6 @@ export default function Register() {
   return (
     <div className="relative flex h-screen w-full items-center justify-center bg-[url('/background2.jpg')] bg-cover bg-center p-4 overflow-hidden">
       
-      {/* SÉLECTEUR DE COULEUR */}
-      <ThemeSwitcher />
 
       {/* CARTE PRINCIPALE */}
       <div className="flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] text-[color:var(--card-foreground)] font-sans">
@@ -98,20 +96,20 @@ export default function Register() {
           
           {/* HAUT : Branding (Dynamic text) */}
           <div className="relative z-10 flex items-center gap-3">
-            <span className="text-xs font-bold tracking-widest uppercase text-left-dynamic brightness-150">
+            <span className="text-xs font-bold tracking-widest uppercase text-white brightness-150">
               InsureVision AI
             </span>
-            <div className="h-[1px] w-12 bg-left-dynamic/50"></div>
+            <div className="h-[1px] w-12 bg-white/50"></div>
           </div>
 
           {/* BAS : Titre et Témoignage */}
           <div className="relative z-10 mb-4">
-            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-left-dynamic brightness-125">
+            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-white brightness-125">
               Accelerate<br />Your Claims<br />Processing
             </h1>
             
             {/* Carte de témoignage teintée par la couleur dynamique */}
-            <div className="bg-left-dynamic/10 backdrop-blur-md border border-left-dynamic/20 p-4 rounded-2xl max-w-xs">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl max-w-xs">
                 <p className="text-sm leading-relaxed mb-3 text-white/90 italic">
                     "InsureVision has saved our adjusters 40% of their time."
                 </p>
@@ -127,7 +125,13 @@ export default function Register() {
         </div>
 
         {/* SECTION DROITE (Formulaire) */}
-        <div className="flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-4 justify-between bg-[color:var(--card)]">
+        <div className="relative flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-4 justify-between bg-[color:var(--card)]">
+          
+          {/* SÉLECTEUR DE COULEUR - Coin supérieur droit de la section */}
+          <div className="absolute top-4 right-4 z-50">
+            <ThemeSwitcher />
+          </div>
+
           <div className="flex-none flex justify-center pt-2">
             {/* Logo dynamique (SVG) */}
             <InsureVisionLogo className="h-auto w-16" />

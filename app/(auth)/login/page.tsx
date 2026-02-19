@@ -11,8 +11,6 @@ export default function Login() {
   return (
     <div className="relative flex h-screen w-full items-center justify-center bg-[url('/background2.jpg')] bg-cover bg-center p-4 overflow-hidden">
       
-      {/* SÉLECTEUR DE COULEUR */}
-      <ThemeSwitcher />
 
       {/* CARTE PRINCIPALE */}
       <div className="flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] font-sans">
@@ -22,17 +20,17 @@ export default function Login() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none" />
           
           <div className="relative z-10 flex items-center gap-3">
-            <span className="text-xs font-bold tracking-widest uppercase text-left-dynamic brightness-150">
+            <span className="text-xs font-bold tracking-widest uppercase text-white brightness-150">
               InsureVision AI
             </span>
-            <div className="h-[1px] w-12 bg-left-dynamic/50"></div>
+            <div className="h-[1px] w-12 bg-white/50"></div>
           </div>
 
           <div className="relative z-10 mb-4">
-            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-left-dynamic brightness-125">
+            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-white brightness-125">
               Smart<br />Damage<br />Estimation
             </h1>
-            <p className="text-sm text-left-dynamic/80 font-light leading-relaxed max-w-xs">
+            <p className="text-sm text-white/80 font-light leading-relaxed max-w-xs">
               Upload detailed car photos and let our AI generate accurate repair costs in seconds.
             </p>
             
@@ -42,7 +40,7 @@ export default function Login() {
                     <div className="h-6 w-6 rounded-full border border-white bg-gray-400"></div>
                     <div className="h-6 w-6 rounded-full border border-white bg-gray-300"></div>
                 </div>
-                <span className="text-[10px] font-semibold tracking-wide uppercase text-left-dynamic/70">
+                <span className="text-[10px] font-semibold tracking-wide uppercase text-white/70">
                   Trusted by Top Insurers
                 </span>
             </div>
@@ -50,7 +48,13 @@ export default function Login() {
         </div>
 
         {/* SECTION DROITE */}
-        <div className="flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-6 justify-between bg-[color:var(--card)]">
+        <div className="relative flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-6 justify-between bg-[color:var(--card)]">
+          
+          {/* SÉLECTEUR DE COULEUR - Coin supérieur droit de la section */}
+          <div className="absolute top-4 right-4 z-50">
+            <ThemeSwitcher />
+          </div>
+
           <div className="flex-none flex justify-center pt-4">
             <InsureVisionLogo className="h-auto w-16" />
           </div>
