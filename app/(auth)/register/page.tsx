@@ -1,5 +1,20 @@
 "use client";
 
+// =====================================================
+// PAGE D'INSCRIPTION (REGISTER)
+// =====================================================
+// Cette page est un composant CLIENT (React côté navigateur) car elle gère :
+// - l'état du formulaire en temps réel
+// - la soumission HTTP via `fetch`
+// - les messages d'erreur utilisateur
+// - la redirection après succès
+//
+// FLUX GLOBAL :
+// 1) L'utilisateur remplit le formulaire
+// 2) `handleSubmit` envoie les données vers /api/auth/register
+// 3) Le backend valide (Zod), crée l'utilisateur, renvoie un statut
+// 4) Front affiche erreurs OU redirige vers /login
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -9,40 +24,51 @@ import InsureVisionLogo from "@/components/InsureVisionLogo";
 import type { ErrorResponse, RegisterResponse } from "@/types/auth";
 
 export default function Register() {
+  // `router` sert à naviguer programmatiquement après un événement (ex: succès)
   const router = useRouter();
 
   // ─── Form State ───────────────────────────────────────────
+  // États contrôlés (controlled inputs) :
+  // chaque input lit sa valeur depuis React + met à jour React au `onChange`.
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Toggle visibilité pour le champ mot de passe principal
   const [showPassword, setShowPassword] = useState(false);
 
   // ─── UI State ─────────────────────────────────────────────
+  // États d'interface pour feedback utilisateur
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [generalError, setGeneralError] = useState("");
+  // Dictionnaire des erreurs par champ, ex: { email: "Invalid email" }
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // ─── Helpers ──────────────────────────────────────────────
+  // Réinitialise toutes les erreurs avant une nouvelle tentative
   const clearErrors = () => {
     setGeneralError("");
     setFieldErrors({});
   };
 
   // ─── Submit Handler ───────────────────────────────────────
+  // Handler principal du formulaire d'inscription (email/password)
   const handleSubmit = async (e: React.FormEvent) => {
+    // Empêche le comportement HTML natif (reload de la page)
     e.preventDefault();
     clearErrors();
     setLoading(true);
 
     try {
+      // Requête POST vers ton endpoint d'inscription
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, confirmPassword }),
       });
 
+      // Typage union : soit succès, soit erreur structurée
       const data: RegisterResponse | ErrorResponse = await res.json();
 
       if (res.status === 201 && data.success) {
@@ -54,6 +80,7 @@ export default function Register() {
       // Handle validation errors (400)
       if (res.status === 400 && "errors" in data && data.errors) {
         const mapped: Record<string, string> = {};
+        // Transforme le tableau backend en objet indexé par champ
         for (const err of data.errors) {
           mapped[err.field] = err.message;
         }
@@ -64,17 +91,21 @@ export default function Register() {
       // Handle duplicate email (409) or any other error
       setGeneralError(data.message || "Something went wrong. Please try again.");
     } catch {
+      // Erreur réseau ou backend indisponible
       setGeneralError("Unable to connect to the server. Please try again later.");
     } finally {
+      // Toujours exécuté (succès ou erreur) pour réactiver le bouton
       setLoading(false);
     }
   };
 
   // ─── Google Sign-Up Handler ───────────────────────────────
+  // Déclenche l'authentification OAuth Google via NextAuth
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
     clearErrors();
     try {
+      // callbackUrl : page de redirection après login Google réussi
       await signIn("google", { callbackUrl: "/" });
     } catch {
       setGeneralError("Google sign-up failed. Please try again.");
@@ -83,6 +114,7 @@ export default function Register() {
   };
 
   return (
+    // Conteneur plein écran, centré, avec image de fond
     <div className="relative flex h-screen w-full items-center justify-center bg-[url('/background2.jpg')] bg-cover bg-center p-4 overflow-hidden">
       
 
@@ -138,6 +170,10 @@ export default function Register() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
+            {/*
+              `onSubmit={handleSubmit}` connecte le bouton type="submit" à la logique ci-dessus.
+              Même si l'utilisateur appuie sur Entrée dans un input, le submit est capturé.
+            */}
             <div className="text-center mb-5">
               {/* TITRE : Dynamique */}
               <h1 className="text-4xl font-serif text-primary italic mb-2">Create Account</h1>
@@ -160,11 +196,15 @@ export default function Register() {
                 <input
                   type="text"
                   placeholder="Enter your full name"
+                  // Valeur contrôlée depuis l'état React
                   value={name}
+                  // Mise à jour à chaque frappe
                   onChange={(e) => setName(e.target.value)}
+                  // Désactive pendant soumission pour éviter doubles envois
                   disabled={loading}
                   className="w-full rounded-full border border-[color:var(--border)] bg-white p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder-gray-400 disabled:opacity-50"
                 />
+                {/* Erreur ciblée du backend si le champ `name` est invalide */}
                 {fieldErrors.name && <p className="mt-1 ml-3 text-[11px] text-red-500">{fieldErrors.name}</p>}
               </div>
 
@@ -179,6 +219,7 @@ export default function Register() {
                   disabled={loading}
                   className="w-full rounded-full border border-[color:var(--border)] bg-white p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder-gray-400 disabled:opacity-50"
                 />
+                {/* Erreur ciblée pour l'email (format, doublon selon backend, etc.) */}
                 {fieldErrors.email && <p className="mt-1 ml-3 text-[11px] text-red-500">{fieldErrors.email}</p>}
               </div>
 
@@ -207,6 +248,7 @@ export default function Register() {
                       )}
                     </button>
                   </div>
+                  {/* Erreur de robustesse mot de passe (taille, complexité, etc.) */}
                   {fieldErrors.password && <p className="mt-1 ml-3 text-[11px] text-red-500">{fieldErrors.password}</p>}
                 </div>
                 <div className="w-1/2">
@@ -219,6 +261,7 @@ export default function Register() {
                     disabled={loading}
                     className="w-full rounded-full border border-[color:var(--border)] bg-white p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder-gray-400 disabled:opacity-50"
                   />
+                  {/* Erreur de mismatch avec le champ password */}
                   {fieldErrors.confirmPassword && <p className="mt-1 ml-3 text-[11px] text-red-500">{fieldErrors.confirmPassword}</p>}
                 </div>
               </div>
@@ -228,8 +271,9 @@ export default function Register() {
                 {/* BOUTON CREATE : Dynamique */}
                 <button
                   type="submit"
+                  // Bloqué pendant l'envoi pour éviter race conditions / multi-click
                   disabled={loading}
-                  className="w-full rounded-full bg-gray-900 dark:bg-white py-3.5 font-bold text-white dark:text-black text-sm active:scale-95 hover:opacity-90 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-full [.theme-light_&]:bg-black [.theme-light_&]:text-white [.theme-dark_&]:bg-white [.theme-dark_&]:text-black py-3.5 font-bold text-sm active:scale-95 hover:opacity-90 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? "Creating Account..." : "Create Account"}
                 </button>
@@ -237,8 +281,9 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={handleGoogleSignUp}
+                  // Bloque si OAuth en cours OU submit classique en cours
                   disabled={googleLoading || loading}
-                  className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white dark:bg-gray-800 py-3.5 font-semibold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-3.5 font-semibold text-gray-900 hover:bg-gray-50 text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <svg viewBox="0 0 48 48" className="h-5 w-5"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
                     {googleLoading ? "Connecting..." : "Sign up with Google"}
@@ -249,6 +294,7 @@ export default function Register() {
           
           <div className="flex-none text-center pb-2">
             {/* PIED DE PAGE : Dynamique */}
+            {/* Navigation alternative pour utilisateurs déjà inscrits */}
             <p className="text-xs text-[color:var(--muted-foreground)]">Already have an account? 
               <Link href="/login" className="font-bold text-[color:var(--foreground)] hover:underline"> Sign in</Link>
             </p>

@@ -1,6 +1,15 @@
 // =====================================================
 // PAGE D'ACCUEIL - INSURE VISION AI
 // =====================================================
+// GUIDE DE LECTURE (ordre conseillé pour comprendre) :
+// 1) Imports (quels blocs externes on utilise)
+// 2) Conteneur principal `home-container` (scope du thème local)
+// 3) Navigation sticky + switch thème
+// 4) Sections marketing (Hero, How it works, Advantages, Stats, FAQ)
+// 5) Footer/CTA final
+//
+// Astuce pédagogique : lis chaque gros bloc JSX comme une "section de page"
+// indépendante, puis reviens sur les classes Tailwind pour comprendre le style.
 // 
 // ARCHITECTURE DU THÈME DYNAMIQUE :
 // ---------------------------------
