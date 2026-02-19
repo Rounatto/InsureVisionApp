@@ -85,7 +85,7 @@ export default function Home() {
               href="/login"
               className="nav-connexion px-4 py-2 rounded-lg transition"
             >
-              Connexion
+              Login
             </Link>
 
             {/* 
@@ -99,7 +99,7 @@ export default function Home() {
               href="/register"
               className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-semibold"
             >
-              S&apos;inscrire
+              Sign Up
             </Link>
 
             {/* 
@@ -127,15 +127,15 @@ export default function Home() {
           <div>
             {/* Titre principal avec gradient de couleur */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              Estimez les dégâts de votre voiture en{" "}
+              Estimate your car damage in{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
-                quelques secondes {/* Ce texte a un dégradé bleu-cyan */}
+                seconds {/* Ce texte a un dégradé bleu-cyan */}
               </span>
             </h1>
 
             {/* Description courte de ce que fait l'app */}
             <p className="text-lg hero-description mb-8 leading-relaxed">
-              Utilisez l&apos;intelligence artificielle pour obtenir une estimation précise des coûts de réparation. Simplement photographiez les dégâts et obtenez un rapport complet.
+              Use artificial intelligence to get an accurate estimate of repair costs. Simply photograph the damage and receive a complete report.
             </p>
 
             {/* ===== BOUTONS D'ACTION ===== */}
@@ -150,7 +150,7 @@ export default function Home() {
                 href="/register"
                 className="px-8 py-4 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-center"
               >
-                Commencer maintenant
+                Get Started
               </Link>
 
               {/* 
@@ -172,7 +172,7 @@ export default function Home() {
                * - border-gray-300 dark:border-gray-700 : Bordure adaptée au thème
                */}
               <button className="px-8 py-4 rounded-lg border-2 border-gray-300 dark:border-gray-700 text-foreground font-semibold hover:bg-gray-900 hover:text-white dark:hover:bg-gray-800 transition">
-                En savoir plus
+                Learn More
               </button>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function Home() {
           {/* Colonne droite: Image/illustration placeholder */}
           <div className="bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900 dark:to-cyan-900 rounded-2xl h-96 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-gray-700 dark:text-gray-300">📱 Interface d&apos;analyse des dégâts</p>
+              <p className="text-gray-700 dark:text-gray-300">📱 Damage Analysis Interface</p>
               {/* À remplacer par une vraie image */}
             </div>
           </div>
@@ -192,10 +192,10 @@ export default function Home() {
       <section className="bg-gray-50 dark:bg-gray-900 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Titre de la section */}
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">Comment ça marche ?</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">How does it work?</h2>
           {/* Sous-titre explicatif */}
           <p className="text-center text-gray-700 dark:text-gray-300 mb-16 max-w-2xl mx-auto">
-            Trois étapes simples pour obtenir une estimation fiable en moins d&apos;une minute.
+            Three simple steps to get a reliable estimate in less than a minute.
           </p>
           
           {/* Grille de 3 colonnes pour les étapes */}
@@ -206,9 +206,9 @@ export default function Home() {
               <div className="w-20 h-20 mx-auto bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-6 text-4xl">
                 📸
               </div>
-              <h3 className="text-xl font-bold mb-3">Prenez une photo</h3>
+              <h3 className="text-xl font-bold mb-3">Take a Photo</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Photographiez les dégâts de votre véhicule sous différents angles pour une analyse complète.
+                Photograph the damage to your vehicle from different angles for a complete analysis.
               </p>
             </div>
 
@@ -218,9 +218,9 @@ export default function Home() {
               <div className="w-20 h-20 mx-auto bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-6 text-4xl">
                 🤖
               </div>
-              <h3 className="text-xl font-bold mb-3">L&apos;IA analyse</h3>
+              <h3 className="text-xl font-bold mb-3">AI Analyzes</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Notre intelligence artificielle examine les images et évalue l&apos;ampleur des dégâts en profondeur.
+                Our artificial intelligence examines the images and evaluates the extent of the damage in depth.
               </p>
             </div>
 
@@ -230,9 +230,9 @@ export default function Home() {
               <div className="w-20 h-20 mx-auto bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-6 text-4xl">
                 💰
               </div>
-              <h3 className="text-xl font-bold mb-3">Obtenez une estimation</h3>
+              <h3 className="text-xl font-bold mb-3">Get an Estimate</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Recevez un rapport détaillé avec le coût estimé des réparations et les pièces affectées.
+                Receive a detailed report with the estimated repair cost and affected parts.
               </p>
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function Home() {
       {/* ======================== AVANTAGES DE L'APP ======================== */}
       {/* Cette section liste 4 avantages clés avec icônes */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">Pourquoi choisir InsureVision ?</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">Why choose InsureVision?</h2>
         
         {/* Grille de 2 colonnes pour les avantages */}
         <div className="grid md:grid-cols-2 gap-8">
@@ -256,9 +256,9 @@ export default function Home() {
             </div>
             {/* Texte descriptif */}
             <div>
-              <h3 className="text-xl font-bold mb-2">Rapide</h3>
+              <h3 className="text-xl font-bold mb-2">Fast</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Obtenez une estimation en moins d&apos;une minute sans avoir à vous déplacer chez un garagiste.
+                Get an estimate in less than a minute without having to visit a garage.
               </p>
             </div>
           </div>
@@ -271,9 +271,9 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-2">Précis</h3>
+              <h3 className="text-xl font-bold mb-2">Accurate</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Grâce à l&apos;IA avancée, nos estimations ont une précision exceptionnelle comparée aux méthodes traditionnelles.
+                Thanks to advanced AI, our estimates have exceptional accuracy compared to traditional methods.
               </p>
             </div>
           </div>
@@ -286,9 +286,9 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-2">Sécurisé</h3>
+              <h3 className="text-xl font-bold mb-2">Secure</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Vos données sont chiffrées et protégées. Aucun partage sans votre consentement.
+                Your data is encrypted and protected. No sharing without your consent.
               </p>
             </div>
           </div>
@@ -301,9 +301,9 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-2">Accessible 24/7</h3>
+              <h3 className="text-xl font-bold mb-2">Available 24/7</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Disponible sur tous les appareils, n&apos;importe quand, n&apos;importe où pour vos besoins d&apos;assurance.
+                Available on all devices, anytime, anywhere for your insurance needs.
               </p>
             </div>
           </div>
@@ -319,19 +319,19 @@ export default function Home() {
             {/* Stat 1: Utilisateurs */}
             <div>
               <div className="text-4xl sm:text-5xl font-bold mb-2">50K+</div>
-              <p className="text-lg opacity-90">Utilisateurs satisfaits</p>
+              <p className="text-lg opacity-90">Satisfied Users</p>
             </div>
 
             {/* Stat 2: Sinistres estimés */}
             <div>
               <div className="text-4xl sm:text-5xl font-bold mb-2">100K+</div>
-              <p className="text-lg opacity-90">Sinistres estimés</p>
+              <p className="text-lg opacity-90">Estimated Claims</p>
             </div>
 
             {/* Stat 3: Note moyenne */}
             <div>
               <div className="text-4xl sm:text-5xl font-bold mb-2">4.8/5</div>
-              <p className="text-lg opacity-90">Note moyenne</p>
+              <p className="text-lg opacity-90">Average Rating</p>
             </div>
           </div>
         </div>
@@ -362,7 +362,7 @@ export default function Home() {
        * - Dark mode : Fond transparent → Au hover : fond gris foncé + titre blanc (bien visible)
        */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">Questions fréquemment posées</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">Frequently Asked Questions</h2>
         
         {/* Conteneur des questions */}
         <div className="space-y-6">
@@ -370,56 +370,56 @@ export default function Home() {
           <details className="group border border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:bg-gray-900 dark:hover:bg-gray-900 transition">
             {/* En-tête cliquable avec flèche */}
             <summary className="font-bold text-lg flex justify-between items-center group-hover:text-white">
-              Qu&apos;est-ce qu&apos;InsureVision ?
+              What is InsureVision?
               <span className="group-open:rotate-180 transition">➔</span> {/* Flèche qui tourne au clic */}
             </summary>
             {/* Réponse cachée jusqu'au clic */}
             <p className="text-gray-700 dark:text-gray-300 mt-4">
-              InsureVision est une application d&apos;intelligence artificielle qui analyse les photos de dégâts automobiles et fournit une estimation précise des coûts de réparation en quelques secondes.
+              InsureVision is an artificial intelligence application that analyzes photos of car damage and provides an accurate estimate of repair costs in seconds.
             </p>
           </details>
 
           {/* ===== QUESTION 2 ===== */}
           <details className="group border border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:bg-gray-900 dark:hover:bg-gray-900 transition">
             <summary className="font-bold text-lg flex justify-between items-center group-hover:text-white">
-              Comment l&apos;IA évalue-t-elle les dégâts ?
+              How does the AI evaluate damage?
               <span className="group-open:rotate-180 transition">➔</span>
             </summary>
             <p className="text-gray-700 dark:text-gray-300 mt-4">
-              Notre IA utilise la vision par ordinateur et l&apos;apprentissage automatique pour analyser les images. Elle identifie les zones endommagées, évalue la gravité et estime les coûts basés sur une base de données de réparations.
+              Our AI uses computer vision and machine learning to analyze images. It identifies damaged areas, assesses severity, and estimates costs based on a repair database.
             </p>
           </details>
 
           {/* QUESTION 3 */}
           <details className="group border border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:bg-gray-900 dark:hover:bg-gray-900 transition">
             <summary className="font-bold text-lg flex justify-between items-center group-hover:text-white">
-              Mes données sont-elles sécurisées ?
+              Is my data secure?
               <span className="group-open:rotate-180 transition">➔</span>
             </summary>
             <p className="text-gray-700 dark:text-gray-300 mt-4">
-              Oui, vos données sont chiffrées en transit et au repos. Nous respectons les normes RGPD et ne partageons jamais vos informations sans consentement explicite.
+              Yes, your data is encrypted in transit and at rest. We comply with GDPR standards and never share your information without explicit consent.
             </p>
           </details>
 
           {/* QUESTION 4 */}
           <details className="group border border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:bg-gray-900 dark:hover:bg-gray-900 transition">
             <summary className="font-bold text-lg flex justify-between items-center group-hover:text-white">
-              Combien ça coûte ?
+              How much does it cost?
               <span className="group-open:rotate-180 transition">➔</span>
             </summary>
             <p className="text-gray-700 dark:text-gray-300 mt-4">
-              InsureVision est gratuit pour les trois premières estimations. Après cela, nous proposons des plans d&apos;abonnement flexibles à partir de 9,99€/mois.
+              InsureVision is free for the first three estimates. After that, we offer flexible subscription plans starting at $9.99/month.
             </p>
           </details>
 
           {/* QUESTION 5 */}
           <details className="group border border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:bg-gray-900 dark:hover:bg-gray-900 transition">
             <summary className="font-bold text-lg flex justify-between items-center group-hover:text-white">
-              Quelle est la précision des estimations ?
+              How accurate are the estimates?
               <span className="group-open:rotate-180 transition">➔</span>
             </summary>
             <p className="text-gray-700 dark:text-gray-300 mt-4">
-              Nos estimations ont une précision moyenne de 95% comparée aux devis professionnels. La qualité des photos affecte la précision, donc plusieurs angles aident.
+              Our estimates have an average accuracy of 95% compared to professional quotes. Photo quality affects accuracy, so multiple angles help.
             </p>
           </details>
         </div>
@@ -430,10 +430,10 @@ export default function Home() {
       <section className="bg-gray-900 text-white py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Titre */}
-          <h2 className="text-3xl sm:text-4xl font-bold mb-6">Prêt à débuter ?</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">Ready to get started?</h2>
           {/* Description */}
           <p className="text-lg opacity-90 mb-8 text-gray-100 dark:text-gray-100">
-            Créez votre compte maintenant et obtenez votre première estimation gratuitement.
+            Create your account now and get your first estimate for free.
           </p>
           {/* Boutons d'action */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -442,11 +442,11 @@ export default function Home() {
               href="/register"
               className="px-8 py-4 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
             >
-              S&apos;inscrire gratuitement
+              Sign Up for Free
             </Link>
             {/* Bouton secondaire - Contact */}
             <button className="px-8 py-4 rounded-lg border-2 border-white text-white font-semibold hover:bg-white hover:text-gray-900 transition">
-              Contacter le support
+              Contact Support
             </button>
           </div>
         </div>
@@ -462,9 +462,9 @@ export default function Home() {
             <div>
               <h4 className="font-bold mb-4">About</h4>
               <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-400">
-                <li><a href="#" className="hover:text-foreground transition">À propos</a></li>
+                <li><a href="#" className="hover:text-foreground transition">About</a></li>
                 <li><a href="#" className="hover:text-foreground transition">Blog</a></li>
-                <li><a href="#" className="hover:text-foreground transition">Carrières</a></li>
+                <li><a href="#" className="hover:text-foreground transition">Careers</a></li>
               </ul>
             </div>
 
@@ -472,7 +472,7 @@ export default function Home() {
             <div>
               <h4 className="font-bold mb-4">Support</h4>
               <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-400">
-                <li><a href="#" className="hover:text-foreground transition">Aide</a></li>
+                <li><a href="#" className="hover:text-foreground transition">Help</a></li>
                 <li><a href="#" className="hover:text-foreground transition">Contact</a></li>
                 <li><a href="#" className="hover:text-foreground transition">FAQ</a></li>
               </ul>
@@ -480,17 +480,17 @@ export default function Home() {
 
             {/* Colonne 3: Légal */}
             <div>
-              <h4 className="font-bold mb-4">Légal</h4>
+              <h4 className="font-bold mb-4">Legal</h4>
               <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-400">
-                <li><a href="#" className="hover:text-foreground transition">Confidentialité</a></li>
-                <li><a href="#" className="hover:text-foreground transition">Conditions</a></li>
+                <li><a href="#" className="hover:text-foreground transition">Privacy</a></li>
+                <li><a href="#" className="hover:text-foreground transition">Terms</a></li>
                 <li><a href="#" className="hover:text-foreground transition">Cookies</a></li>
               </ul>
             </div>
 
             {/* Colonne 4: Réseaux sociaux */}
             <div>
-              <h4 className="font-bold mb-4">Suivez-nous</h4>
+              <h4 className="font-bold mb-4">Follow Us</h4>
               <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-400">
                 <li><a href="#" className="hover:text-foreground transition">Twitter</a></li>
                 <li><a href="#" className="hover:text-foreground transition">LinkedIn</a></li>
@@ -501,7 +501,7 @@ export default function Home() {
 
           {/* Copyright et droits d'auteur */}
           <div className="border-t border-gray-200 dark:border-gray-800 pt-8 text-center text-sm text-gray-700 dark:text-gray-400">
-            <p>&copy; 2026 InsureVision. Tous droits réservés.</p>
+            <p>&copy; 2026 InsureVision. All rights reserved.</p>
           </div>
         </div>
       </footer>
