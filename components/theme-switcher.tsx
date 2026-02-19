@@ -48,7 +48,7 @@ export function ThemeSwitcher() {
   }, [applyMode])
 
   return (
-    <div className="absolute top-4 right-4 z-50 flex items-center gap-2 p-2 bg-[color:var(--card)]/90 backdrop-blur-md rounded-full shadow-lg border border-[color:var(--border)]">
+    <div className="flex items-center gap-2 p-2">
       <button
         onClick={toggleMode}
         className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--foreground)] hover:scale-105 transition-transform"
