@@ -11,6 +11,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -25,6 +26,7 @@ export default function Login() {
       const result = await signIn("credentials", {
         email,
         password,
+        remember: rememberMe ? "true" : "false",
         redirect: false,
       });
 
@@ -159,7 +161,12 @@ export default function Login() {
               {/* REMEMBER ME & FORGOT PASSWORD */}
               <div className="flex items-center justify-between px-1">
                 <label className="flex items-center gap-2 text-xs text-[color:var(--muted-foreground)] cursor-pointer select-none">
-                  <input type="checkbox" className="rounded border-gray-300 accent-primary" /> 
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-gray-300 accent-primary"
+                  />
                   Remember me
                 </label>
                 <Link href="/forgot-password" title="Forgot Password" className="text-xs font-semibold text-[color:var(--foreground)] hover:underline">

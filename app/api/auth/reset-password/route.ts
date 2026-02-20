@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { createHash } from "crypto";
 
-import { db } from "@/config/db";
+import { db, isDatabaseConfigured } from "@/config/db";
 import { resetPasswordSchema } from "@/lib/validations/auth";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
@@ -11,6 +11,17 @@ const PASSWORD_RESET_IDENTIFIER_PREFIX = "password-reset:";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isDatabaseConfigured || !db) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message:
+            "Auth service is not configured on this machine (missing DATABASE_URL).",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const parsed = resetPasswordSchema.safeParse(body);
 
