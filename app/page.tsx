@@ -1,101 +1,93 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import Navbar from "@/components/Navbar";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">Save and see your changes instantly.</li>
-        </ol>
+  const [dragActive, setDragActive] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    if (e.type === "dragleave") setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    // TODO: handle files
+    const files = e.dataTransfer.files;
+    if (files.length) console.log("Dropped files:", files);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // TODO: handle files
+    const files = e.target.files;
+    if (files?.length) console.log("Selected files:", files);
+  };
+
+  return (
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
+
+      <Navbar />
+
+      {/* ─── Main Content ─────────────────────────────────────── */}
+      <main className="mx-auto max-w-6xl px-6 py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-[color:var(--foreground)] mb-3">
+            Damage Estimation
+          </h1>
+          <p className="text-sm text-[color:var(--muted-foreground)] max-w-md mx-auto">
+            Upload photos of the damaged vehicle and our AI will generate an accurate repair cost estimate.
+          </p>
+        </div>
+
+        {/* ─── Upload Area ──────────────────────────────────────── */}
+        <div
+          onDragEnter={handleDrag}
+          onDragOver={handleDrag}
+          onDragLeave={handleDrag}
+          onDrop={handleDrop}
+          className={`mx-auto max-w-xl rounded-3xl border-2 border-dashed p-12 text-center transition-colors cursor-pointer ${
+            dragActive
+              ? "border-[color:var(--foreground)] bg-[color:var(--muted)]"
+              : "border-[color:var(--border)] bg-[color:var(--muted)] hover:border-[color:var(--foreground)]/40"
+          }`}
+          onClick={() => document.getElementById("file-input")?.click()}
+        >
+          {/* Upload icon */}
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[color:var(--muted)] border border-[color:var(--border)]">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-7 w-7 text-[color:var(--foreground)]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+            </svg>
+          </div>
+
+          <p className="text-sm font-medium text-[color:var(--foreground)] mb-1">
+            Drag & drop car photos here
+          </p>
+          <p className="text-xs text-[color:var(--muted-foreground)] mb-5">
+            or click to browse — PNG, JPG up to 10MB
+          </p>
+
+          <button
+            type="button"
+            className="rounded-full bg-[color:var(--foreground)] px-8 py-3 text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-95 transition-all"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Upload Photos
+          </button>
+
+          <input
+            id="file-input"
+            type="file"
+            accept="image/png,image/jpeg"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }

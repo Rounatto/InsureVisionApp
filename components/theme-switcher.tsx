@@ -48,23 +48,21 @@ export function ThemeSwitcher() {
   }, [applyMode])
 
   return (
-    <div className="absolute top-4 right-4 z-50 flex items-center gap-2 p-2 bg-[color:var(--card)]/90 backdrop-blur-md rounded-full shadow-lg border border-[color:var(--border)]">
-      <button
-        onClick={toggleMode}
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border)] text-[color:var(--foreground)] hover:scale-105 transition-transform"
-        aria-label="Toggle dark mode"
-        title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      >
+    <button
+      onClick={toggleMode}
+      className="flex h-8 w-8 items-center justify-center rounded-full text-inherit hover:scale-110 transition-transform cursor-pointer"
+      aria-label="Toggle dark mode"
+      title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
         {mode === "dark" ? (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-            <path d="M12 4.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5A.75.75 0 0 1 12 4.75zM5.47 6.53a.75.75 0 0 1 1.06 0l.36.36a.75.75 0 1 1-1.06 1.06l-.36-.36a.75.75 0 0 1 0-1.06zM4.75 12a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5A.75.75 0 0 1 4.75 12zM6.89 17.11a.75.75 0 0 1 0 1.06l-.36.36a.75.75 0 1 1-1.06-1.06l.36-.36a.75.75 0 0 1 1.06 0zM12 18.75a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75zM18.53 17.47a.75.75 0 0 1 1.06 0l.36.36a.75.75 0 1 1-1.06 1.06l-.36-.36a.75.75 0 0 1 0-1.06zM18.75 12a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75zM18.53 6.53a.75.75 0 0 1 0 1.06l-.36.36a.75.75 0 1 1-1.06-1.06l.36-.36a.75.75 0 0 1 1.06 0zM12 7.25a4.75 4.75 0 1 0 0 9.5 4.75 4.75 0 0 0 0-9.5z" />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-[18px] w-[18px]" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
           </svg>
         ) : (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-            <path d="M21 14.5A7.5 7.5 0 1 1 9.5 3a.75.75 0 0 1 .7 1.03A6 6 0 0 0 17.97 11.8a.75.75 0 0 1 1.03.7z" />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-[18px] w-[18px]" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
           </svg>
         )}
       </button>
-    </div>
   )
 }

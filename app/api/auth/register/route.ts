@@ -3,9 +3,8 @@ import bcrypt from "bcrypt";
 
 import { db } from "@/config/db";
 import { registerSchema } from "@/lib/validations/auth";
+import { SALT_ROUNDS } from "@/lib/constants";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
-
-const SALT_ROUNDS = 12;
 
 export async function POST(req: NextRequest) {
   try {
