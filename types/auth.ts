@@ -32,3 +32,14 @@ export interface ErrorResponse {
   message: string;
   errors?: ValidationError[];
 }
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+}
+export interface LoginResponse extends AuthResponse {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
