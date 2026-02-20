@@ -1,0 +1,37 @@
+flowchart LR
+    U[User]
+    UI[Login Page]
+    API[(Login Backend API)]
+    DB[(Database)]
+    AUTH[(NextAuth Credentials)]
+    SESSION[(JWT Session)]
+
+    U -->|Submit email + password| UI
+    UI -->|POST credentials| API
+
+    API -->|Validate input| V{Input valid?}
+    V -->|No| E400[Return 400 validation error]
+
+    V -->|Yes| AUTH
+    AUTH -->|Find user by email| DB
+    DB --> AUTH
+
+    AUTH --> C{User exists<br/>and password matches?}
+    C -->|No| E401[Return 401 invalid credentials]
+    C -->|Yes| SESSION
+
+    SESSION --> S200[Return success + active session]
+    S200 --> UI
+    UI --> D[Redirect to dashboard]
+
+    API -->|DB unavailable| E503[Return 503 service unavailable]
+
+    classDef ok fill:#10b981,stroke:#059669,color:#fff
+    classDef bad fill:#ef4444,stroke:#dc2626,color:#fff
+    classDef process fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    classDef decision fill:#f59e0b,stroke:#d97706,color:#fff
+
+    class S200,D,SESSION ok
+    class E400,E401,E503 bad
+    class UI,API,DB,AUTH process
+    class V,C decision

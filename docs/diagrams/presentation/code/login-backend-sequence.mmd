@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor User
+    participant UI as Login Page
+    participant Auth as NextAuth
+    participant DB as Database
+
+    User->>UI: Submit email and password
+    UI->>Auth: signIn(credentials)
+    Auth->>DB: Verify user + password
+    DB-->>Auth: Result
+
+    alt Valid
+        Auth-->>UI: Success + session
+        UI-->>User: Redirect to dashboard
+    else Invalid
+        Auth-->>UI: Error
+        UI-->>User: Show error message
+    end

@@ -1,0 +1,32 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Login Page
+    participant NextAuth as NextAuth Credentials
+    participant API as /api/auth/[...nextauth]
+    participant DB as PostgreSQL (Supabase)
+    participant JWT as JWT Session
+
+    User->>UI: Enter email + password and submit
+    UI->>NextAuth: signIn("credentials", { email, password, remember })
+    NextAuth->>API: POST credentials request
+    API->>API: Validate payload (loginSchema)
+
+    alt Invalid payload
+        API-->>UI: error (validation / unauthorized)
+        UI-->>User: Show login error
+    else Valid payload
+        API->>DB: Find user by email
+        DB-->>API: User row + password hash
+        API->>API: bcrypt.compare(password, hash)
+
+        alt Invalid user or password
+            API-->>UI: 401 Invalid email or password
+            UI-->>User: Show error message
+        else Valid credentials
+            API->>JWT: Issue/refresh JWT session
+            JWT-->>API: Session token
+            API-->>UI: Success response
+            UI-->>User: Redirect to /dashboard
+        end
+    end

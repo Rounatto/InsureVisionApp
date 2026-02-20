@@ -1,0 +1,6 @@
+flowchart LR
+    User[User] --> Login[Login with Email/Password]
+    Login --> Validate[Validate Credentials]
+    Validate -->|Valid| Session[Create Session]
+    Session --> Dashboard[Access Dashboard]
+    Validate -->|Invalid| Error[Show Login Error]
