@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 
@@ -12,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -20,26 +22,36 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Login failed");
+      if (!result || result.error) {
+        setError("Invalid email or password");
         return;
       }
 
-      // Success – redirect to dashboard
       router.push("/dashboard");
+      router.refresh();
     } catch (err) {
       setError("Something went wrong. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      await signIn("google", { callbackUrl: "/" });
+    } catch {
+      setError("Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
     }
   };
 
@@ -161,7 +173,7 @@ export default function Login() {
                 {/* SIGN IN BUTTON */}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || googleLoading}
                   className="w-full rounded-full [.theme-light_&]:bg-black [.theme-light_&]:text-white [.theme-dark_&]:bg-white [.theme-dark_&]:text-black py-4 font-bold text-sm active:scale-95 hover:opacity-90 cursor-pointer shadow-lg disabled:opacity-50"
                 >
                   {loading ? "Signing in..." : "Sign In"}
@@ -170,6 +182,8 @@ export default function Login() {
                 {/* GOOGLE SIGN-IN (optional) */}
                 <button
                   type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loading || googleLoading}
                   className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-4 font-semibold text-gray-900 hover:bg-gray-50 text-sm cursor-pointer">
                   <svg viewBox="0 0 48 48" className="h-5 w-5">
                     <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
@@ -177,7 +191,7 @@ export default function Login() {
                     <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"/>
                     <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"/>
                   </svg>
-                  Sign In with Google
+                  {googleLoading ? "Connecting..." : "Sign In with Google"}
                 </button>
               </div>
 
@@ -198,3 +212,4 @@ export default function Login() {
     </div>
   );
 }
+
