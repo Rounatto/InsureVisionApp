@@ -1,18 +1,25 @@
-sequenceDiagram
-    actor User
-    participant UI as Login Page
-    participant Auth as NextAuth
-    participant DB as Database
+@startuml
+autonumber
+skinparam shadowing false
 
-    User->>UI: Submit email and password
-    UI->>Auth: signIn(credentials)
-    Auth->>DB: Verify user + password
-    DB-->>Auth: Result
+actor User
+participant "Login Page" as UI
+participant "Auth API" as API
+database "Database" as DB
+participant "JWT Service" as JWT
 
-    alt Valid
-        Auth-->>UI: Success + session
-        UI-->>User: Redirect to dashboard
-    else Invalid
-        Auth-->>UI: Error
-        UI-->>User: Show error message
-    end
+User -> UI : Enter email and password
+UI -> API : POST login request
+API -> DB : Check user and password
+DB --> API : Result
+
+alt Invalid credentials
+    API --> UI : 401 Error
+    UI --> User : Show login error
+else Valid credentials
+    API -> JWT : Create session
+    JWT --> API : Session token
+    API --> UI : Success
+    UI --> User : Redirect to dashboard
+end
+@enduml

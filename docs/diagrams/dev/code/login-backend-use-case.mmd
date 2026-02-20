@@ -1,37 +1,54 @@
-flowchart LR
-    U[User]
-    UI[Login Page]
-    API[(Login Backend API)]
-    DB[(Database)]
-    AUTH[(NextAuth Credentials)]
-    SESSION[(JWT Session)]
+@startuml
+skinparam shadowing false
 
-    U -->|Submit email + password| UI
-    UI -->|POST credentials| API
+start
 
-    API -->|Validate input| V{Input valid?}
-    V -->|No| E400[Return 400 validation error]
+:User opens login page;
+:Fill form - Email, Password;
 
-    V -->|Yes| AUTH
-    AUTH -->|Find user by email| DB
-    DB --> AUTH
+if (Which method?) then (Google)
 
-    AUTH --> C{User exists<br/>and password matches?}
-    C -->|No| E401[Return 401 invalid credentials]
-    C -->|Yes| SESSION
+  :signIn google;
+  :Google OAuth Flow;
+  :API callback;
 
-    SESSION --> S200[Return success + active session]
-    S200 --> UI
-    UI --> D[Redirect to dashboard]
+  if (User exists in DB?) then (No)
+    :Auto-create user;
+  else (Yes)
+    :Link Google account;
+  endif
 
-    API -->|DB unavailable| E503[Return 503 service unavailable]
+  :Create JWT session;
+  :Redirect to dashboard;
 
-    classDef ok fill:#10b981,stroke:#059669,color:#fff
-    classDef bad fill:#ef4444,stroke:#dc2626,color:#fff
-    classDef process fill:#3b82f6,stroke:#1d4ed8,color:#fff
-    classDef decision fill:#f59e0b,stroke:#d97706,color:#fff
+else (Email/Password)
 
-    class S200,D,SESSION ok
-    class E400,E401,E503 bad
-    class UI,API,DB,AUTH process
-    class V,C decision
+  :POST login request;
+  :Parse JSON body;
+
+  if (Validation valid?) then (No)
+    :Return 400 error;
+    :Show validation errors;
+  else (Yes)
+
+    if (User exists in DB?) then (No)
+      :Return 401 error;
+      :Show login error;
+    else (Yes)
+
+      if (Password correct?) then (No)
+        :Return 401 error;
+        :Show login error;
+      else (Yes)
+        :Create JWT session;
+        :Redirect to dashboard;
+      endif
+
+    endif
+
+  endif
+
+endif
+
+stop
+@enduml

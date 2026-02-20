@@ -1,32 +1,69 @@
-sequenceDiagram
-    autonumber
-    actor User
-    participant UI as Login Page
-    participant NextAuth as NextAuth Credentials
-    participant API as /api/auth/[...nextauth]
-    participant DB as PostgreSQL (Supabase)
-    participant JWT as JWT Session
+@startuml
+autonumber
+skinparam shadowing false
 
-    User->>UI: Enter email + password and submit
-    UI->>NextAuth: signIn("credentials", { email, password, remember })
-    NextAuth->>API: POST credentials request
-    API->>API: Validate payload (loginSchema)
+actor User
+participant "Login Page" as UI
+participant "Auth API" as API
+database "Database" as DB
+participant "Google OAuth" as Google
+participant "JWT Service" as JWT
 
-    alt Invalid payload
-        API-->>UI: error (validation / unauthorized)
-        UI-->>User: Show login error
-    else Valid payload
-        API->>DB: Find user by email
-        DB-->>API: User row + password hash
-        API->>API: bcrypt.compare(password, hash)
+User -> UI : Open login page
+User -> UI : Enter email and password
 
-        alt Invalid user or password
-            API-->>UI: 401 Invalid email or password
-            UI-->>User: Show error message
-        else Valid credentials
-            API->>JWT: Issue/refresh JWT session
-            JWT-->>API: Session token
-            API-->>UI: Success response
-            UI-->>User: Redirect to /dashboard
-        end
+alt Google Login
+
+    UI -> Google : signIn google
+    Google -> API : OAuth callback
+    API -> DB : Check if user exists
+    DB --> API : User result
+
+    alt User does not exist
+        API -> DB : Auto-create user
+    else User exists
+        API -> API : Link Google account
     end
+
+    API -> JWT : Create session
+    JWT --> API : Session token
+    API --> UI : Success
+    UI --> User : Redirect to dashboard
+
+else Email/Password Login
+
+    UI -> API : POST login request
+    API -> API : Parse JSON body
+    API -> API : Validate input
+
+    alt Validation invalid
+        API --> UI : 400 Validation error
+        UI --> User : Show validation errors
+    else Validation valid
+
+        API -> DB : Check user by email
+        DB --> API : User result
+
+        alt User not found
+            API --> UI : 401 User not found
+            UI --> User : Show login error
+        else User exists
+
+            API -> API : Verify password
+
+            alt Password incorrect
+                API --> UI : 401 Invalid credentials
+                UI --> User : Show login error
+            else Password correct
+                API -> JWT : Create session
+                JWT --> API : Session token
+                API --> UI : Success
+                UI --> User : Redirect to dashboard
+            end
+
+        end
+
+    end
+
+end
+@enduml

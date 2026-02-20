@@ -1,6 +1,18 @@
-flowchart LR
-    User[User] --> Login[Login with Email/Password]
-    Login --> Validate[Validate Credentials]
-    Validate -->|Valid| Session[Create Session]
-    Session --> Dashboard[Access Dashboard]
-    Validate -->|Invalid| Error[Show Login Error]
+@startuml
+skinparam shadowing false
+
+start
+
+:User opens login page;
+:Enter email and password;
+:Submit login form;
+
+if (Credentials valid?) then (No)
+  :Show login error;
+else (Yes)
+  :Create JWT session;
+  :Redirect to dashboard;
+endif
+
+stop
+@enduml
