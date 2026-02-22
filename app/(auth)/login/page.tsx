@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
+import LightRays from "@/components/LightRays";
 
 export default function Login() {
   // -------------------------------------------------------------------
@@ -39,8 +40,23 @@ export default function Login() {
     // - `h-screen` : prend toute la hauteur du viewport
     // - `bg-[url('/background2.jpg')]` : image de fond principale
     // - `overflow-hidden` : évite les barres de scroll causées par effets visuels
-    <div className="relative flex h-screen w-full items-center justify-center bg-[url('/background2.jpg')] bg-cover bg-center p-4 overflow-hidden">
-      
+    <div className="relative flex h-screen w-full items-center justify-center bg-black p-4 overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#ffffff"
+          raysSpeed={0.8}
+          lightSpread={0.6}
+          rayLength={1}
+          pulsating={false}
+          fadeDistance={1}
+          saturation={1}
+          followMouse
+          mouseInfluence={0.2}
+          noiseAmount={0}
+          distortion={0}
+        />
+      </div>
 
       {/* CARTE PRINCIPALE */}
       {/*
@@ -53,7 +69,23 @@ export default function Login() {
         - h-[85vh] + min-h-[600px] : équilibre entre densité visuelle et lisibilité
         - rounded-[40px] + shadow-2xl : style "glass card" premium
       */}
-      <div className="flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] font-sans">
+      <div className="relative z-10 flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] font-sans">
+        <div className="absolute inset-0 pointer-events-none">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={0.8}
+            lightSpread={0.6}
+            rayLength={1}
+            pulsating={false}
+            fadeDistance={1}
+            saturation={1}
+            followMouse
+            mouseInfluence={0.2}
+            noiseAmount={0}
+            distortion={0}
+          />
+        </div>
         
         {/* SECTION GAUCHE */}
         {/*
@@ -61,38 +93,33 @@ export default function Login() {
           - cachée sur mobile (`hidden md:flex`) pour prioriser le formulaire
           - visible dès `md` pour enrichir l'identité visuelle
         */}
-        <div className="hidden md:flex md:w-1/2 flex-col justify-between bg-[url('/background2.jpg')] bg-cover bg-center p-12 relative">
-          {/*
-            Overlay gradient sombre :
-            améliore le contraste du texte blanc sur image photo.
-          */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none" />
+        <div className="hidden md:flex md:w-1/2 flex-col justify-between bg-transparent p-12 relative overflow-hidden">
           
           {/* Badge marque en haut */}
           <div className="relative z-10 flex items-center gap-3">
-            <span className="text-xs font-bold tracking-widest uppercase text-white brightness-150">
+            <span className="text-xs font-bold tracking-widest uppercase [.theme-light_&]:text-black [.theme-dark_&]:text-white">
               InsureVision AI
             </span>
-            <div className="h-[1px] w-12 bg-white/50"></div>
+            <div className="h-[1px] w-12 [.theme-light_&]:bg-black/50 [.theme-dark_&]:bg-white/50"></div>
           </div>
 
           {/* Message marketing principal */}
           <div className="relative z-10 mb-4">
-            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-white brightness-125">
+            <h1 className="text-5xl font-serif italic leading-tight mb-4 [.theme-light_&]:text-black [.theme-dark_&]:text-white">
               Smart<br />Damage<br />Estimation
             </h1>
-            <p className="text-sm text-white/80 font-light leading-relaxed max-w-xs">
+            <p className="text-sm font-light leading-relaxed max-w-xs [.theme-light_&]:text-black/80 [.theme-dark_&]:text-white/80">
               Upload detailed car photos and let our AI generate accurate repair costs in seconds.
             </p>
             
             {/* Mini preuve sociale (avatars stylisés + claim) */}
             <div className="mt-6 flex items-center gap-3 opacity-90">
                 <div className="flex -space-x-2">
-                    <div className="h-6 w-6 rounded-full border border-white bg-gray-500"></div>
-                    <div className="h-6 w-6 rounded-full border border-white bg-gray-400"></div>
-                    <div className="h-6 w-6 rounded-full border border-white bg-gray-300"></div>
+                    <div className="h-6 w-6 rounded-full border [.theme-light_&]:border-black/30 [.theme-dark_&]:border-white bg-gray-500"></div>
+                    <div className="h-6 w-6 rounded-full border [.theme-light_&]:border-black/30 [.theme-dark_&]:border-white bg-gray-400"></div>
+                    <div className="h-6 w-6 rounded-full border [.theme-light_&]:border-black/30 [.theme-dark_&]:border-white bg-gray-300"></div>
                 </div>
-                <span className="text-[10px] font-semibold tracking-wide uppercase text-white/70">
+                <span className="text-[10px] font-semibold tracking-wide uppercase [.theme-light_&]:text-black/70 [.theme-dark_&]:text-white/70">
                   Trusted by Top Insurers
                 </span>
             </div>
