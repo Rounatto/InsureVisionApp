@@ -1,5 +1,5 @@
 // =====================================================
-// PAGE D'ACCUEIL - INSURE VISION AI
+// PAGE D'ACCUEIL - INSURE VISION AI 
 // =====================================================
 // GUIDE DE LECTURE (ordre conseillé pour comprendre) :
 // 1) Imports (quels blocs externes on utilise)

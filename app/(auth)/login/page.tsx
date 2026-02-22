@@ -12,10 +12,11 @@
 // 1) Email + mot de passe
 // 2) Google OAuth (bouton social)
 //
-// NOTE IMPORTANTE :
-// Cette version est principalement orientée UI/UX.
-// Les champs sont visuels mais ne déclenchent pas encore un submit API complet
-// (contrairement à la page register qui a déjà une logique d'envoi).
+// ÉTAT ACTUEL :
+// - L'interface est complète côté UX.
+// - Le bouton Google est prêt à être branché sur `signIn("google")`.
+// - Le submit Email/Mot de passe reste à connecter à `signIn("credentials")`
+//   pour finaliser le flux de login local.
 
 import Link from "next/link";
 import { useState } from "react";
@@ -230,7 +231,7 @@ export default function Login() {
           */}
           <div className="flex-none text-center pb-2 pt-4">
             <p className="text-xs text-[color:var(--muted-foreground)]">
-              Don&apos;t have an account?{" "}
+              Don't have an account ?{" "}
               <Link href="/register" className="font-bold text-[color:var(--foreground)] hover:underline">
                 Sign Up
               </Link>

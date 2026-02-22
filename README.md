@@ -1,5 +1,30 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Ordre de lecture du projet (A → Z)
+
+Si tu veux comprendre toutes les pages et le flux complet sans te perdre, lis dans cet ordre :
+
+1. `app/layout.tsx`
+	- Comprendre la structure globale (HTML, fonts, CSS global).
+2. `app/page.tsx`
+	- Comprendre la landing page (navigation, sections marketing, CTA).
+3. `app/(auth)/register/page.tsx`
+	- Comprendre le formulaire d'inscription côté client et l'appel API.
+4. `app/api/auth/register/route.ts`
+	- Comprendre la validation, le hash du mot de passe, la création DB.
+5. `config/auth.ts`
+	- Comprendre la configuration NextAuth (Google + Credentials, session JWT).
+6. `app/api/auth/[...nextauth]/route.ts`
+	- Comprendre comment NextAuth expose ses endpoints API.
+7. `app/(auth)/login/page.tsx`
+	- Comprendre l'UI login actuelle et les points d'intégration auth à finaliser.
+
+Fichiers support utiles après ce parcours :
+
+- `lib/validations/auth.ts` (règles Zod)
+- `types/auth.ts` (contrats de réponses API)
+- `config/db.ts` + `prisma/schema.prisma` (modèle de données)
+
 ## Getting Started
 
 First, run the development server:
