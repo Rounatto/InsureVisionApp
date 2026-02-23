@@ -180,7 +180,7 @@ export default function Home() {
                * - text-foreground : Couleur du texte par défaut (noir en light, blanc en dark)
                * - border-gray-300 dark:border-gray-700 : Bordure adaptée au thème
                */}
-              <button className="px-8 py-4 rounded-lg border-2 border-gray-300 dark:border-gray-700 text-foreground font-semibold hover:bg-gray-900 hover:text-white dark:hover:bg-gray-800 transition">
+              <button className="px-8 py-4 rounded-lg border-2 border-gray-300 dark:border-gray-700 text-black dark:text-white font-semibold hover:bg-gray-900 hover:text-white dark:hover:bg-gray-800 transition">
                 Learn More
               </button>
             </div>
