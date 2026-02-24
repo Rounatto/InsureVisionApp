@@ -109,12 +109,10 @@ export default function Home() {
     setResult(null);
 
     try {
-      const formData = new FormData();
-      files.forEach((f) => formData.append("photos", f.file));
-
       const res = await fetch("/api/estimate", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoCount: files.length }),
       });
 
       if (!res.ok) {

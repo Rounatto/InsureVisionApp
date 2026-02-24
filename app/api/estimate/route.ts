@@ -5,12 +5,14 @@ import crypto from "crypto";
 /**
  * POST /api/estimate
  *
- * Accepts multipart form data with "photos" field.
- * Currently returns a MOCK estimation result.
+ * Currently accepts JSON with { photoCount } and returns a MOCK result.
+ * Photos are validated client-side only during mock mode.
  *
- * TODO: Replace with real AI model call once the team's
- * custom model is deployed. The expected integration point
- * is marked below with "AI_MODEL_CALL".
+ * TODO (when model is ready):
+ * 1. Switch back to multipart FormData with actual photo files.
+ * 2. Upload photos to Supabase Storage (not server FS — Vercel is ephemeral).
+ * 3. Pass Supabase Storage URLs to the AI model for analysis.
+ * 4. Replace mock result with real model output.
  */
 export async function POST(req: Request) {
   try {
@@ -20,52 +22,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse form data
-    const formData = await req.formData();
-    const photos = formData.getAll("photos") as File[];
+    const body = await req.json();
+    const photoCount = body.photoCount;
 
-    if (!photos.length) {
+    if (!photoCount || typeof photoCount !== "number" || photoCount < 1) {
       return NextResponse.json(
         { error: "At least one photo is required." },
         { status: 400 }
       );
     }
 
-    if (photos.length > 8) {
+    if (photoCount > 8) {
       return NextResponse.json(
         { error: "Maximum 8 photos allowed." },
         { status: 400 }
       );
     }
 
-    // Validate each file
-    const allowedTypes = ["image/png", "image/jpeg"];
-    const maxSize = 10 * 1024 * 1024; // 10MB
-
-    for (const photo of photos) {
-      if (!allowedTypes.includes(photo.type)) {
-        return NextResponse.json(
-          { error: `Invalid file type: ${photo.name}. Only PNG and JPG are accepted.` },
-          { status: 400 }
-        );
-      }
-      if (photo.size > maxSize) {
-        return NextResponse.json(
-          { error: `File too large: ${photo.name}. Maximum size is 10MB.` },
-          { status: 400 }
-        );
-      }
-    }
-
     // ────────────────────────────────────────────────────────────
     // AI_MODEL_CALL: Replace the mock below with the real model.
     //
-    // Expected input:  photos (File[])
-    // Expected output: { parts: [...], totalCost, summary }
+    // When the model is ready:
+    //   1. Accept FormData with photos instead of JSON.
+    //   2. Upload each photo to Supabase Storage:
+    //        const { data } = await supabase.storage
+    //          .from('damage-photos')
+    //          .upload(`${userId}/${estimateId}/${file.name}`, file);
+    //   3. Pass the public URLs to the model.
+    //   4. Return real analysis result.
     // ────────────────────────────────────────────────────────────
-
-    // Simulate processing delay (1–2s)
-    await new Promise((r) => setTimeout(r, 1200 + Math.random() * 800));
 
     // Mock estimation result
     const mockParts = [
@@ -88,7 +73,7 @@ export async function POST(req: Request) {
       id: `EST-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
       totalCost,
       parts: selectedParts,
-      summary: `Based on ${photos.length} uploaded photo${photos.length > 1 ? "s" : ""}, we detected damage to ${count} component${count > 1 ? "s" : ""}. This is a preliminary estimate — final costs may vary after physical inspection.`,
+      summary: `Based on ${photoCount} uploaded photo${photoCount > 1 ? "s" : ""}, we detected damage to ${count} component${count > 1 ? "s" : ""}. This is a preliminary estimate — final costs may vary after physical inspection.`,
     };
 
     return NextResponse.json(result);
