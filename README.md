@@ -47,8 +47,8 @@ Create a `.env` file in the project root:
 ```env
 DATABASE_URL="postgresql://user:password@host:5432/insurevision"
 AUTH_SECRET="your-random-secret"
-AUTH_GOOGLE_ID="your-google-client-id"
-AUTH_GOOGLE_SECRET="your-google-client-secret"
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
 ```
 
 ### Install & Run
