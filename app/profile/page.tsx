@@ -28,6 +28,9 @@ export default function ProfilePage() {
   const [pwdError, setPwdError] = useState("");
   const [pwdSuccess, setPwdSuccess] = useState("");
 
+  // Activity stats
+  const [stats, setStats] = useState<{ estimates: number; photos: number } | null>(null);
+
   // Delete account
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -37,6 +40,17 @@ export default function ProfilePage() {
   useEffect(() => {
     if (session?.user?.name) setName(session.user.name);
   }, [session]);
+
+  // Fetch activity stats
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const res = await fetch("/api/auth/stats");
+        if (res.ok) setStats(await res.json());
+      } catch { /* ignore */ }
+    }
+    loadStats();
+  }, []);
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -235,16 +249,18 @@ export default function ProfilePage() {
 
         <div className="flex gap-12 mb-4">
           <div>
-            <p className="text-2xl font-bold text-[color:var(--foreground)]">0</p>
+            <p className="text-2xl font-bold text-[color:var(--foreground)]">{stats?.estimates ?? "—"}</p>
             <p className="text-xs text-[color:var(--muted-foreground)]">Estimates</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-[color:var(--foreground)]">0</p>
+            <p className="text-2xl font-bold text-[color:var(--foreground)]">{stats?.photos ?? "—"}</p>
             <p className="text-xs text-[color:var(--muted-foreground)]">Photos</p>
           </div>
         </div>
 
-        <p className="text-xs text-[color:var(--muted-foreground)]">No activity yet — your estimation history will appear here.</p>
+        {stats !== null && stats.estimates === 0 && (
+          <p className="text-xs text-[color:var(--muted-foreground)]">No activity yet — your estimation history will appear here.</p>
+        )}
 
         <div className="border-b border-[color:var(--border)] my-10" />
 
