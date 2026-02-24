@@ -12,7 +12,7 @@ import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 const INPUT_CLASSES = "w-full rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm text-[color:var(--foreground)] outline-none focus:border-[color:var(--foreground)] transition-colors";
 
 export default function ProfilePage() {
-  const { data: session, update: updateSession } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
 
   // Profile fields
   const [name, setName] = useState("");
@@ -124,7 +124,7 @@ export default function ProfilePage() {
 
         {/* ─── Header ─────────────────────────────────────────── */}
         <div className="flex items-center gap-5 mb-12">
-          <UserAvatar name={session?.user?.name} size="h-16 w-16" textSize="text-2xl" />
+          <UserAvatar name={session?.user?.name} loading={status === "loading"} size="h-16 w-16" textSize="text-2xl" />
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{session?.user?.name || "User"}</h1>
             <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Member since February 2026</p>
@@ -249,7 +249,7 @@ export default function ProfilePage() {
         <div className="border-b border-[color:var(--border)] my-10" />
 
         {/* ─── Danger Zone ────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-red-500">Delete Account</p>
             <p className="text-xs text-[color:var(--muted-foreground)] mt-1">Permanently remove your account and all data.</p>
@@ -260,7 +260,7 @@ export default function ProfilePage() {
           <button
             onClick={() => setShowDeleteConfirm(true)}
             disabled={deleting}
-            className="shrink-0 rounded-full border border-red-500 px-5 py-2 text-sm font-medium text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="shrink-0 self-start rounded-full border border-red-500 px-5 py-2 text-sm font-medium text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {deleting ? "Deleting…" : "Delete"}
           </button>
