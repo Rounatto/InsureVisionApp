@@ -1,28 +1,23 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
 import bcrypt from "bcrypt";
 
+import authConfig from "@/config/auth.config";
 import { db } from "@/config/db";
 import { loginSchema } from "@/lib/validations/auth";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(db),
   session: {
     strategy: "jwt",
   },
-  pages: {
-    signIn: "/login",
-  },
   providers: [
-    // ─── Google OAuth ──────────────────────────────────────────────────
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+    // Google comes from the base config
+    ...authConfig.providers,
 
-    // ─── Email / Password ──────────────────────────────────────────────
+    // ─── Email / Password (needs Prisma + bcrypt — not Edge-safe) ─────
     Credentials({
       name: "credentials",
       credentials: {
@@ -54,6 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;

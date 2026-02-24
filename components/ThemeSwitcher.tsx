@@ -1,13 +1,13 @@
 "use client"
 
-import * as React from "react"
+import { useState, useCallback, useEffect } from "react"
 
 const THEME_STORAGE_KEY = "insurevision-theme"
 
-export function ThemeSwitcher() {
-  const [mode, setMode] = React.useState<"light" | "dark">("light")
+export default function ThemeSwitcher() {
+  const [mode, setMode] = useState<"light" | "dark">("light")
 
-  const applyMode = React.useCallback((nextMode: "light" | "dark") => {
+  const applyMode = useCallback((nextMode: "light" | "dark") => {
     const root = document.documentElement
     root.classList.remove("theme-light", "theme-dark")
     let themeClass;
@@ -31,7 +31,7 @@ export function ThemeSwitcher() {
     localStorage.setItem(THEME_STORAGE_KEY, nextMode)
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     const storedMode = localStorage.getItem(THEME_STORAGE_KEY) as "light" | "dark" | null
     let preferredMode: "light" | "dark";
     if (storedMode !== null) {

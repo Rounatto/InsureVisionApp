@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
 import { db } from "@/config/db";
@@ -6,7 +6,7 @@ import { registerSchema } from "@/lib/validations/auth";
 import { SALT_ROUNDS } from "@/lib/constants";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     // 1. Parse request body
     const body = await req.json();

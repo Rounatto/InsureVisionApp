@@ -1,7 +1,3 @@
-// components/InsureVisionLogo.tsx
-
-import React from 'react';
-
 export default function InsureVisionLogo({ className }: { className?: string }) {
   return (
     <svg

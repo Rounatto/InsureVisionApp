@@ -40,6 +40,7 @@ export default function GoogleButton({
       disabled={disabled || loading}
       className={`flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-[color:var(--secondary-button-bg)] py-4 font-semibold text-[color:var(--secondary-button-text)] hover:bg-gray-50 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
+      <GoogleLogo />
       {loading ? loadingLabel : label}
     </button>
   );

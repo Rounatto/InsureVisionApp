@@ -8,6 +8,8 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import AuthInput from "@/components/auth/AuthInput";
 import GoogleButton from "@/components/auth/GoogleButton";
 import FormError from "@/components/FormError";
+import PrimaryButton from "@/components/PrimaryButton";
+import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 
 export default function Login() {
   const router = useRouter();
@@ -37,7 +39,7 @@ export default function Login() {
 
       router.push("/");
     } catch {
-      setError("Unable to connect to the server. Please try again later.");
+      setError(NETWORK_ERROR_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -89,9 +91,9 @@ export default function Login() {
           </div>
 
           <div className="flex flex-col gap-3 mt-2">
-            <button type="submit" disabled={loading} className="w-full rounded-full bg-[color:var(--foreground)] py-4 font-bold text-[color:var(--background)] text-sm active:scale-95 hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            <PrimaryButton type="submit" disabled={loading}>
               {loading ? "Signing In..." : "Sign In"}
-            </button>
+            </PrimaryButton>
 
             <GoogleButton label="Sign In with Google" disabled={loading} onError={setError} />
           </div>

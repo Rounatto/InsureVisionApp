@@ -5,7 +5,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   
   /* COULEUR DYNAMIQUE : Utilisée pour les boutons, titres et liens */
   --color-primary: hsl(var(--primary));
@@ -38,7 +37,7 @@
 }
 
 .theme-dark {
-  --background: #0b0b0f;
+  --background: #000000;
   --foreground: #ffffff;
   --card:  rgb(0, 0, 0);
   --card-foreground: #ffffff;
@@ -57,7 +56,7 @@
 /* Fallback to system preference when no explicit theme class exists */
 @media (prefers-color-scheme: dark) {
   :root:not(.theme-light):not(.theme-dark) {
-    --background: #0b0b0f;
+    --background: #000000;
     --foreground: #ffffff;
     --card: #101217;
     --card-foreground: #ffffff;

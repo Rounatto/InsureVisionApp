@@ -5,7 +5,7 @@ import { type ReactNode } from "react";
  */
 export default function SectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="text-xs font-bold uppercase tracking-widest text-[color:var(--muted-foreground)] mb-6">
+    <h2 className="text-xs font-bold uppercase tracking-widest text-[color:var(--muted-foreground)] mb-4">
       {children}
     </h2>
   );

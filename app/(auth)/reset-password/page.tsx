@@ -6,6 +6,11 @@ import Link from "next/link";
 import AuthLayout from "@/components/auth/AuthLayout";
 import AuthInput from "@/components/auth/AuthInput";
 import FormError from "@/components/FormError";
+import PrimaryButton from "@/components/PrimaryButton";
+import AuthSuccess from "@/components/auth/AuthSuccess";
+import { AuthSuccessLink } from "@/components/auth/AuthSuccess";
+import { CheckCircleIcon } from "@/lib/icons";
+import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -44,7 +49,7 @@ function ResetPasswordForm() {
 
       setSuccess(true);
     } catch {
-      setError("Unable to connect to the server. Please try again later.");
+      setError(NETWORK_ERROR_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -67,23 +72,14 @@ function ResetPasswordForm() {
   if (success) {
     return (
       <div className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto text-center">
-        <div className="mb-6">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-green-600">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-[color:var(--foreground)] mb-2">Password Reset!</h1>
-          <p className="text-xs text-[color:var(--muted-foreground)]">
-            Your password has been successfully reset. You can now sign in with your new password.
-          </p>
-        </div>
-        <Link
-          href="/login"
-          className="w-full rounded-full bg-[color:var(--foreground)] py-4 font-bold text-[color:var(--background)] text-sm active:scale-95 hover:opacity-90 cursor-pointer text-center block"
-        >
-          Sign In
-        </Link>
+        <AuthSuccess
+          icon={<CheckCircleIcon className="w-8 h-8 text-green-600" strokeWidth={2} />}
+          title="Password Reset!"
+          description="Your password has been successfully reset. You can now sign in with your new password."
+          action={
+            <AuthSuccessLink href="/login">Sign In</AuthSuccessLink>
+          }
+        />
       </div>
     );
   }
@@ -106,9 +102,9 @@ function ResetPasswordForm() {
           Password must be at least 8 characters with uppercase, lowercase, and a number.
         </p>
 
-        <button type="submit" disabled={loading} className="w-full rounded-full bg-[color:var(--foreground)] py-4 font-bold text-[color:var(--background)] text-sm active:scale-95 hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+        <PrimaryButton type="submit" disabled={loading}>
           {loading ? "Resetting..." : "Reset Password"}
-        </button>
+        </PrimaryButton>
       </div>
     </form>
   );

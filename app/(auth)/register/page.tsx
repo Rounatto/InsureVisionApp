@@ -6,6 +6,8 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import AuthInput from "@/components/auth/AuthInput";
 import GoogleButton from "@/components/auth/GoogleButton";
 import FormError from "@/components/FormError";
+import PrimaryButton from "@/components/PrimaryButton";
+import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 import type { ErrorResponse, RegisterResponse } from "@/types/auth";
 
 export default function Register() {
@@ -49,7 +51,7 @@ export default function Register() {
 
       setGeneralError(data.message || "Something went wrong. Please try again.");
     } catch {
-      setGeneralError("Unable to connect to the server. Please try again later.");
+      setGeneralError(NETWORK_ERROR_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -99,9 +101,9 @@ export default function Register() {
           </div>
 
           <div className="flex flex-col gap-2.5 mt-2">
-            <button type="submit" disabled={loading} className="w-full rounded-full bg-[color:var(--foreground)] py-3.5 font-bold text-[color:var(--background)] text-sm active:scale-95 hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            <PrimaryButton type="submit" size="md" disabled={loading}>
               {loading ? "Creating Account..." : "Create Account"}
-            </button>
+            </PrimaryButton>
 
             <GoogleButton label="Sign up with Google" disabled={loading} onError={setGeneralError} className="py-3.5 text-xs" />
           </div>
