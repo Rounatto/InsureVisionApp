@@ -257,7 +257,7 @@ export default function Home() {
               disabled={submitting}
               className="w-full rounded-full bg-[color:var(--foreground)] py-3.5 text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? "Analyzing…" : "Get Damage Estimate"}
+              {submitting ? "Uploading & Analyzing…" : "Get Damage Estimate"}
             </button>
           </div>
         )}
