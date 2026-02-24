@@ -16,11 +16,13 @@ export default function UserAvatar({
   className = "",
   loading = false,
 }: UserAvatarProps) {
+  const showLetter = !loading && name !== undefined;
+
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-full bg-[color:var(--muted)] border border-[color:var(--border)] font-bold text-[color:var(--foreground)] ${size} ${textSize} ${className} ${loading ? "animate-pulse" : ""}`}
+      className={`flex shrink-0 items-center justify-center rounded-full bg-[color:var(--muted)] border border-[color:var(--border)] font-bold text-[color:var(--foreground)] select-none ${size} ${textSize} ${className} ${loading ? "animate-pulse" : ""}`}
     >
-      {loading ? "" : (name || "U").charAt(0).toUpperCase()}
+      {showLetter ? (name || "U").charAt(0).toUpperCase() : ""}
     </div>
   );
 }

@@ -4,48 +4,42 @@ import { useState, useCallback, useEffect } from "react"
 
 const THEME_STORAGE_KEY = "insurevision-theme"
 
+/**
+ * Reads the current theme from the DOM class list.
+ * The blocking <script> in layout.tsx ensures the class is set before React hydrates.
+ */
+function getActiveTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.classList.contains("theme-dark") ? "dark" : "light";
+}
+
 export default function ThemeSwitcher() {
   const [mode, setMode] = useState<"light" | "dark">("light")
+  const [mounted, setMounted] = useState(false)
 
   const applyMode = useCallback((nextMode: "light" | "dark") => {
     const root = document.documentElement
     root.classList.remove("theme-light", "theme-dark")
-    let themeClass;
-    if (nextMode === "dark") {
-      themeClass = "theme-dark";
-    } else {
-      themeClass = "theme-light";
-    }
-    root.classList.add(themeClass)
+    root.classList.add(nextMode === "dark" ? "theme-dark" : "theme-light")
+  }, [])
+
+  // Sync React state with what the blocking script already applied
+  useEffect(() => {
+    setMode(getActiveTheme())
+    setMounted(true)
   }, [])
 
   const toggleMode = () => {
-    let nextMode: "light" | "dark";
-    if (mode === "dark") {
-      nextMode = "light";
-    } else {
-      nextMode = "dark";
-    }
+    const nextMode = mode === "dark" ? "light" : "dark"
     setMode(nextMode)
     applyMode(nextMode)
     localStorage.setItem(THEME_STORAGE_KEY, nextMode)
   }
 
-  useEffect(() => {
-    const storedMode = localStorage.getItem(THEME_STORAGE_KEY) as "light" | "dark" | null
-    let preferredMode: "light" | "dark";
-    if (storedMode !== null) {
-      preferredMode = storedMode;
-    } else {
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        preferredMode = "dark";
-      } else {
-        preferredMode = "light";
-      }
-    }
-    setMode(preferredMode)
-    applyMode(preferredMode)
-  }, [applyMode])
+  // Render nothing until mounted to avoid icon mismatch
+  if (!mounted) {
+    return <div className="h-8 w-8" />
+  }
 
   return (
     <button
