@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -208,7 +207,7 @@ export default function Login() {
           {/* SIGN UP LINK */}
           <div className="flex-none text-center pb-2 pt-4">
             <p className="text-xs text-[color:var(--muted-foreground)]">
-              Don&apos;t have an account?{" "}
+              Don&apos;t have an account ?{" "}
               <Link href="/register" className="font-bold text-[color:var(--foreground)] hover:underline">
                 Sign Up
               </Link>
@@ -219,4 +218,5 @@ export default function Login() {
     </div>
   );
 }
+
 

@@ -1,5 +1,5 @@
 // =====================================================
-// PAGE D'ACCUEIL - INSURE VISION AI
+// PAGE D'ACCUEIL - INSURE VISION AI 
 // =====================================================
 // GUIDE DE LECTURE (ordre conseillé pour comprendre) :
 // 1) Imports (quels blocs externes on utilise)
@@ -180,7 +180,7 @@ export default function Home() {
                * - text-foreground : Couleur du texte par défaut (noir en light, blanc en dark)
                * - border-gray-300 dark:border-gray-700 : Bordure adaptée au thème
                */}
-              <button className="px-8 py-4 rounded-lg border-2 border-gray-300 dark:border-gray-700 text-foreground font-semibold hover:bg-gray-900 hover:text-white dark:hover:bg-gray-800 transition">
+              <button className="px-8 py-4 rounded-lg border-2 border-gray-300 dark:border-gray-700 text-black dark:text-white font-semibold hover:bg-gray-900 hover:text-white dark:hover:bg-gray-800 transition">
                 Learn More
               </button>
             </div>
@@ -201,7 +201,7 @@ export default function Home() {
       <section className="bg-gray-50 dark:bg-gray-900 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Titre de la section */}
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">How does it work?</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4 text-gray-900 dark:text-white">How does it work?</h2>
           {/* Sous-titre explicatif */}
           <p className="text-center text-gray-700 dark:text-gray-300 mb-16 max-w-2xl mx-auto">
             Three simple steps to get a reliable estimate in less than a minute.
@@ -215,7 +215,7 @@ export default function Home() {
               <div className="w-20 h-20 mx-auto bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-6 text-4xl">
                 📸
               </div>
-              <h3 className="text-xl font-bold mb-3">Take a Photo</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">Take a Photo</h3>
               <p className="text-gray-700 dark:text-gray-300">
                 Photograph the damage to your vehicle from different angles for a complete analysis.
               </p>
@@ -227,7 +227,7 @@ export default function Home() {
               <div className="w-20 h-20 mx-auto bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-6 text-4xl">
                 🤖
               </div>
-              <h3 className="text-xl font-bold mb-3">AI Analyzes</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">AI Analyzes</h3>
               <p className="text-gray-700 dark:text-gray-300">
                 Our artificial intelligence examines the images and evaluates the extent of the damage in depth.
               </p>
@@ -239,7 +239,7 @@ export default function Home() {
               <div className="w-20 h-20 mx-auto bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-6 text-4xl">
                 💰
               </div>
-              <h3 className="text-xl font-bold mb-3">Get an Estimate</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">Get an Estimate</h3>
               <p className="text-gray-700 dark:text-gray-300">
                 Receive a detailed report with the estimated repair cost and affected parts.
               </p>
@@ -266,7 +266,7 @@ export default function Home() {
             {/* Texte descriptif */}
             <div>
               <h3 className="text-xl font-bold mb-2">Fast</h3>
-              <p className="text-gray-700 dark:text-gray-300">
+              <p className="text-gray-900 dark:text-gray-400 font-medium leading-relaxed">
                 Get an estimate in less than a minute without having to visit a garage.
               </p>
             </div>
@@ -281,7 +281,7 @@ export default function Home() {
             </div>
             <div>
               <h3 className="text-xl font-bold mb-2">Accurate</h3>
-              <p className="text-gray-700 dark:text-gray-300">
+              <p className="text-gray-900 dark:text-gray-400 font-medium leading-relaxed">
                 Thanks to advanced AI, our estimates have exceptional accuracy compared to traditional methods.
               </p>
             </div>
@@ -296,7 +296,7 @@ export default function Home() {
             </div>
             <div>
               <h3 className="text-xl font-bold mb-2">Secure</h3>
-              <p className="text-gray-700 dark:text-gray-300">
+              <p className="text-gray-900 dark:text-gray-400">
                 Your data is encrypted and protected. No sharing without your consent.
               </p>
             </div>
@@ -311,7 +311,7 @@ export default function Home() {
             </div>
             <div>
               <h3 className="text-xl font-bold mb-2">Available 24/7</h3>
-              <p className="text-gray-700 dark:text-gray-300">
+              <p className="text-gray-900 dark:text-gray-400">
                 Available on all devices, anytime, anywhere for your insurance needs.
               </p>
             </div>

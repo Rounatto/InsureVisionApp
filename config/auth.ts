@@ -13,10 +13,12 @@ const THIRTY_DAYS_IN_SECONDS = ONE_DAY_IN_SECONDS * 30;
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: db ? PrismaAdapter(db) : undefined,
   session: {
+    // JWT : pas de table session requise pour stocker l'état de session serveur
     strategy: "jwt",
     maxAge: THIRTY_DAYS_IN_SECONDS,
   },
   pages: {
+    // Redirige les utilisateurs non authentifiés vers la page login custom
     signIn: "/login",
   },
   providers: [
@@ -43,15 +45,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { email, password } = parsed.data;
         const remember = credentials?.remember === "true";
 
+        // 2) Recherche utilisateur par email
         const user = await db.user.findUnique({
           where: { email },
         });
 
+        // Refuse si compte absent ou sans mot de passe local (ex: OAuth only)
         if (!user || !user.password) return null;
 
+        // 3) Vérification du hash bcrypt
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) return null;
 
+        // 4) Objet utilisateur minimal injecté dans le flux NextAuth
         return {
           id: user.id,
           name: user.name,
@@ -64,6 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async session({ session, token }) {
+      // Expose l'ID utilisateur dans `session.user.id` côté client/serveur
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
@@ -86,3 +93,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+

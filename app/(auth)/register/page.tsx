@@ -21,6 +21,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
+import LightRays from "@/components/LightRays";
 import type { ErrorResponse, RegisterResponse } from "@/types/auth";
 
 export default function Register() {
@@ -115,41 +116,70 @@ export default function Register() {
 
   return (
     // Conteneur plein écran, centré, avec image de fond
-    <div className="relative flex h-screen w-full items-center justify-center bg-[url('/background2.jpg')] bg-cover bg-center p-4 overflow-hidden">
-      
+    <div className="relative flex h-screen w-full items-center justify-center bg-black p-4 overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#ffffff"
+          raysSpeed={0.8}
+          lightSpread={0.6}
+          rayLength={1}
+          pulsating={false}
+          fadeDistance={1}
+          saturation={1}
+          followMouse
+          mouseInfluence={0.2}
+          noiseAmount={0}
+          distortion={0}
+        />
+      </div>
 
       {/* CARTE PRINCIPALE */}
-      <div className="flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] text-[color:var(--card-foreground)] font-sans">
+      <div className="relative z-10 flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] text-[color:var(--card-foreground)] font-sans">
+        <div className="absolute inset-0 pointer-events-none">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={0.8}
+            lightSpread={0.6}
+            rayLength={1}
+            pulsating={false}
+            fadeDistance={1}
+            saturation={1}
+            followMouse
+            mouseInfluence={0.2}
+            noiseAmount={0}
+            distortion={0}
+          />
+        </div>
         
         {/* SECTION GAUCHE (Texte dynamique avec sécurité contraste) */}
-        <div className="hidden md:flex md:w-1/2 flex-col justify-between bg-[url('/background2.jpg')] bg-cover bg-center p-12 relative">
-          
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+        <div className="hidden md:flex md:w-1/2 flex-col justify-between bg-transparent p-12 relative overflow-hidden">
           
           {/* HAUT : Branding (Dynamic text) */}
           <div className="relative z-10 flex items-center gap-3">
-            <span className="text-xs font-bold tracking-widest uppercase text-white brightness-150">
+            <span className="text-xs font-bold tracking-widest uppercase [.theme-light_&]:text-black [.theme-dark_&]:text-white">
               InsureVision AI
             </span>
-            <div className="h-[1px] w-12 bg-white/50"></div>
+            <div className="h-[1px] w-12 [.theme-light_&]:bg-black/50 [.theme-dark_&]:bg-white/50"></div>
           </div>
 
           {/* BAS : Titre et Témoignage */}
           <div className="relative z-10 mb-4">
-            <h1 className="text-5xl font-serif italic leading-tight mb-4 text-white brightness-125">
+            <h1 className="text-5xl font-serif italic leading-tight mb-4 [.theme-light_&]:text-black [.theme-dark_&]:text-white">
               Accelerate<br />Your Claims<br />Processing
             </h1>
             
             {/* Carte de témoignage teintée par la couleur dynamique */}
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl max-w-xs">
-                <p className="text-sm leading-relaxed mb-3 text-white/90 italic">
-                    "InsureVision has saved our adjusters 40% of their time."
+            <div className="backdrop-blur-md p-4 rounded-2xl max-w-xs [.theme-light_&]:bg-black/5 [.theme-light_&]:border [.theme-light_&]:border-black/10 [.theme-dark_&]:bg-white/10 [.theme-dark_&]:border [.theme-dark_&]:border-white/20">
+              <p className="text-sm leading-relaxed mb-3 italic [.theme-light_&]:text-black/90 [.theme-dark_&]:text-white/90">
+                    &quot;InsureVision has saved our adjusters 40% of their time.&quot;
                 </p>
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-400 border border-white/50" />
+                <div className="w-8 h-8 rounded-full bg-gray-400 border [.theme-light_&]:border-black/30 [.theme-dark_&]:border-white/50" />
                     <div>
-                        <p className="text-xs font-bold text-white">Sari Parantainen</p>
-                        <p className="text-[10px] text-white/60">Claims Director</p>
+                  <p className="text-xs font-bold [.theme-light_&]:text-black [.theme-dark_&]:text-white">Sari Parantainen</p>
+                  <p className="text-[10px] [.theme-light_&]:text-black/60 [.theme-dark_&]:text-white/60">Claims Director</p>
                     </div>
                 </div>
             </div>
