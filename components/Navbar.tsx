@@ -7,7 +7,7 @@ import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
-import { UserIcon } from "@/lib/icons";
+import { UserIcon, ClockIcon } from "@/lib/icons";
 
 export default function Navbar() {
   const router = useRouter();
@@ -58,6 +58,13 @@ export default function Navbar() {
 
                 {/* Menu items */}
                 <div className="py-1.5">
+                  <button
+                    onClick={() => { setProfileOpen(false); router.push("/history"); }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
+                  >
+                    <ClockIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
+                    History
+                  </button>
                   <button
                     onClick={() => { setProfileOpen(false); router.push("/profile"); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"

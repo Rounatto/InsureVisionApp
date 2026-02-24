@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/config/auth";
+import { db } from "@/config/db";
 import { getSupabaseAdmin } from "@/config/supabase";
 import crypto from "crypto";
 
@@ -125,6 +126,24 @@ export async function POST(req: Request) {
       photos: uploadedUrls,
       summary: `Based on ${photos.length} uploaded photo${photos.length > 1 ? "s" : ""}, we detected damage to ${count} component${count > 1 ? "s" : ""}. This is a preliminary estimate — final costs may vary after physical inspection.`,
     };
+
+    // Persist estimate to database
+    await db.estimate.create({
+      data: {
+        id: estimateId,
+        userId,
+        summary: result.summary,
+        totalCost,
+        photos: uploadedUrls,
+        parts: {
+          create: selectedParts.map((p) => ({
+            name: p.name,
+            cost: p.cost,
+            severity: p.severity,
+          })),
+        },
+      },
+    });
 
     return NextResponse.json(result);
   } catch (error) {

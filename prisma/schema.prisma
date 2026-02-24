@@ -25,6 +25,7 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  estimates Estimate[]
 }
 
 model Account {
@@ -67,4 +68,28 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ─── Estimation Models ───────────────────────────────────────────────────────
+
+model Estimate {
+  id        String   @id // e.g. "EST-A1B2C3D4"
+  userId    String
+  summary   String   @db.Text
+  totalCost Float
+  photos    String[] // Supabase Storage public URLs
+  createdAt DateTime @default(now())
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parts EstimatePart[]
+}
+
+model EstimatePart {
+  id         String @id @default(cuid())
+  estimateId String
+  name       String
+  cost       Float
+  severity   String // "High" | "Medium" | "Low"
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
 }
