@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/config/db";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -49,15 +50,12 @@ export async function POST(req: Request) {
       },
     });
 
-    // 7. Build reset URL
-    const resetUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/reset-password?token=${token}`;
-
-    // 8. TODO: Send email via Resend / SendGrid / Nodemailer
-    //    For now, log to console so the flow is testable in development
-    console.log("─────────────────────────────────────────");
-    console.log("🔑 Password Reset Link:");
-    console.log(resetUrl);
-    console.log("─────────────────────────────────────────");
+    // 7. Send reset email
+    try {
+      await sendPasswordResetEmail(email, token);
+    } catch (emailError) {
+      console.error("Failed to send reset email:", emailError);
+    }
 
     return NextResponse.json({
       message:

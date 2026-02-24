@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 import { db } from "@/config/db";
 import { registerSchema } from "@/lib/validations/auth";
 import { SALT_ROUNDS } from "@/lib/constants";
+import { sendVerificationEmail } from "@/lib/email";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
@@ -64,11 +66,30 @@ export async function POST(req: Request) {
       },
     });
 
-    // 6. Return success response
+    // 6. Create verification token and send email
+    const token = crypto.randomUUID();
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await db.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires,
+      },
+    });
+
+    try {
+      await sendVerificationEmail(email, token);
+    } catch (emailError) {
+      console.error("[REGISTER_EMAIL_ERROR]", emailError);
+      // User is created but email failed — they can request a new one later
+    }
+
+    // 7. Return success response
     return NextResponse.json<RegisterResponse>(
       {
         success: true,
-        message: "Account created successfully",
+        message: "Account created! Please check your email to verify your account.",
         user: {
           id: user.id,
           name: user.name ?? "",

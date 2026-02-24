@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -11,14 +11,33 @@ import FormError from "@/components/FormError";
 import PrimaryButton from "@/components/PrimaryButton";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 
-export default function Login() {
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <Login />
+    </Suspense>
+  );
+}
+
+function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      setSuccess("Email verified! You can now sign in.");
+    }
+    const err = searchParams.get("error");
+    if (err === "expired-token") setError("Verification link expired. Please register again.");
+    if (err === "invalid-token") setError("Invalid verification link.");
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +52,7 @@ export default function Login() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError("Invalid email or password. If you just registered, check your email to verify your account.");
         return;
       }
 
@@ -74,6 +93,11 @@ export default function Login() {
         </div>
 
         <div className="flex flex-col gap-4">
+          {success && (
+            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+              {success}
+            </div>
+          )}
           <FormError message={error} />
 
           <AuthInput icon="email" id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" disabled={loading} />

@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import AuthLayout from "@/components/auth/AuthLayout";
 import AuthInput from "@/components/auth/AuthInput";
 import GoogleButton from "@/components/auth/GoogleButton";
 import FormError from "@/components/FormError";
 import PrimaryButton from "@/components/PrimaryButton";
+import AuthSuccess from "@/components/auth/AuthSuccess";
+import { CheckCircleIcon } from "@/lib/icons";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 import type { ErrorResponse, RegisterResponse } from "@/types/auth";
 
 export default function Register() {
-  const router = useRouter();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +20,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [generalError, setGeneralError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [registered, setRegistered] = useState(false);
 
   const clearErrors = () => { setGeneralError(""); setFieldErrors({}); };
 
@@ -38,7 +39,7 @@ export default function Register() {
       const data: RegisterResponse | ErrorResponse = await res.json();
 
       if (res.status === 201 && data.success) {
-        router.push("/login");
+        setRegistered(true);
         return;
       }
 
@@ -80,6 +81,20 @@ export default function Register() {
       footer={{ text: "Already have an account?", linkText: "Sign in", href: "/login" }}
       rightClassName="py-4"
     >
+      {registered ? (
+        <div className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
+          <AuthSuccess
+            icon={<CheckCircleIcon className="h-8 w-8 text-green-600" />}
+            title="Check your email"
+            description={`We sent a verification link to ${email}. Click the link to activate your account.`}
+            action={
+              <Link href="/login" className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:underline">
+                Go to Login
+              </Link>
+            }
+          />
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
         <div className="text-center mb-5">
           <h1 className="text-4xl font-bold text-[color:var(--foreground)] mb-2">Create Account</h1>
@@ -109,6 +124,7 @@ export default function Register() {
           </div>
         </div>
       </form>
+      )}
     </AuthLayout>
   );
 }
