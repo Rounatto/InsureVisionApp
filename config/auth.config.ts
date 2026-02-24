@@ -30,11 +30,11 @@ const authConfig = {
 
       // Allow public pages & auth API routes
       if (isPublicPage || isAuthApi) {
-        // Redirect logged-in users away from auth pages (not landing)
+        // Redirect logged-in users away from landing & auth pages to dashboard
         const isAuthPage = ["/login", "/register", "/forgot-password", "/reset-password"].some(
           (p) => nextUrl.pathname === p || nextUrl.pathname.startsWith(p + "/"),
         );
-        if (isLoggedIn && isAuthPage) {
+        if (isLoggedIn && (isAuthPage || nextUrl.pathname === "/")) {
           return Response.redirect(new URL("/dashboard", nextUrl));
         }
         return true;
