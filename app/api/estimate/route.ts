@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/config/auth";
+import { supabaseAdmin } from "@/config/supabase";
 import crypto from "crypto";
+
+const BUCKET = "damage-photos";
+const ALLOWED_TYPES = ["image/png", "image/jpeg"];
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
 /**
  * POST /api/estimate
  *
- * Currently accepts JSON with { photoCount } and returns a MOCK result.
- * Photos are validated client-side only during mock mode.
+ * Accepts multipart FormData with "photos".
+ * Uploads each photo to Supabase Storage, then returns a MOCK estimate.
  *
- * TODO (when model is ready):
- * 1. Switch back to multipart FormData with actual photo files.
- * 2. Upload photos to Supabase Storage (not server FS — Vercel is ephemeral).
- * 3. Pass Supabase Storage URLs to the AI model for analysis.
- * 4. Replace mock result with real model output.
+ * TODO: Replace mock result with real AI model output.
  */
 export async function POST(req: Request) {
   try {
@@ -22,34 +23,81 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const photoCount = body.photoCount;
+    // Parse form data
+    const formData = await req.formData();
+    const photos = formData.getAll("photos") as File[];
 
-    if (!photoCount || typeof photoCount !== "number" || photoCount < 1) {
+    if (!photos.length) {
       return NextResponse.json(
         { error: "At least one photo is required." },
         { status: 400 }
       );
     }
 
-    if (photoCount > 8) {
+    if (photos.length > 8) {
       return NextResponse.json(
         { error: "Maximum 8 photos allowed." },
         { status: 400 }
       );
     }
 
+    // Validate each file
+    for (const photo of photos) {
+      if (!ALLOWED_TYPES.includes(photo.type)) {
+        return NextResponse.json(
+          { error: `Invalid file type: ${photo.name}. Only PNG and JPG are accepted.` },
+          { status: 400 }
+        );
+      }
+      if (photo.size > MAX_SIZE) {
+        return NextResponse.json(
+          { error: `File too large: ${photo.name}. Maximum size is 10MB.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Generate a unique estimate ID
+    const estimateId = `EST-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const userId = session.user.id;
+
+    // Upload photos to Supabase Storage
+    const uploadedUrls: string[] = [];
+
+    for (const photo of photos) {
+      const ext = photo.name.split(".").pop() || "jpg";
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const storagePath = `${userId}/${estimateId}/${fileName}`;
+
+      const buffer = Buffer.from(await photo.arrayBuffer());
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .upload(storagePath, buffer, {
+          contentType: photo.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Supabase upload error:", uploadError);
+        return NextResponse.json(
+          { error: "Failed to upload photos. Please try again." },
+          { status: 500 }
+        );
+      }
+
+      const { data: urlData } = supabaseAdmin.storage
+        .from(BUCKET)
+        .getPublicUrl(storagePath);
+
+      uploadedUrls.push(urlData.publicUrl);
+    }
+
     // ────────────────────────────────────────────────────────────
     // AI_MODEL_CALL: Replace the mock below with the real model.
     //
-    // When the model is ready:
-    //   1. Accept FormData with photos instead of JSON.
-    //   2. Upload each photo to Supabase Storage:
-    //        const { data } = await supabase.storage
-    //          .from('damage-photos')
-    //          .upload(`${userId}/${estimateId}/${file.name}`, file);
-    //   3. Pass the public URLs to the model.
-    //   4. Return real analysis result.
+    // Photos are now stored in Supabase Storage.
+    // Pass `uploadedUrls` to the model for analysis.
     // ────────────────────────────────────────────────────────────
 
     // Mock estimation result
@@ -70,10 +118,11 @@ export async function POST(req: Request) {
     const totalCost = selectedParts.reduce((sum, p) => sum + p.cost, 0);
 
     const result = {
-      id: `EST-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+      id: estimateId,
       totalCost,
       parts: selectedParts,
-      summary: `Based on ${photoCount} uploaded photo${photoCount > 1 ? "s" : ""}, we detected damage to ${count} component${count > 1 ? "s" : ""}. This is a preliminary estimate — final costs may vary after physical inspection.`,
+      photos: uploadedUrls,
+      summary: `Based on ${photos.length} uploaded photo${photos.length > 1 ? "s" : ""}, we detected damage to ${count} component${count > 1 ? "s" : ""}. This is a preliminary estimate — final costs may vary after physical inspection.`,
     };
 
     return NextResponse.json(result);

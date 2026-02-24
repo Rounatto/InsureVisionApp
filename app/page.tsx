@@ -109,10 +109,12 @@ export default function Home() {
     setResult(null);
 
     try {
+      const formData = new FormData();
+      files.forEach((f) => formData.append("photos", f.file));
+
       const res = await fetch("/api/estimate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoCount: files.length }),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -297,7 +299,7 @@ export default function Home() {
               <span className="text-2xl font-bold text-[color:var(--foreground)]">${result.totalCost.toLocaleString()}</span>
             </div>
 
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() =>
                   downloadEstimatePdf({
@@ -307,13 +309,13 @@ export default function Home() {
                     photoCount: files.length,
                   })
                 }
-                className="flex-1 rounded-full bg-[color:var(--foreground)] py-3 text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-[0.98] transition-all"
+                className="flex-1 rounded-full bg-[color:var(--foreground)] py-3 text-xs sm:text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-[0.98] transition-all"
               >
-                Download PDF Report
+                Download PDF
               </button>
               <button
                 onClick={clearAll}
-                className="flex-1 rounded-full border border-[color:var(--border)] py-3 text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
+                className="flex-1 rounded-full border border-[color:var(--border)] py-3 text-xs sm:text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
               >
                 New Estimation
               </button>
