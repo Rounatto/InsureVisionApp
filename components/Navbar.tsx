@@ -25,7 +25,7 @@ export default function Navbar() {
     <nav className="sticky top-0 z-40 bg-[color:var(--card)]/80 backdrop-blur-md">
       <div className="flex h-16 items-center justify-between px-6">
         {/* Left — Logo & Name */}
-        <button onClick={() => router.push("/")} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+        <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <InsureVisionLogo className="h-7 w-7" />
           <span className="text-sm font-bold tracking-wide">InsureVision</span>
         </button>

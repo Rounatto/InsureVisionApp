@@ -80,7 +80,7 @@ export default function HistoryPage() {
               No estimates yet.
             </p>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/dashboard")}
               className="rounded-full bg-[color:var(--foreground)] px-6 py-2.5 text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-95 transition-all"
             >
               Create Your First Estimate

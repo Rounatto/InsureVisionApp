@@ -26,7 +26,7 @@ export default function GoogleButton({
   const handleClick = async () => {
     setLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/" });
+      await signIn("google", { callbackUrl: "/dashboard" });
     } catch {
       onError?.("Google sign-in failed. Please try again.");
       setLoading(false);

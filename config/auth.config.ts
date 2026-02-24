@@ -20,17 +20,22 @@ const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
 
-      const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
+      const publicPaths = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
       const isPublicPage = publicPaths.some(
-        (p) => nextUrl.pathname === p || nextUrl.pathname.startsWith(p + "/"),
+        (p) =>
+          nextUrl.pathname === p ||
+          (p !== "/" && nextUrl.pathname.startsWith(p + "/")),
       );
       const isAuthApi = nextUrl.pathname.startsWith("/api/auth");
 
       // Allow public pages & auth API routes
       if (isPublicPage || isAuthApi) {
-        // Redirect logged-in users away from auth pages
-        if (isLoggedIn && isPublicPage) {
-          return Response.redirect(new URL("/", nextUrl));
+        // Redirect logged-in users away from auth pages (not landing)
+        const isAuthPage = ["/login", "/register", "/forgot-password", "/reset-password"].some(
+          (p) => nextUrl.pathname === p || nextUrl.pathname.startsWith(p + "/"),
+        );
+        if (isLoggedIn && isAuthPage) {
+          return Response.redirect(new URL("/dashboard", nextUrl));
         }
         return true;
       }
