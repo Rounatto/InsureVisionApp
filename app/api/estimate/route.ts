@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/config/auth";
-import { supabaseAdmin } from "@/config/supabase";
+import { getSupabaseAdmin } from "@/config/supabase";
 import crypto from "crypto";
 
 const BUCKET = "damage-photos";
@@ -62,6 +62,7 @@ export async function POST(req: Request) {
     const userId = session.user.id;
 
     // Upload photos to Supabase Storage
+    const supabase = getSupabaseAdmin();
     const uploadedUrls: string[] = [];
 
     for (const photo of photos) {
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
 
       const buffer = Buffer.from(await photo.arrayBuffer());
 
-      const { error: uploadError } = await supabaseAdmin.storage
+      const { error: uploadError } = await supabase.storage
         .from(BUCKET)
         .upload(storagePath, buffer, {
           contentType: photo.type,
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const { data: urlData } = supabaseAdmin.storage
+      const { data: urlData } = supabase.storage
         .from(BUCKET)
         .getPublicUrl(storagePath);
 

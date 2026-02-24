@@ -1,12 +1,23 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Server-side Supabase client using the service role key.
+ * Lazy-initialized server-side Supabase client (service role key).
  * Used for Storage uploads (bypasses RLS).
  *
  * NEVER expose this client or the service role key to the browser.
  */
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+let _client: SupabaseClient | null = null;
+
+export function getSupabaseAdmin(): SupabaseClient {
+  if (!_client) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+      throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars");
+    }
+
+    _client = createClient(url, key);
+  }
+  return _client;
+}
