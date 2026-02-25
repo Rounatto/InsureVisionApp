@@ -19,7 +19,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 import LightRays from "@/components/LightRays";
 import type { ErrorResponse, RegisterResponse } from "@/types/auth";
@@ -190,7 +190,7 @@ export default function Register() {
         <div className="relative flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-4 justify-between bg-[color:var(--card)]">
           
           {/* SÉLECTEUR DE COULEUR - Coin supérieur droit de la section */}
-          <div className="absolute top-4 right-4 z-50">
+          <div className="absolute top-4 right-4 z-50 text-[color:var(--foreground)]">
             <ThemeSwitcher />
           </div>
 
