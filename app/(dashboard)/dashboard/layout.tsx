@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Sidebar from "./components/Sidebar";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 /**
  * Layout for all /dashboard/* routes.
@@ -7,9 +8,11 @@ import Sidebar from "./components/Sidebar";
  */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">{children}</main>
-    </div>
+    <LanguageProvider>
+      <div className="flex min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
+    </LanguageProvider>
   );
 }

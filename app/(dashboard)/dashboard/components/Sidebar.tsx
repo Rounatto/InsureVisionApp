@@ -9,20 +9,22 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { HomeIcon, ClockIcon, UserIcon, SettingsIcon } from "@/lib/icons";
-
-const navItems = [
-  { href: "/dashboard", label: "Home", icon: HomeIcon },
-  { href: "/dashboard/history", label: "History", icon: ClockIcon },
-  { href: "/dashboard/profile", label: "Profile", icon: UserIcon },
-  { href: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Sidebar() {
+  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  const navItems = [
+    { href: "/dashboard", label: t("home"), icon: HomeIcon },
+    { href: "/dashboard/history", label: t("history"), icon: ClockIcon },
+    { href: "/dashboard/profile", label: t("profile"), icon: UserIcon },
+    { href: "/dashboard/settings", label: t("settings"), icon: SettingsIcon },
+  ];
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/login" });
@@ -124,7 +126,7 @@ export default function Sidebar() {
                     d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
                   />
                 </svg>
-                Sign Out
+                {t("signOut")}
               </button>
             </div>
           )}
