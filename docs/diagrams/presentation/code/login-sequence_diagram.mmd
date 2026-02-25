@@ -1,0 +1,20 @@
+@startuml
+actor User
+participant "App" as App
+participant "Auth Backend" as Auth
+participant "Email Provider" as Email
+
+== Login ==
+User -> App: Submit credentials
+App -> Auth: Login request
+Auth --> App: Success/Failure response
+
+== Forgot Password ==
+User -> App: Request reset
+App -> Auth: Forgot password request
+Auth -> Email: Send reset link
+Email --> User: Reset email
+User -> App: Submit new password via link
+App -> Auth: Reset password request
+Auth --> App: Reset result
+@enduml

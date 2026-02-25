@@ -9,6 +9,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // For migrations, override with the direct (non-pooled) URL:
+    //   $env:DATABASE_URL="postgres://...5432/postgres" ; npx prisma migrate deploy
+    url: process.env["MIGRATE_DATABASE_URL"] ?? process.env["DATABASE_URL"],
   },
 });

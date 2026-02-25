@@ -23,8 +23,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts Account[]
-  sessions Session[]
+  accounts     Account[]
+  sessions     Session[]
+  estimates    Estimate[]
+  tokenVersion Int        @default(0)
 }
 
 model Account {
@@ -67,4 +69,71 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ─── Security Token (hashed, typed) ──────────────────────────────────────────
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model SecurityToken {
+  id          String    @id @default(cuid())
+  type        TokenType
+  hashedToken String    @unique
+  identifier  String // email address
+  expires     DateTime
+  createdAt   DateTime  @default(now())
+
+  @@unique([identifier, type])
+  @@index([expires])
+}
+
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+
+enum AuditAction {
+  REGISTER
+  EMAIL_VERIFIED
+  PASSWORD_CHANGED
+  PASSWORD_RESET
+  ACCOUNT_DELETED
+  FORGOT_PASSWORD_REQUESTED
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String?
+  action    AuditAction
+  ip        String?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ─── Estimation Models ───────────────────────────────────────────────────────
+
+model Estimate {
+  id        String   @id // e.g. "EST-A1B2C3D4"
+  userId    String
+  summary   String   @db.Text
+  totalCost Float
+  photos    String[] // Supabase Storage public URLs
+  createdAt DateTime @default(now())
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parts EstimatePart[]
+}
+
+model EstimatePart {
+  id         String @id @default(cuid())
+  estimateId String
+  name       String
+  cost       Float
+  severity   String // "High" | "Medium" | "Low"
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
 }

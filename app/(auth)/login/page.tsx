@@ -1,22 +1,44 @@
 "use client";
-import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import InsureVisionLogo from "@/components/InsureVisionLogo";
 
-export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
+import AuthLayout from "@/components/auth/AuthLayout";
+import AuthInput from "@/components/auth/AuthInput";
+import GoogleButton from "@/components/auth/GoogleButton";
+import FormError from "@/components/FormError";
+import PrimaryButton from "@/components/PrimaryButton";
+import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <Login />
+    </Suspense>
+  );
+}
+
+function Login() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const router = useRouter();
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      setSuccess("Email verified! You can now sign in.");
+    }
+    const err = searchParams.get("error");
+    if (err === "expired-token") setError("Verification link expired. Please register again.");
+    if (err === "invalid-token") setError("Invalid verification link.");
+  }, [searchParams]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -25,198 +47,77 @@ export default function Login() {
       const result = await signIn("credentials", {
         email,
         password,
-        remember: rememberMe ? "true" : "false",
         redirect: false,
       });
 
-      if (!result || result.error) {
-        setError("Invalid email or password");
+      if (result?.error) {
+        setError("Invalid email or password. If you just registered, check your email to verify your account.");
         return;
       }
 
       router.push("/dashboard");
-      router.refresh();
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
-      console.error(err);
+    } catch {
+      setError(NETWORK_ERROR_MESSAGE);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError("");
-    setGoogleLoading(true);
-
-    try {
-      await signIn("google", { callbackUrl: "/" });
-    } catch {
-      setError("Google sign-in failed. Please try again.");
-      setGoogleLoading(false);
-    }
-  };
-
   return (
-    <div className="relative flex h-screen w-full items-center justify-center bg-[url('/background2.jpg')] bg-cover bg-center p-4 overflow-hidden">
-      <div className="flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] font-sans">
-        
-        {/* SECTION GAUCHE - BRANDING */}
-        <div className="hidden md:flex md:w-1/2 flex-col justify-between bg-[url('/background2.jpg')] bg-cover bg-center p-12 relative">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none" />
-          
-          <div className="relative z-10 flex items-center gap-3">
-            <InsureVisionLogo className="h-auto w-12" />
-            <span className="text-2xl font-serif text-white italic">InsureVision</span>
-          </div>
-
-          <div className="relative z-10 mb-4">
-            <h2 className="text-4xl font-serif text-white italic mb-4">
-              Your Insurance, Reimagined
-            </h2>
-            <p className="text-lg text-white/80 leading-relaxed">
-              Access your policies, claims, and support all in one place. Fast, secure, and always there for you.
-            </p>
-          </div>
-        </div>
-
-        {/* SECTION DROITE - FORMULAIRE */}
-        <div className="relative flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-6 justify-between bg-[color:var(--card)]">
-          
-          <div className="absolute top-4 right-4 z-50">
-            <ThemeSwitcher />
-          </div>
-
-          <div className="flex-none flex justify-center pt-4">
-            <InsureVisionLogo className="h-auto w-16" />
-          </div>
-
-          <div className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-serif text-primary italic mb-2">
-                Welcome Back
-              </h1>
-              <p className="text-xs text-[color:var(--muted-foreground)]">
-                Enter your email and password to access your account
-              </p>
+    <AuthLayout
+      left={{
+        headline: <>Smart<br />Damage<br />Estimation</>,
+        subtext: "Upload detailed car photos and let our AI generate accurate repair costs in seconds.",
+        extra: (
+          <div className="mt-6 flex items-center gap-3 opacity-90">
+            <div className="flex -space-x-2">
+              <div className="h-6 w-6 rounded-full border border-white bg-gray-500" />
+              <div className="h-6 w-6 rounded-full border border-white bg-gray-400" />
+              <div className="h-6 w-6 rounded-full border border-white bg-gray-300" />
             </div>
+            <span className="text-[10px] font-semibold tracking-wide uppercase text-left-dynamic/70">
+              Trusted by Top Insurers
+            </span>
+          </div>
+        ),
+      }}
+      footer={{ text: "Don't have an account?", linkText: "Sign Up", href: "/register" }}
+    >
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-[color:var(--foreground)] mb-2">Welcome Back</h1>
+          <p className="text-xs text-[color:var(--muted-foreground)]">
+            Enter your email and password to access your account
+          </p>
+        </div>
 
-            {/* ERROR MESSAGE */}
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">
-                {error}
-              </div>
-            )}
+        <div className="flex flex-col gap-4">
+          {success && (
+            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+              {success}
+            </div>
+          )}
+          <FormError message={error} />
 
-            {/* LOGIN FORM */}
-            <form onSubmit={handleLogin} className="flex flex-col gap-5">
-              
-              {/* EMAIL INPUT */}
-              <div>
-                <label className="block mb-2 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full rounded-full border border-[color:var(--border)] bg-white p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder:text-gray-400"
-                />
-              </div>
+          <AuthInput icon="email" id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" disabled={loading} />
 
-              {/* PASSWORD INPUT */}
-              <div>
-                <label className="block mb-2 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                  Password
-                </label>
-                <div className="relative w-full">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full rounded-full border border-[color:var(--border)] bg-white p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder:text-gray-400"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900">
-                    {showPassword ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
+          <AuthInput icon="lock" id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" disabled={loading} passwordToggle />
 
-              {/* REMEMBER ME & FORGOT PASSWORD */}
-              <div className="flex items-center justify-between px-1">
-                <label className="flex items-center gap-2 text-xs text-[color:var(--muted-foreground)] cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-gray-300 accent-primary"
-                  />
-                  Remember me
-                </label>
-                <Link href="/forgot-password" title="Forgot Password" className="text-xs font-semibold text-[color:var(--foreground)] hover:underline">
-                  Forgot Password
-                </Link>
-              </div>
-
-              {/* BUTTONS */}
-              <div className="flex flex-col gap-3 mt-2">
-                
-                {/* SIGN IN BUTTON */}
-                <button
-                  type="submit"
-                  disabled={loading || googleLoading}
-                  className="w-full rounded-full [.theme-light_&]:bg-black [.theme-light_&]:text-white [.theme-dark_&]:bg-white [.theme-dark_&]:text-black py-4 font-bold text-sm active:scale-95 hover:opacity-90 cursor-pointer shadow-lg disabled:opacity-50"
-                >
-                  {loading ? "Signing in..." : "Sign In"}
-                </button>
-
-                {/* GOOGLE SIGN-IN (optional) */}
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={loading || googleLoading}
-                  className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-4 font-semibold text-gray-900 hover:bg-gray-50 text-sm cursor-pointer">
-                  <svg viewBox="0 0 48 48" className="h-5 w-5">
-                    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
-                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"/>
-                    <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"/>
-                    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"/>
-                  </svg>
-                  {googleLoading ? "Connecting..." : "Sign In with Google"}
-                </button>
-              </div>
-
-            </form>
+          <div className="flex items-center justify-end px-1">
+            <Link href="/forgot-password" className="text-xs font-semibold text-[color:var(--foreground)] hover:underline">
+              Forgot Password?
+            </Link>
           </div>
 
-          {/* SIGN UP LINK */}
-          <div className="flex-none text-center pb-2 pt-4">
-            <p className="text-xs text-[color:var(--muted-foreground)]">
-              Don&apos;t have an account ?{" "}
-              <Link href="/register" className="font-bold text-[color:var(--foreground)] hover:underline">
-                Sign Up
-              </Link>
-            </p>
+          <div className="flex flex-col gap-3 mt-2">
+            <PrimaryButton type="submit" disabled={loading}>
+              {loading ? "Signing In..." : "Sign In"}
+            </PrimaryButton>
+
+            <GoogleButton label="Sign In with Google" disabled={loading} onError={setError} />
           </div>
         </div>
-      </div>
-    </div>
+      </form>
+    </AuthLayout>
   );
 }
-
-

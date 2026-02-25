@@ -1,0 +1,30 @@
+@startuml
+actor User
+participant "Client App" as Client
+participant "Auth API" as API
+participant "Rate Limiter" as RL
+database "User DB" as DB
+participant "Token Service" as TS
+database "Session Store" as SS
+
+User -> Client: Enter email + password
+Client -> API: POST /auth/login
+API -> RL: check(ip,email)
+RL --> API: allowed
+
+API -> DB: findUserByEmail(email)
+DB --> API: user + passwordHash + status
+
+API -> API: verifyPassword(password, hash)
+alt invalid credentials
+  API --> Client: 401 Unauthorized
+else valid credentials
+  API -> TS: generateAccessToken(userId, roles)
+  TS --> API: accessToken
+  API -> TS: generateRefreshToken()
+  TS --> API: refreshToken
+  API -> SS: save(refreshTokenHash, userId, expiry)
+  SS --> API: ok
+  API --> Client: 200 {accessToken, refreshToken}
+end
+@enduml

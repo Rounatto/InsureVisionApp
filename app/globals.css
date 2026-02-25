@@ -1,440 +1,82 @@
-/* =====================================================
-   INSURE VISION AI - SYSTÈME DE THÈME DYNAMIQUE
-   ===================================================== 
-
-   ARCHITECTURE GLOBALE :
-   ----------------------
-   Ce fichier contient les styles CSS personnalisés pour gérer
-   le thème dynamique (light/dark) de la page d'accueil.
-
-   COMPOSANTS CLÉS :
-   -----------------
-   1. HomeThemeSwitcher (components/home-theme-switcher.tsx)
-      → Bouton qui bascule entre light et dark mode
-      → Applique/supprime la classe "dark" sur #home-container
-      → Sauvegarde le choix dans localStorage
-
-   2. #home-container (app/page.tsx)
-      → Conteneur principal de la page d'accueil
-      → Reçoit la classe "dark" du HomeThemeSwitcher
-      → Tous les styles dynamiques en dépendent
-
-   3. #home-nav (app/page.tsx)
-      → Barre de navigation
-      → Styles définis dans ce fichier (voir section NAVIGATION)
-
-   FONCTIONNEMENT DU DARK MODE :
-   -----------------------------
-   ❌ APPROCHE STANDARD TAILWIND (ne fonctionne pas ici) :
-      - Tailwind dark: classes → nécessite "dark" sur <html>
-      - Notre switcher applique "dark" sur #home-container
-
-   ✅ NOTRE SOLUTION :
-      - Sélecteurs CSS directs : #home-container.dark #element
-      - Permet un thème localisé (seulement sur la page d'accueil)
-      - Les autres pages (login, register, dashboard) ont leur propre thème
-
-   CHANGEMENTS VISUELS :
-   --------------------
-   LIGHT MODE (par défaut) :
-   - Background : Gradient blanc-gris
-   - Navigation : Fond NOIR
-   - Logo/Textes nav : BLANCS
-   - Boutons hover : Fond noir + texte blanc
-
-   DARK MODE (#home-container.dark) :
-   - Background : Gradient noir-gris foncé
-   - Navigation : Fond BLANC
-   - Logo/Textes nav : NOIRS
-   - Boutons hover : Fond noir + texte blanc
-
-   FICHIERS MODIFIÉS :
-   -------------------
-   ✓ app/page.tsx → Structure et classes CSS
-   ✓ app/globals.css → Styles dynamiques (ce fichier)
-   ✓ components/InsureVisionLogo.tsx → Logo avec couleur dynamique
-   ✓ components/home-theme-switcher.tsx → Bouton de changement de thème
-
-   ===================================================== */
-
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+@theme inline {
+  /* Variables de base */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  
+  /* COULEUR DYNAMIQUE : Utilisée pour les boutons, titres et liens */
+  --color-primary: hsl(var(--primary));
+  
+  /* COULEUR GAUCHE DYNAMIQUE : Gère le contraste automatique (Blanc vs Thème) */
+  --color-left-dynamic: var(--left-text-color);
+}
 
 :root {
-  /* ===== VARIABLES DE COULEURS GÉNÉRALES ===== */
-  --color-background: var(--background); /* Référence la couleur de fond */
-  --color-foreground: var(--foreground); /* Référence la couleur du texte */
+  /* App palette (light by default) */
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+  --input: #f9fafb;
+  --ring: 240 5.9% 10%;
 
-  /* ===== VARIABLES DE POLICES ===== */
-  --font-sans: var(--font-geist-sans); /* Police sans-serif principale */
-  --font-mono: var(--font-geist-mono); /* Police monospace pour le code */
+  /* --primary is HSL without parentheses to allow opacity (ex: primary/20) */
+  --primary: 240 5.9% 10%;
+  --primary-button-text: #ffffff;
+  --secondary-button-bg: #ffffff;
+  --secondary-button-text: #111111;
 
-  /* ===== COULEUR PRIMAIRE ===== */
-  /* hsl() = convertit un HSL en couleur CSS */
-  --color-primary: hsl(var(--primary)); /* Pour boutons, titres, accents */
-
-  /* ===== COULEUR DYNAMIQUE POUR CONTRASTE ===== */
-  --color-left-dynamic: var(--left-text-color); /* Géré par ThemeSwitcher */
-
-  /* ===== MODE LIGHT (PAR DÉFAUT) ===== */           /* Fond blanc */           /* Texte gris très foncé */
-  --card: oklch(1 0 0);                 /* Cartes blanches */
-  --card-foreground: oklch(0.145 0 0);      /* Texte noir sur cartes */
-  --muted: oklch(0.97 0 0);                /* Gris clair pour éléments désactivés */
-  --muted-foreground: oklch(0.556 0 0);     /* Texte gris secondaire */
-  --border: oklch(0.922 0 0);               /* Bordures gris clair */
-  --input: oklch(0.922 0 0);                /* Champs input blanc cassé */
-  --ring: oklch(0.708 0 0);            /* Couleur focus (HSL) */
-
-  /* ===== COULEUR PRIMAIRE EN LIGHT ===== */
-  /* HSL sans parenthèses = permet opacity (ex: primary/20) */
-  --primary: oklch(0.205 0 0);         /* Noir/bleu très foncé */
-  --primary-foreground: oklch(0.985 0 0);   /* Texte blanc sur fond primaire */
-  --primary-button-text: #ffffff;  /* Texte blanc sur boutons */
-  --secondary-button-bg: #ffffff;  /* Fond blanc boutons secondaires */
-  --secondary-button-text: #111111; /* Texte noir sur boutons blancs */
-
-  /* ===== GESTION THÈME ===== */
-  --left-text-color: white;        /* Couleur initiale texte section gauche */
-  color-scheme: light;             /* Indique au navigateur : light mode */             --radius: 0.625rem;             --background: oklch(1 0 0);             --foreground: oklch(0.145 0 0);             --popover: oklch(1 0 0);             --popover-foreground: oklch(0.145 0 0);             --secondary: oklch(0.97 0 0);             --secondary-foreground: oklch(0.205 0 0);             --accent: oklch(0.97 0 0);             --accent-foreground: oklch(0.205 0 0);             --destructive: oklch(0.577 0.245 27.325);             --chart-1: oklch(0.646 0.222 41.116);             --chart-2: oklch(0.6 0.118 184.704);             --chart-3: oklch(0.398 0.07 227.392);             --chart-4: oklch(0.828 0.189 84.429);             --chart-5: oklch(0.769 0.188 70.08);             --sidebar: oklch(0.985 0 0);             --sidebar-foreground: oklch(0.145 0 0);             --sidebar-primary: oklch(0.205 0 0);             --sidebar-primary-foreground: oklch(0.985 0 0);             --sidebar-accent: oklch(0.97 0 0);             --sidebar-accent-foreground: oklch(0.205 0 0);             --sidebar-border: oklch(0.922 0 0);             --sidebar-ring: oklch(0.708 0 0);
+  /* --left-text-color is managed by ThemeSwitcher */
+  --left-text-color: white;
+  color-scheme: light;
 }
 
 .theme-dark {
-  /* ===== MODE DARK ===== */
-  --background: #0b0b0f;           /* Fond quasi-noir très foncé */
-  --foreground: #ffffff;           /* Texte blanc pour contraste */
-  --card: rgb(0, 0, 0);            /* Cartes noires pures */
-  --card-foreground: #ffffff;      /* Texte blanc sur cartes */
-  --muted: #171a21;                /* Gris très foncé désactivé */
-  --muted-foreground: #ffffff;     /* Texte clair info secondaire */
-  --border: #222634;               /* Bordures gris sombre */
-  --input: #151824;                /* Champs input très foncé */
-  --ring: 210 20% 85%;             /* Focus ring clair sur sombre */
-  --primary: 0 0% 100%;            /* Blanc pur (sans saturation) */
-  --primary-foreground: #000000;   /* Texte noir sur blanc */
-  --primary-button-text: #000000;  /* Texte noir boutons primaires */
-  --secondary-button-bg: #ffffff;  /* Fond blanc boutons secondaires */
-  --secondary-button-text: #000000; /* Texte noir boutons blancs */
-  color-scheme: dark;              /* Indique au navigateur : dark mode */
+  --background: #000000;
+  --foreground: #ffffff;
+  --card:  rgb(0, 0, 0);
+  --card-foreground: #ffffff;
+  --muted: #171a21;
+  --muted-foreground: #9ca3af;
+  --border: #222634;
+  --input: #151824;
+  --ring: 210 20% 85%;
+  --primary: 0 0% 100%;
+  --primary-button-text: #000000;
+  --secondary-button-bg: #ffffff;
+  --secondary-button-text: #000000;
+  color-scheme: dark;
 }
 
-.theme-light {
-  /* ===== MODE LIGHT (REDÉFINI EXPLICITEMENT) ===== */
-  --background: #ffffff;           /* Fond blanc */
-  --foreground: #171717;           /* Texte noir/très foncé */
-  --card: #ffffff;                 /* Cartes blanches */
-  --card-foreground: #171717;      /* Texte noir sur cartes */
-  --muted: #f5f5f5;                /* Gris clair éléments désactivés */
-  --muted-foreground: #6b7280;     /* Texte gris info secondaire */
-  --border: #e5e7eb;               /* Bordures gris clair */
-  --input: #f9fafb;                /* Champs input blanc cassé */
-  --ring: 240 5.9% 10%;            /* Focus ring (HSL pour opacité) */
-  --primary-button-text: #ffffff;  /* Texte blanc boutons primaires */
-  --secondary-button-bg: #ffffff;  /* Fond blanc boutons secondaires */
-  --secondary-button-text: #111111; /* Texte très foncé boutons blancs */
-  color-scheme: light;             /* Indique au navigateur : light mode */
-}
-
-/* ===== FALLBACK À PRÉFÉRENCE SYSTÈME ===== */
-/* Si aucune .theme-light ou .theme-dark n'existe, */
-/* utilise la préférence du système OS (Windows/Mac dark mode) */
+/* Fallback to system preference when no explicit theme class exists */
 @media (prefers-color-scheme: dark) {
-  /* :root:not(.theme-light):not(.theme-dark) = 
-     racine SANS classe .theme-light ET SANS classe .theme-dark */
   :root:not(.theme-light):not(.theme-dark) {
-    /* Applique dark palette si user a dark mode activé dans OS */
-    --background: #0b0b0f;           /* Fond très foncé */
-    --foreground: #ffffff;           /* Texte blanc */
-    --card: #101217;                 /* Cartes très foncées */
-    --card-foreground: #ffffff;      /* Texte blanc sur cartes */
-    --muted: #171a21;                /* Gris très foncé */
-    --muted-foreground: #ffffff;     /* Texte clair secondaire */
-    --border: #222634;               /* Bordures sombre */
-    --input: #151824;                /* Champs input sombre */
-    --ring: 210 20% 85%;             /* Focus ring clair sur sombre */
-    --primary: 0 0% 100%;            /* Blanc pur */
-    --primary-button-text: #000000;  /* Texte noir sur blanc */
-    --secondary-button-bg: #ffffff;  /* Boutons blancs */
-    --secondary-button-text: #000000; /* Texte noir */
-    color-scheme: dark;              /* Adapte composants natifs au dark */
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #101217;
+    --card-foreground: #ffffff;
+    --muted: #171a21;
+    --muted-foreground: #9ca3af;
+    --border: #222634;
+    --input: #151824;
+    --ring: 210 20% 85%;
+    --primary: 0 0% 100%;
+    --primary-button-text: #000000;
+    --secondary-button-bg: #ffffff;
+    --secondary-button-text: #000000;
+    color-scheme: dark;
   }
 }
 
-/* ===== STYLES DE BASE POUR LE CORPS DE LA PAGE ===== */
+/* Styles de base pour le corps de la page */
 body {
-  /* background = récupère la couleur de fond depuis les variables CSS */
-  /* Applique #ffffff en light, #0b0b0f en dark (selon mode) */
-
-  /* color = récupère la couleur du texte depuis les variables CSS */
-  /* Applique #171717 en light, #ffffff en dark (selon mode) */
-
-  /* font-family = police générale du corps du texte */
-  /* Arial/Helvetica sont des fallback si les fonts custom échappent */
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
 
-/* ===== CONTENEUR PRINCIPAL PAGE D'ACCUEIL ===== */
-/* Reçoit la classe 'dark' du composant HomeThemeSwitcher */
-
-#home-container {
-  /* ===== MODE LIGHT (PAR DÉFAUT) ===== */
-
-  /* background: linear-gradient() = crée un dégradé de couleur de haut en bas */
-  /* to bottom = direction (top vers bottom) */
-  /* #ffffff = blanc pur en haut */
-  /* #f3f4f6 = gris très clair au milieu (transition douce) */
-  /* #ffffff = revient blanc en bas (cohérent) */
-  background: linear-gradient(to bottom, #ffffff, #f3f4f6, #ffffff);
-
-  /* color = couleur du texte par défaut dans ce conteneur */
-  color: #171717; /* Gris très foncé (lisible sur fond blanc) */
-
-  /* transition = animation fluide quand les styles changent dynamiquement */
-  /* background 0.3s ease = le fond change en 0.3 secondes smoothly */
-  /* color 0.3s ease = le texte change en 0.3 secondes smoothly */
-  transition: background 0.3s ease, color 0.3s ease;
-}
-
-/* ===== MODE DARK ===== */
-/* Déclenché quand HomeThemeSwitcher ajoute class='dark' au conteneur */
-#home-container.dark {
-
-  /* background: linear-gradient() = dégradé pour mode sombre */
-  /* #0b0b0f = noir quasi-pur au top (très foncé) */
-  /* #111827 = bleu très sombre au milieu (ton sombre cohérent) */
-  /* #0b0b0f = revient au noir bas (cohérent) */
-  background: linear-gradient(to bottom, #0b0b0f, #111827, #0b0b0f);
-
-  /* color = texte blanc pour contraster avec fond très sombre */
-  color: #ffffff; /* Blanc (très lisible sur noir) */
-
-  /* transition s'applique automatiquement (définie sur #home-container) */
-}
-
-/* ===== TEXTE DESCRIPTION DU HERO SECTION ===== */
-/* C'est le paragraphe expliquant l'app ("Use artificial intelligence...") */
-
-.hero-description {
-  /* ===== MODE LIGHT ===== */
-
-  /* color = couleur du texte de description */
-  color: #6b7280; /* Gris moyen (lisible sur fond blanc/clair) */
-
-  /* transition = animation fluide lors changement thème */
-  /* color 0.3s ease = la couleur change en 0.3 secondes smoothly */
-  transition: color 0.3s ease;
-}
-
-/* ===== MODE DARK ===== */
-/* Sélecteur descendant : .hero-description DANS #home-container.dark */
-#home-container.dark .hero-description {
-
-  /* color = couleur plus claire pour être lisible sur fond sombre */
-  color: #d1d5db; /* Gris très clair/blanc cassé (lisible sur noir) */
-
-  /* transition s'applique automatiquement */
-}
-
-/* =====================================================
-   STYLES PERSONNALISÉS POUR LA NAVIGATION
-   ===================================================== */
-/* 
- * CONTEXTE : 
- * La barre de navigation doit changer dynamiquement de couleur
- * selon le thème choisi par l'utilisateur.
- * 
- * PROBLÈME RÉSOLU :
- * Les classes Tailwind "dark:" ne fonctionnaient pas correctement
- * car le HomeThemeSwitcher applique la classe "dark" sur #home-container
- * et non sur l'élément <html> (comportement par défaut de Tailwind).
- * 
- * SOLUTION :
- * Utiliser des sélecteurs CSS directs qui ciblent #home-nav
- * quand #home-container a la classe "dark".
- */
-
-/* Navigation noire par défaut (light mode) */
-#home-nav {
-  background-color: rgb(0, 0, 0); /* gray-900 - fond noir */
-  border-color: rgb(31, 41, 55); /* gray-800 - bordure gris foncé */
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-/* Navigation blanche en dark mode */
-/* Quand #home-container a la classe "dark", #home-nav devient blanc */
-#home-container.dark #home-nav {
-  background-color: #ffffff; /* fond blanc */
-  border-color: rgb(229, 231, 235); /* gray-200 - bordure gris clair */
-}
-
-/* -------------------------------------------------
- * TEXTES ET LOGO DE LA NAVIGATION
- * ------------------------------------------------- */
-/* 
- * LIGHT MODE : Fond noir → texte/logo BLANC
- * DARK MODE : Fond blanc → texte/logo NOIR
- * 
- * Classes appliquées :
- * - .nav-text : sur le span "InsureVision AI"
- * - .nav-logo : sur le composant <InsureVisionLogo />
- */
-
-/* Textes et logo de la navigation - blancs par défaut (light mode) */
-#home-nav .nav-text,
-#home-nav .nav-logo {
-  color: #ffffff; /* blanc pour contraster sur fond noir */
-  transition: color 0.3s ease; /* animation douce du changement */
-}
-
-/* Textes et logo de la navigation - noirs en dark mode */
-#home-container.dark #home-nav .nav-text,
-#home-container.dark #home-nav .nav-logo {
-  color: #000000; /* noir pour contraster sur fond blanc */
-}
-
-/* -------------------------------------------------
- * SÉPARATEUR VERTICAL DE LA NAVIGATION
- * ------------------------------------------------- */
-/* 
- * Le séparateur est la ligne verticale (border-left)
- * entre les boutons et le theme switcher.
- * Il doit être visible dans les deux modes.
- */
-
-/* Séparateur de la navigation - gris foncé en light mode */
-#home-nav .nav-separator {
-  border-color: rgb(55, 65, 81); /* gray-700 - visible sur fond noir */
-  transition: border-color 0.3s ease;
-}
-
-/* Séparateur - gris clair en dark mode */
-#home-container.dark #home-nav .nav-separator {
-  border-color: rgb(209, 213, 219); /* gray-300 - visible sur fond blanc */
-}
-
-/* -------------------------------------------------
- * BOUTON CONNEXION
- * ------------------------------------------------- */
-/* 
- * Bouton transparent avec texte, qui change selon le mode.
- * Au hover, le fond devient légèrement coloré.
- */
-
-/* Bouton Connexion - texte blanc en light mode */
-#home-nav .nav-connexion {
-  color: #ffffff; /* texte blanc sur fond noir de la nav */
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Hover en light mode - fond gris foncé */
-#home-nav .nav-connexion:hover {
-  background-color: rgb(55, 65, 81); /* gray-700 */
-}
-
-/* Bouton Connexion - texte noir en dark mode */
-#home-container.dark #home-nav .nav-connexion {
-  color: #000000; /* texte noir sur fond blanc de la nav */
-}
-
-/* Hover en dark mode - fond gris clair */
-#home-container.dark #home-nav .nav-connexion:hover {
-  background-color: rgb(229, 231, 235); /* gray-200 */
-}
-
-/* -------------------------------------------------
- * BOUTON THEME SWITCHER (Soleil/Lune)
- * ------------------------------------------------- */
-/* 
- * Ce bouton permet de basculer entre light et dark mode.
- * L'icône et la bordure doivent toujours être visibles.
- * 
- * LIGHT MODE : icône/bordure BLANCHE sur fond noir
- * DARK MODE : icône/bordure NOIRE sur fond blanc
- */
-
-/* Theme switcher button - blanc en light mode */
-#home-nav .theme-btn {
-  color: #ffffff; /* icône blanche */
-  border-color: rgb(75, 85, 99); /* gray-600 - bordure grise */
-  transition: color 0.3s ease, border-color 0.3s ease;
-}
-
-/* Theme switcher button - noir en dark mode */
-#home-container.dark #home-nav .theme-btn {
-  color: #000000; /* icône noire */
-  border-color: rgb(156, 163, 175); /* gray-400 - bordure grise */
-}
-
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
