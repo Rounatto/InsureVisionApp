@@ -64,7 +64,14 @@ export const { handlers, auth } = NextAuth({
      * the JWT is effectively invalidated by clearing `token.sub`,
      * which causes `session.user.id` to be undefined → 401.
      */
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // Client-driven session updates (e.g. `useSession().update({ name })`)
+      // must also update JWT fields so refreshed session reflects new data.
+      if (trigger === "update") {
+        if (typeof session?.name === "string") token.name = session.name;
+        return token;
+      }
+
       // Initial sign-in — snapshot the current tokenVersion
       if (user?.id) {
         const dbUser = await db.user.findUnique({
@@ -101,6 +108,8 @@ export const { handlers, auth } = NextAuth({
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
+        session.user.name = token.name ?? session.user.name;
+        session.user.email = token.email ?? session.user.email;
       }
       return session;
     },
