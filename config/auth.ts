@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import authConfig from "@/config/auth.config";
 import { db } from "@/config/db";
 import { loginSchema } from "@/lib/validations/auth";
+import { TOKEN_VERSION_CHECK_INTERVAL_MS } from "@/lib/constants";
 
 export const { handlers, auth } = NextAuth({
   ...authConfig,
@@ -53,14 +54,55 @@ export const { handlers, auth } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
+
+    /**
+     * JWT callback — runs on every request.
+     *
+     * On sign-in (`user` present): persist the current tokenVersion.
+     * On subsequent calls: periodically re-check the DB version.
+     * If the version has been bumped (password change / reset / delete),
+     * the JWT is effectively invalidated by clearing `token.sub`,
+     * which causes `session.user.id` to be undefined → 401.
+     */
+    async jwt({ token, user }) {
+      // Initial sign-in — snapshot the current tokenVersion
+      if (user?.id) {
+        const dbUser = await db.user.findUnique({
+          where: { id: user.id },
+          select: { tokenVersion: true },
+        });
+        token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        token.versionCheckedAt = Date.now();
+        return token;
+      }
+
+      // Existing session — periodic version check
+      if (token.sub) {
+        const lastCheck = (token.versionCheckedAt as number) ?? 0;
+        if (Date.now() - lastCheck > TOKEN_VERSION_CHECK_INTERVAL_MS) {
+          const dbUser = await db.user.findUnique({
+            where: { id: token.sub },
+            select: { tokenVersion: true },
+          });
+
+          if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
+            // Token version mismatch → force re-login
+            token.sub = undefined;
+            token.tokenVersion = undefined;
+          }
+
+          token.versionCheckedAt = Date.now();
+        }
+      }
+
+      return token;
+    },
+
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
       return session;
-    },
-    async jwt({ token }) {
-      return token;
     },
   },
 });

@@ -1,84 +1,71 @@
 import { NextResponse } from "next/server";
 import { db } from "@/config/db";
+import { hashToken } from "@/lib/tokens";
+import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit";
+import { RL_WINDOW_MS, RL_VERIFY_EMAIL } from "@/lib/constants";
 
 /**
  * GET /api/auth/verify-email?token=...
  *
- * Verifies a user's email address using the token sent during registration.
- * On success, redirects to /login with a success message.
+ * Hashes the incoming raw token, looks up in SecurityToken,
+ * marks the user as verified, and deletes the token — all atomically.
+ * Redirects to /login on every outcome to avoid enumeration leaks.
  */
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const token = searchParams.get("token");
+    // ── Rate limit ─────────────────────────────────────────
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(`verify:${ip}`, RL_VERIFY_EMAIL, RL_WINDOW_MS);
+    if (!rl.ok) return rateLimitResponse(rl);
 
-    if (!token) {
-      return NextResponse.redirect(
-        new URL("/login?error=missing-token", req.url)
-      );
+    const { searchParams } = new URL(req.url);
+    const rawToken = searchParams.get("token");
+
+    if (!rawToken) {
+      return NextResponse.redirect(new URL("/login?error=invalid-link", req.url));
     }
 
-    // 1. Find token
-    const verificationToken = await db.verificationToken.findFirst({
-      where: { token },
+    // ── Hash before lookup (never compare plaintext) ───────
+    const hashed = hashToken(rawToken);
+
+    const securityToken = await db.securityToken.findUnique({
+      where: { hashedToken: hashed },
     });
 
-    if (!verificationToken) {
-      return NextResponse.redirect(
-        new URL("/login?error=invalid-token", req.url)
-      );
+    if (!securityToken || securityToken.type !== "EMAIL_VERIFICATION") {
+      return NextResponse.redirect(new URL("/login?error=invalid-link", req.url));
     }
 
-    // 2. Check expiry
-    if (new Date() > verificationToken.expires) {
-      await db.verificationToken.delete({
-        where: {
-          identifier_token: {
-            identifier: verificationToken.identifier,
-            token: verificationToken.token,
-          },
-        },
-      });
-      return NextResponse.redirect(
-        new URL("/login?error=expired-token", req.url)
-      );
+    // ── Expiry check ───────────────────────────────────────
+    if (new Date() > securityToken.expires) {
+      await db.securityToken.delete({ where: { id: securityToken.id } });
+      return NextResponse.redirect(new URL("/login?error=expired-link", req.url));
     }
 
-    // 3. Find user by email
+    // ── Atomic: verify user + delete token ─────────────────
     const user = await db.user.findUnique({
-      where: { email: verificationToken.identifier },
+      where: { email: securityToken.identifier },
     });
 
     if (!user) {
-      return NextResponse.redirect(
-        new URL("/login?error=user-not-found", req.url)
-      );
+      return NextResponse.redirect(new URL("/login?error=invalid-link", req.url));
     }
 
-    // 4. Mark email as verified
-    await db.user.update({
-      where: { id: user.id },
-      data: { emailVerified: new Date() },
-    });
+    await db.$transaction([
+      db.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      }),
+      db.securityToken.delete({ where: { id: securityToken.id } }),
+    ]);
 
-    // 5. Delete the used token
-    await db.verificationToken.delete({
-      where: {
-        identifier_token: {
-          identifier: verificationToken.identifier,
-          token: verificationToken.token,
-        },
-      },
-    });
+    // ── Audit ──────────────────────────────────────────────
+    logAudit({ userId: user.id, action: "EMAIL_VERIFIED", ip });
 
-    // 6. Redirect to login with success
-    return NextResponse.redirect(
-      new URL("/login?verified=true", req.url)
-    );
+    return NextResponse.redirect(new URL("/login?verified=true", req.url));
   } catch (error) {
     console.error("Verify email error:", error);
-    return NextResponse.redirect(
-      new URL("/login?error=server-error", req.url)
-    );
+    return NextResponse.redirect(new URL("/login?error=server-error", req.url));
   }
 }

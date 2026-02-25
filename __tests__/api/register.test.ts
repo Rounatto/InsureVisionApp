@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /*
  * We test the register route handler by mocking its external deps:
- *   - @/config/db   → mock Prisma client
+ *   - @/config/db   → mock Prisma client (with $transaction)
  *   - bcrypt         → mock hashing
+ *   - @/lib/tokens   → mock secure token generation
+ *   - @/lib/rate-limit → allow all requests
+ *   - @/lib/audit    → no-op
  *
  * The route itself is imported dynamically per test so mocks are fresh.
  */
@@ -12,6 +15,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFindUnique = vi.fn();
 const mockCreate = vi.fn();
 const mockCreateToken = vi.fn();
+const mockTransaction = vi.fn();
 
 vi.mock("@/config/db", () => ({
   db: {
@@ -19,9 +23,10 @@ vi.mock("@/config/db", () => ({
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
       create: (...args: unknown[]) => mockCreate(...args),
     },
-    verificationToken: {
+    securityToken: {
       create: (...args: unknown[]) => mockCreateToken(...args),
     },
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
@@ -33,6 +38,23 @@ vi.mock("bcrypt", () => ({
 
 vi.mock("@/lib/email", () => ({
   sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/tokens", () => ({
+  generateSecureToken: vi.fn().mockReturnValue({
+    raw: "raw-token-abc",
+    hashed: "hashed-token-abc",
+  }),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ ok: true, remaining: 5, retryAfterMs: 0 }),
+  rateLimitResponse: vi.fn(),
+  getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+vi.mock("@/lib/audit", () => ({
+  logAudit: vi.fn(),
 }));
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -57,6 +79,14 @@ describe("POST /api/auth/register", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Default: $transaction executes the callback with a fake tx
+    mockTransaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        user: { create: (...args: unknown[]) => mockCreate(...args) },
+        securityToken: { create: (...args: unknown[]) => mockCreateToken(...args) },
+      };
+      return cb(tx);
+    });
     const mod = await import("@/app/api/auth/register/route");
     POST = mod.POST;
   });
@@ -94,7 +124,7 @@ describe("POST /api/auth/register", () => {
     expect(data.user.email).toBe("john@example.com");
   });
 
-  it("creates a verification token after registration", async () => {
+  it("creates a security token inside the transaction", async () => {
     mockFindUnique.mockResolvedValue(null);
     mockCreate.mockResolvedValue({ id: "1", name: "John Doe", email: "john@example.com" });
     mockCreateToken.mockResolvedValue({});
@@ -104,15 +134,16 @@ describe("POST /api/auth/register", () => {
     expect(mockCreateToken).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          type: "EMAIL_VERIFICATION",
+          hashedToken: "hashed-token-abc",
           identifier: "john@example.com",
-          token: expect.any(String),
           expires: expect.any(Date),
         }),
       })
     );
   });
 
-  it("sends a verification email after registration", async () => {
+  it("sends a verification email with the raw token", async () => {
     mockFindUnique.mockResolvedValue(null);
     mockCreate.mockResolvedValue({ id: "1", name: "John Doe", email: "john@example.com" });
     mockCreateToken.mockResolvedValue({});
@@ -122,7 +153,7 @@ describe("POST /api/auth/register", () => {
     const { sendVerificationEmail } = await import("@/lib/email");
     expect(sendVerificationEmail).toHaveBeenCalledWith(
       "john@example.com",
-      expect.any(String)
+      "raw-token-abc"
     );
   });
 

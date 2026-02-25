@@ -25,6 +25,16 @@ vi.mock("bcrypt", () => ({
   },
 }));
 
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ ok: true, remaining: 5, retryAfterMs: 0 }),
+  rateLimitResponse: vi.fn(),
+  getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+vi.mock("@/lib/audit", () => ({
+  logAudit: vi.fn(),
+}));
+
 // ── Helpers ──────────────────────────────────────────────────
 function buildRequest(body: unknown): Request {
   return new Request("http://localhost:3000/api/auth/change-password", {
@@ -87,7 +97,7 @@ describe("PATCH /api/auth/change-password", () => {
     expect(data.error).toMatch(/incorrect/i);
   });
 
-  it("changes password on valid input", async () => {
+  it("changes password and bumps tokenVersion on valid input", async () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } });
     mockFindUnique.mockResolvedValue({ password: "hashed_old" });
     mockUpdate.mockResolvedValue({});
@@ -102,7 +112,10 @@ describe("PATCH /api/auth/change-password", () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { password: "new_hashed" },
+        data: expect.objectContaining({
+          password: "new_hashed",
+          tokenVersion: { increment: 1 },
+        }),
       })
     );
   });

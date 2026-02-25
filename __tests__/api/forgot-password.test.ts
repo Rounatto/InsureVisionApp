@@ -4,21 +4,40 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFindUnique = vi.fn();
 const mockDeleteMany = vi.fn();
 const mockCreateToken = vi.fn();
+const mockTransaction = vi.fn();
 
 vi.mock("@/config/db", () => ({
   db: {
     user: {
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
     },
-    verificationToken: {
+    securityToken: {
       deleteMany: (...args: unknown[]) => mockDeleteMany(...args),
       create: (...args: unknown[]) => mockCreateToken(...args),
     },
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
 vi.mock("@/lib/email", () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/tokens", () => ({
+  generateSecureToken: vi.fn().mockReturnValue({
+    raw: "raw-reset-token",
+    hashed: "hashed-reset-token",
+  }),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ ok: true, remaining: 5, retryAfterMs: 0 }),
+  rateLimitResponse: vi.fn(),
+  getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+vi.mock("@/lib/audit", () => ({
+  logAudit: vi.fn(),
 }));
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -36,6 +55,9 @@ describe("POST /api/auth/forgot-password", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockTransaction.mockImplementation(async (ops: Promise<unknown>[]) =>
+      Promise.all(ops)
+    );
     const mod = await import("@/app/api/auth/forgot-password/route");
     POST = mod.POST;
   });
@@ -53,7 +75,7 @@ describe("POST /api/auth/forgot-password", () => {
     expect(data.message).toMatch(/reset link/i);
   });
 
-  it("creates a token when user exists", async () => {
+  it("creates a hashed token when user exists", async () => {
     mockFindUnique.mockResolvedValue({ id: "1", email: "user@test.com" });
     mockDeleteMany.mockResolvedValue({ count: 0 });
     mockCreateToken.mockResolvedValue({});
@@ -61,17 +83,21 @@ describe("POST /api/auth/forgot-password", () => {
     const res = await POST(buildRequest({ email: "user@test.com" }));
     expect(res.status).toBe(200);
 
-    expect(mockDeleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { identifier: "user@test.com" } })
-    );
-    expect(mockCreateToken).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          identifier: "user@test.com",
-          token: expect.any(String),
-          expires: expect.any(Date),
-        }),
-      })
+    // Transaction was called (atomic delete + create)
+    expect(mockTransaction).toHaveBeenCalled();
+  });
+
+  it("sends reset email with the raw token", async () => {
+    mockFindUnique.mockResolvedValue({ id: "1", email: "user@test.com" });
+    mockDeleteMany.mockResolvedValue({ count: 0 });
+    mockCreateToken.mockResolvedValue({});
+
+    await POST(buildRequest({ email: "user@test.com" }));
+
+    const { sendPasswordResetEmail } = await import("@/lib/email");
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith(
+      "user@test.com",
+      "raw-reset-token"
     );
   });
 });

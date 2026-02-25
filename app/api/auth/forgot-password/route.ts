@@ -1,71 +1,72 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { db } from "@/config/db";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { generateSecureToken } from "@/lib/tokens";
+import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit";
+import { RL_WINDOW_MS, RL_FORGOT_PW, RESET_TOKEN_TTL_MS } from "@/lib/constants";
+
+/** Enumeration-safe message returned on every path. */
+const SAFE_MSG = "If an account exists with that email, a reset link has been sent.";
 
 export async function POST(req: Request) {
   try {
-    // 1. Parse body
-    const body = await req.json();
+    // ── Rate limit (IP + email) ────────────────────────────
+    const ip = getClientIp(req);
+    const rlIp = checkRateLimit(`forgot:${ip}`, RL_FORGOT_PW, RL_WINDOW_MS);
+    if (!rlIp.ok) return rateLimitResponse(rlIp);
 
-    // 2. Validate
+    const body = await req.json();
     const parsed = forgotPasswordSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Please enter a valid email address" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
     }
 
     const { email } = parsed.data;
 
-    // 3. Find user (always return success to prevent email enumeration)
-    const user = await db.user.findUnique({
-      where: { email },
-    });
+    // Secondary rate limit keyed on email
+    const rlEmail = checkRateLimit(`forgot:${email}`, RL_FORGOT_PW, RL_WINDOW_MS);
+    if (!rlEmail.ok) return NextResponse.json({ message: SAFE_MSG });
 
+    // ── Find user (always return same message) ─────────────
+    const user = await db.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json({
-        message:
-          "If an account exists with that email, a reset link has been sent.",
-      });
+      return NextResponse.json({ message: SAFE_MSG });
     }
 
-    // 4. Delete any existing reset tokens for this email
-    await db.verificationToken.deleteMany({
-      where: { identifier: email },
-    });
+    // ── Generate hashed token ──────────────────────────────
+    const { raw: rawToken, hashed: hashedToken } = generateSecureToken();
+    const expires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
 
-    // 5. Generate token
-    const token = crypto.randomUUID();
-    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    // ── Atomic: delete old tokens + create new one ─────────
+    await db.$transaction([
+      db.securityToken.deleteMany({
+        where: { identifier: email, type: "PASSWORD_RESET" },
+      }),
+      db.securityToken.create({
+        data: {
+          type: "PASSWORD_RESET",
+          hashedToken,
+          identifier: email,
+          expires,
+        },
+      }),
+    ]);
 
-    // 6. Store token
-    await db.verificationToken.create({
-      data: {
-        identifier: email,
-        token,
-        expires,
-      },
-    });
-
-    // 7. Send reset email
+    // ── Send reset email ───────────────────────────────────
     try {
-      await sendPasswordResetEmail(email, token);
+      await sendPasswordResetEmail(email, rawToken);
     } catch (emailError) {
       console.error("Failed to send reset email:", emailError);
     }
 
-    return NextResponse.json({
-      message:
-        "If an account exists with that email, a reset link has been sent.",
-    });
+    // ── Audit ──────────────────────────────────────────────
+    logAudit({ userId: user.id, action: "FORGOT_PASSWORD_REQUESTED", ip });
+
+    return NextResponse.json({ message: SAFE_MSG });
   } catch (error) {
     console.error("Forgot password error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

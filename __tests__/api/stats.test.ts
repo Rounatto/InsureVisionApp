@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Mocks ────────────────────────────────────────────────────
 const mockAuth = vi.fn();
-const mockEstimateCount = vi.fn();
-const mockEstimateFindMany = vi.fn();
+const mockQueryRaw = vi.fn();
 
 vi.mock("@/config/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
@@ -11,10 +10,7 @@ vi.mock("@/config/auth", () => ({
 
 vi.mock("@/config/db", () => ({
   db: {
-    estimate: {
-      count: (...args: unknown[]) => mockEstimateCount(...args),
-      findMany: (...args: unknown[]) => mockEstimateFindMany(...args),
-    },
+    $queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
   },
 }));
 
@@ -39,26 +35,20 @@ describe("GET /api/auth/stats", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns correct stats for authenticated user", async () => {
+  it("returns correct stats from DB aggregation", async () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } });
-    mockEstimateCount.mockResolvedValue(3);
-    mockEstimateFindMany.mockResolvedValue([
-      { photos: ["a.jpg", "b.jpg"] },
-      { photos: ["c.jpg"] },
-      { photos: [] },
-    ]);
+    mockQueryRaw.mockResolvedValue([{ estimates: 3, photos: 5 }]);
 
     const res = await GET();
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.estimates).toBe(3);
-    expect(data.photos).toBe(3); // 2 + 1 + 0
+    expect(data.photos).toBe(5);
   });
 
   it("returns 0s when user has no estimates", async () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } });
-    mockEstimateCount.mockResolvedValue(0);
-    mockEstimateFindMany.mockResolvedValue([]);
+    mockQueryRaw.mockResolvedValue([{ estimates: 0, photos: 0 }]);
 
     const res = await GET();
     const data = await res.json();

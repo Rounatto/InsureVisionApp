@@ -1,19 +1,24 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import crypto from "crypto";
 
 import { db } from "@/config/db";
 import { registerSchema } from "@/lib/validations/auth";
-import { SALT_ROUNDS } from "@/lib/constants";
+import { SALT_ROUNDS, RL_WINDOW_MS, RL_REGISTER, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
 import { sendVerificationEmail } from "@/lib/email";
+import { generateSecureToken } from "@/lib/tokens";
+import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
   try {
-    // 1. Parse request body
-    const body = await req.json();
+    // ── Rate limit (IP-based) ──────────────────────────────
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(`register:${ip}`, RL_REGISTER, RL_WINDOW_MS);
+    if (!rl.ok) return rateLimitResponse(rl);
 
-    // 2. Validate input with Zod
+    // ── Parse & validate ───────────────────────────────────
+    const body = await req.json();
     const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -23,90 +28,74 @@ export async function POST(req: Request) {
       }));
 
       return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message: "Validation failed",
-          errors,
-        },
-        { status: 400 }
+        { success: false, message: "Validation failed", errors },
+        { status: 400 },
       );
     }
 
     const { name, email, password } = parsed.data;
 
-    // 3. Check if user already exists
+    // ── Check duplicate ────────────────────────────────────
     const existingUser = await db.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
       return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message: "An account with this email already exists",
-        },
-        { status: 409 }
+        { success: false, message: "An account with this email already exists" },
+        { status: 409 },
       );
     }
 
-    // 4. Hash password
+    // ── Hash password ──────────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // 5. Create user in database
-    const user = await db.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
+    // ── Generate hashed verification token ─────────────────
+    const { raw: rawToken, hashed: hashedToken } = generateSecureToken();
+    const expires = new Date(Date.now() + VERIFY_TOKEN_TTL_MS);
+
+    // ── Atomic: create user + security token ───────────────
+    const user = await db.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: { name, email, password: hashedPassword },
+        select: { id: true, name: true, email: true },
+      });
+
+      await tx.securityToken.create({
+        data: {
+          type: "EMAIL_VERIFICATION",
+          hashedToken,
+          identifier: email,
+          expires,
+        },
+      });
+
+      return newUser;
     });
 
-    // 6. Create verification token and send email
-    const token = crypto.randomUUID();
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    await db.verificationToken.create({
-      data: {
-        identifier: email,
-        token,
-        expires,
-      },
-    });
-
+    // ── Send verification email (non-blocking on failure) ──
     try {
-      await sendVerificationEmail(email, token);
+      await sendVerificationEmail(email, rawToken);
     } catch (emailError) {
       console.error("[REGISTER_EMAIL_ERROR]", emailError);
-      // User is created but email failed — they can request a new one later
     }
 
-    // 7. Return success response
+    // ── Audit ──────────────────────────────────────────────
+    logAudit({ userId: user.id, action: "REGISTER", ip });
+
     return NextResponse.json<RegisterResponse>(
       {
         success: true,
         message: "Account created! Please check your email to verify your account.",
-        user: {
-          id: user.id,
-          name: user.name ?? "",
-          email: user.email,
-        },
+        user: { id: user.id, name: user.name ?? "", email: user.email },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("[REGISTER_ERROR]", error);
-
     return NextResponse.json<ErrorResponse>(
-      {
-        success: false,
-        message: "Something went wrong. Please try again later.",
-      },
-      { status: 500 }
+      { success: false, message: "Something went wrong. Please try again later." },
+      { status: 500 },
     );
   }
 }
