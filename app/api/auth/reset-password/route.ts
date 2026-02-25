@@ -6,9 +6,13 @@ import { hashToken } from "@/lib/tokens";
 import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import { SALT_ROUNDS, RL_WINDOW_MS, RL_RESET_PW } from "@/lib/constants";
+import { ensureTrustedOrigin } from "@/lib/security";
 
 export async function POST(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     // ── Rate limit ─────────────────────────────────────────
     const ip = getClientIp(req);
     const rl = checkRateLimit(`reset:${ip}`, RL_RESET_PW, RL_WINDOW_MS);

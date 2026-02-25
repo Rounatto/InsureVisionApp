@@ -3,6 +3,9 @@ import { auth } from "@/config/auth";
 import { db } from "@/config/db";
 import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
 import crypto from "crypto";
+import { ensureTrustedOrigin } from "@/lib/security";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { RL_ESTIMATE, RL_WINDOW_MS } from "@/lib/constants";
 
 const BUCKET = "damage-photos";
 const ALLOWED_TYPES = ["image/png", "image/jpeg"];
@@ -18,11 +21,18 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
  */
 export async function POST(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     // Auth check
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(`estimate:${session.user.id}:${ip}`, RL_ESTIMATE, RL_WINDOW_MS);
+    if (!rl.ok) return rateLimitResponse(rl);
 
     // Parse form data
     const formData = await req.formData();

@@ -9,9 +9,13 @@ import { generateSecureToken } from "@/lib/tokens";
 import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
+import { ensureTrustedOrigin } from "@/lib/security";
 
 export async function POST(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     // ── Rate limit (IP-based) ──────────────────────────────
     const ip = getClientIp(req);
     const rl = checkRateLimit(`register:${ip}`, RL_REGISTER, RL_WINDOW_MS);

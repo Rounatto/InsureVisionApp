@@ -3,6 +3,9 @@ import crypto from "crypto";
 import { auth } from "@/config/auth";
 import { db } from "@/config/db";
 import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
+import { ensureTrustedOrigin } from "@/lib/security";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { RL_AVATAR_UPLOAD, RL_WINDOW_MS } from "@/lib/constants";
 
 const BUCKET = "user-avatars";
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -10,10 +13,17 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export async function POST(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(`avatar:${session.user.id}:${ip}`, RL_AVATAR_UPLOAD, RL_WINDOW_MS);
+    if (!rl.ok) return rateLimitResponse(rl);
 
     if (!hasSupabaseAdminEnv()) {
       return NextResponse.json(

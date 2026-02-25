@@ -22,6 +22,18 @@ export const RL_RESET_PW = 8;
 /** Max change-password attempts per session per window. */
 export const RL_CHANGE_PW = 5;
 
+/** Max profile-update attempts per session per window. */
+export const RL_PROFILE_UPDATE = 15;
+
+/** Max avatar upload attempts per session per window. */
+export const RL_AVATAR_UPLOAD = 10;
+
+/** Max delete-account attempts per session per window. */
+export const RL_DELETE_ACCOUNT = 3;
+
+/** Max estimate submissions per session per window. */
+export const RL_ESTIMATE = 12;
+
 /** Max verify-email hits per IP per window. */
 export const RL_VERIFY_EMAIL = 10;
 

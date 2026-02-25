@@ -6,9 +6,13 @@ import { changePasswordSchema } from "@/lib/validations/auth";
 import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import { SALT_ROUNDS, RL_WINDOW_MS, RL_CHANGE_PW } from "@/lib/constants";
+import { ensureTrustedOrigin } from "@/lib/security";
 
 export async function PATCH(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     const session = await auth();
 
     if (!session?.user?.id) {

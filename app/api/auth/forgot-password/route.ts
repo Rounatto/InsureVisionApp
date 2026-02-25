@@ -6,12 +6,16 @@ import { generateSecureToken } from "@/lib/tokens";
 import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import { RL_WINDOW_MS, RL_FORGOT_PW, RESET_TOKEN_TTL_MS } from "@/lib/constants";
+import { ensureTrustedOrigin } from "@/lib/security";
 
 /** Enumeration-safe message returned on every path. */
 const SAFE_MSG = "If an account exists with that email, a reset link has been sent.";
 
 export async function POST(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     // ── Rate limit (IP + email) ────────────────────────────
     const ip = getClientIp(req);
     const rlIp = checkRateLimit(`forgot:${ip}`, RL_FORGOT_PW, RL_WINDOW_MS);
