@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
-import DashboardLayout from "@/components/DashboardLayout";
 import UserAvatar from "@/components/UserAvatar";
 import SectionHeading from "@/components/SectionHeading";
 import PrimaryButton from "@/components/PrimaryButton";
@@ -133,7 +132,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <main className="mx-auto max-w-xl px-6 py-12">
 
         {/* ─── Header ─────────────────────────────────────────── */}
@@ -320,6 +319,6 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }

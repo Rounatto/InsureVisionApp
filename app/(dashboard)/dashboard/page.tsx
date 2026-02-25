@@ -3,7 +3,6 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { downloadEstimatePdf } from "@/lib/generatePdf";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 
@@ -133,7 +132,6 @@ export default function Home() {
   };
 
   return (
-    <DashboardLayout>
       <main className="mx-auto max-w-4xl px-6 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-[color:var(--foreground)] mb-3">
@@ -323,6 +321,5 @@ export default function Home() {
           </div>
         )}
       </main>
-    </DashboardLayout>
   );
 }

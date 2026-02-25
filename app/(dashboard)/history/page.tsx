@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { downloadEstimatePdf } from "@/lib/generatePdf";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 
@@ -53,7 +52,6 @@ export default function HistoryPage() {
     setExpandedId((prev) => (prev === id ? null : id));
 
   return (
-    <DashboardLayout>
       <main className="mx-auto max-w-3xl px-6 py-16">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-[color:var(--foreground)] mb-3">
@@ -202,6 +200,5 @@ export default function HistoryPage() {
           </div>
         )}
       </main>
-    </DashboardLayout>
   );
 }
