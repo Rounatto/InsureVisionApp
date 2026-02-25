@@ -1,5 +1,6 @@
 import Link from "next/link";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 export default function LandingPage() {
   return (
@@ -27,6 +28,9 @@ export default function LandingPage() {
             >
               Sign Up
             </Link>
+            <div className="text-[color:var(--background)]">
+              <ThemeSwitcher />
+            </div>
           </div>
         </div>
       </nav>
