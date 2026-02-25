@@ -85,6 +85,7 @@ export const { handlers, auth } = NextAuth({
       // must also update JWT fields so refreshed session reflects new data.
       if (trigger === "update") {
         if (typeof session?.name === "string") token.name = session.name;
+        if (typeof session?.image === "string") token.image = session.image;
         return token;
       }
 
@@ -137,6 +138,7 @@ export const { handlers, auth } = NextAuth({
         session.user.id = token.sub;
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
+        session.user.image = token.image ?? session.user.image;
       }
       return session;
     },

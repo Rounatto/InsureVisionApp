@@ -10,6 +10,8 @@ import { LockIcon } from "@/lib/icons";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 
 const INPUT_CLASSES = "w-full rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm text-[color:var(--foreground)] outline-none focus:border-[color:var(--foreground)] transition-colors";
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export default function ProfilePage() {
   const { data: session, status, update: updateSession } = useSession();
@@ -18,6 +20,9 @@ export default function ProfilePage() {
   const [nameTouched, setNameTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarMsg, setAvatarMsg] = useState("");
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -124,6 +129,37 @@ export default function ProfilePage() {
     setChangingPwd(false);
   };
 
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
+      setAvatarMsg("Please choose a photo first.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setAvatarMsg("");
+    try {
+      const formData = new FormData();
+      formData.append("avatar", avatarFile);
+
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAvatarMsg(data.error || "Failed to upload avatar.");
+      } else {
+        await updateSession({ image: data.user.image });
+        setAvatarFile(null);
+        setAvatarMsg("Photo updated.");
+      }
+    } catch {
+      setAvatarMsg(NETWORK_ERROR_MESSAGE);
+    }
+    setUploadingAvatar(false);
+  };
+
   const handleDeleteAccount = async () => {
     setDeleting(true);
     setDeleteError("");
@@ -149,10 +185,47 @@ export default function ProfilePage() {
     <DashboardLayout>
       <main className="mx-auto max-w-xl px-6 py-12">
         <div className="flex items-center gap-5 mb-12">
-          <UserAvatar name={session?.user?.name} loading={status === "loading"} size="h-16 w-16" textSize="text-2xl" />
-          <div className="min-w-0">
+          <UserAvatar name={session?.user?.name} image={session?.user?.image} loading={status === "loading"} size="h-16 w-16" textSize="text-2xl" />
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{session?.user?.name || "User"}</h1>
             <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Member since February 2026</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="rounded-full border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium text-[color:var(--foreground)] cursor-pointer hover:bg-[color:var(--muted)] transition-colors">
+                Choose Photo
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && !ALLOWED_AVATAR_TYPES.includes(file.type)) {
+                      setAvatarFile(null);
+                      setAvatarMsg("Use PNG, JPG, or WEBP image.");
+                      return;
+                    }
+                    if (file && file.size > MAX_AVATAR_BYTES) {
+                      setAvatarFile(null);
+                      setAvatarMsg("Avatar must be 5MB or smaller.");
+                      return;
+                    }
+                    setAvatarFile(file);
+                    setAvatarMsg("");
+                  }}
+                />
+              </label>
+              <button
+                onClick={handleAvatarUpload}
+                disabled={!avatarFile || uploadingAvatar}
+                className="rounded-full bg-[color:var(--foreground)] px-3 py-1.5 text-xs font-bold text-[color:var(--background)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploadingAvatar ? "Uploading..." : "Upload"}
+              </button>
+            </div>
+            {avatarMsg && (
+              <p className={`mt-2 text-xs ${avatarMsg === "Photo updated." ? "text-green-600" : "text-red-500"}`}>
+                {avatarMsg}
+              </p>
+            )}
           </div>
         </div>
 
