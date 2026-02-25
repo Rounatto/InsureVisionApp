@@ -12,6 +12,12 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "InsureVision AI",
   description: "Smart car damage estimation powered by AI",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
