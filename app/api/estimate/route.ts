@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/config/auth";
 import { db } from "@/config/db";
-import { getSupabaseAdmin } from "@/config/supabase";
+import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
 import crypto from "crypto";
 
 const BUCKET = "damage-photos";
@@ -62,37 +62,42 @@ export async function POST(req: Request) {
     const estimateId = `EST-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const userId = session.user.id;
 
-    // Upload photos to Supabase Storage
-    const supabase = getSupabaseAdmin();
     const uploadedUrls: string[] = [];
+    const canUploadToSupabase = hasSupabaseAdminEnv();
+    const supabase = canUploadToSupabase ? getSupabaseAdmin() : null;
 
-    for (const photo of photos) {
-      const ext = photo.name.split(".").pop() || "jpg";
-      const fileName = `${crypto.randomUUID()}.${ext}`;
-      const storagePath = `${userId}/${estimateId}/${fileName}`;
+    if (!supabase) {
+      console.warn(
+        "Estimate: Supabase env vars are missing. Skipping photo upload and continuing with estimate.",
+      );
+    }
 
-      const buffer = Buffer.from(await photo.arrayBuffer());
+    if (supabase) {
+      for (const photo of photos) {
+        const ext = photo.name.split(".").pop() || "jpg";
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const storagePath = `${userId}/${estimateId}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(storagePath, buffer, {
-          contentType: photo.type,
-          upsert: false,
-        });
+        const buffer = Buffer.from(await photo.arrayBuffer());
 
-      if (uploadError) {
-        console.error("Supabase upload error:", uploadError);
-        return NextResponse.json(
-          { error: "Failed to upload photos. Please try again." },
-          { status: 500 }
-        );
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET)
+          .upload(storagePath, buffer, {
+            contentType: photo.type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Supabase upload error:", uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from(BUCKET)
+          .getPublicUrl(storagePath);
+
+        uploadedUrls.push(urlData.publicUrl);
       }
-
-      const { data: urlData } = supabase.storage
-        .from(BUCKET)
-        .getPublicUrl(storagePath);
-
-      uploadedUrls.push(urlData.publicUrl);
     }
 
     // ────────────────────────────────────────────────────────────

@@ -40,7 +40,7 @@ export default function Navbar() {
               onClick={() => setProfileOpen((v) => !v)}
               aria-label="Profile menu"
             >
-              <UserAvatar name={session?.user?.name} loading={status === "loading"} className="hover:border-[color:var(--foreground)]/30 transition-colors" />
+              <UserAvatar name={session?.user?.name} image={session?.user?.image} loading={status === "loading"} className="hover:border-[color:var(--foreground)]/30 transition-colors" />
             </button>
 
             {profileOpen && (
@@ -48,7 +48,7 @@ export default function Navbar() {
                 {/* User info header */}
                 <div className="px-4 py-4 border-b border-[color:var(--border)]">
                   <div className="flex items-center gap-3">
-                    <UserAvatar name={session?.user?.name} loading={status === "loading"} size="h-10 w-10" textSize="text-sm" />
+                    <UserAvatar name={session?.user?.name} image={session?.user?.image} loading={status === "loading"} size="h-10 w-10" textSize="text-sm" />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-[color:var(--foreground)] truncate">{session?.user?.name || "User"}</p>
                       <p className="text-xs text-[color:var(--muted-foreground)] truncate">{session?.user?.email || ""}</p>

@@ -14,6 +14,22 @@ export const { handlers, auth } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  // Session cookie (no persistent maxAge) so users must sign in again
+  // after closing the browser.
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   providers: [
     // Google comes from the base config
     ...authConfig.providers,
@@ -64,14 +80,28 @@ export const { handlers, auth } = NextAuth({
      * the JWT is effectively invalidated by clearing `token.sub`,
      * which causes `session.user.id` to be undefined → 401.
      */
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // Client-driven session updates (e.g. `useSession().update({ name })`)
+      // must also update JWT fields so refreshed session reflects new data.
+      if (trigger === "update") {
+        if (typeof session?.name === "string") token.name = session.name;
+        if (typeof session?.image === "string") token.image = session.image;
+        return token;
+      }
+
       // Initial sign-in — snapshot the current tokenVersion
       if (user?.id) {
-        const dbUser = await db.user.findUnique({
-          where: { id: user.id },
-          select: { tokenVersion: true },
-        });
-        token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: user.id },
+            select: { tokenVersion: true },
+          });
+          token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        } catch (error) {
+          // If DB/client schema drifts, avoid blocking sign-in.
+          console.warn("JWT sign-in tokenVersion check skipped:", error);
+          token.tokenVersion = 0;
+        }
         token.versionCheckedAt = Date.now();
         return token;
       }
@@ -80,15 +110,20 @@ export const { handlers, auth } = NextAuth({
       if (token.sub) {
         const lastCheck = (token.versionCheckedAt as number) ?? 0;
         if (Date.now() - lastCheck > TOKEN_VERSION_CHECK_INTERVAL_MS) {
-          const dbUser = await db.user.findUnique({
-            where: { id: token.sub },
-            select: { tokenVersion: true },
-          });
+          try {
+            const dbUser = await db.user.findUnique({
+              where: { id: token.sub },
+              select: { tokenVersion: true },
+            });
 
-          if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
-            // Token version mismatch → force re-login
-            token.sub = undefined;
-            token.tokenVersion = undefined;
+            if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
+              // Token version mismatch → force re-login
+              token.sub = undefined;
+              token.tokenVersion = undefined;
+            }
+          } catch (error) {
+            // Keep session alive if tokenVersion cannot be checked.
+            console.warn("JWT periodic tokenVersion check skipped:", error);
           }
 
           token.versionCheckedAt = Date.now();
@@ -101,6 +136,9 @@ export const { handlers, auth } = NextAuth({
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
+        session.user.name = token.name ?? session.user.name;
+        session.user.email = token.email ?? session.user.email;
+        session.user.image = token.image ?? session.user.image;
       }
       return session;
     },

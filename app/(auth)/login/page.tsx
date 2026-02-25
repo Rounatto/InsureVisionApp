@@ -25,7 +25,6 @@ function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -104,11 +103,7 @@ function Login() {
 
           <AuthInput icon="lock" id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" disabled={loading} passwordToggle />
 
-          <div className="flex items-center justify-between px-1">
-            <label className="flex items-center gap-2 text-xs text-[color:var(--muted-foreground)] cursor-pointer select-none">
-              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded border-[color:var(--border)] accent-[color:var(--foreground)]" />
-              Remember me
-            </label>
+          <div className="flex items-center justify-end px-1">
             <Link href="/forgot-password" className="text-xs font-semibold text-[color:var(--foreground)] hover:underline">
               Forgot Password?
             </Link>
