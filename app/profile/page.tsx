@@ -14,12 +14,11 @@ const INPUT_CLASSES = "w-full rounded-lg border border-[color:var(--border)] bg-
 export default function ProfilePage() {
   const { data: session, status, update: updateSession } = useSession();
 
-  // Profile fields
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
-  // Change password
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -27,45 +26,56 @@ export default function ProfilePage() {
   const [changingPwd, setChangingPwd] = useState(false);
   const [pwdError, setPwdError] = useState("");
   const [pwdSuccess, setPwdSuccess] = useState("");
+  const [canChangePassword, setCanChangePassword] = useState<boolean | null>(null);
 
-  // Activity stats
   const [stats, setStats] = useState<{ estimates: number; photos: number } | null>(null);
 
-  // Delete account
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Seed from session
-  useEffect(() => {
-    if (session?.user?.name) setName(session.user.name);
-  }, [session]);
-
-  // Fetch activity stats
   useEffect(() => {
     async function loadStats() {
       try {
         const res = await fetch("/api/auth/stats");
         if (res.ok) setStats(await res.json());
-      } catch { /* ignore */ }
+      } catch {
+        // ignore
+      }
     }
     loadStats();
   }, []);
 
+  useEffect(() => {
+    async function loadAccountCapabilities() {
+      try {
+        const res = await fetch("/api/auth/account-capabilities");
+        if (!res.ok) return;
+        const data = await res.json();
+        setCanChangePassword(Boolean(data.canChangePassword));
+      } catch {
+        // ignore
+      }
+    }
+    loadAccountCapabilities();
+  }, []);
+
   const handleSaveProfile = async () => {
+    const resolvedName = nameTouched ? name : (session?.user?.name || "");
     setSaving(true);
     setSaveMsg("");
     try {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: resolvedName }),
       });
       if (!res.ok) {
         const data = await res.json();
         setSaveMsg(data.error || "Failed to save.");
       } else {
-        await updateSession({ name });
+        await updateSession({ name: resolvedName });
+        setNameTouched(false);
         setSaveMsg("Saved!");
         setTimeout(() => setSaveMsg(""), 2000);
       }
@@ -76,6 +86,11 @@ export default function ProfilePage() {
   };
 
   const handleChangePassword = async () => {
+    if (canChangePassword === false) {
+      setPwdError("Password change is only available for email/password accounts.");
+      return;
+    }
+
     setChangingPwd(true);
     setPwdError("");
     setPwdSuccess("");
@@ -87,7 +102,6 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        // Show field-level errors or general error
         if (data.details) {
           const msgs = Object.values(data.details).flat().join(". ");
           setPwdError(msgs);
@@ -124,7 +138,6 @@ export default function ProfilePage() {
         return;
       }
 
-      // Account deleted — sign out and redirect
       await signOut({ callbackUrl: "/login" });
     } catch {
       setDeleteError(NETWORK_ERROR_MESSAGE);
@@ -135,8 +148,6 @@ export default function ProfilePage() {
   return (
     <DashboardLayout>
       <main className="mx-auto max-w-xl px-6 py-12">
-
-        {/* ─── Header ─────────────────────────────────────────── */}
         <div className="flex items-center gap-5 mb-12">
           <UserAvatar name={session?.user?.name} loading={status === "loading"} size="h-16 w-16" textSize="text-2xl" />
           <div className="min-w-0">
@@ -145,7 +156,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ─── Personal Information ───────────────────────────── */}
         <SectionHeading>Personal Information</SectionHeading>
 
         <div className="space-y-4 mb-6">
@@ -153,21 +163,24 @@ export default function ProfilePage() {
             <label className="text-sm text-[color:var(--muted-foreground)] shrink-0 w-28">Full Name</label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={nameTouched ? name : (session?.user?.name || "")}
+              onChange={(e) => {
+                if (!nameTouched) setNameTouched(true);
+                setName(e.target.value);
+              }}
               className={`flex-1 ${INPUT_CLASSES}`}
             />
           </div>
 
           <div className="flex items-center justify-between gap-4">
             <label className="text-sm text-[color:var(--muted-foreground)] shrink-0 w-28">Email</label>
-            <p className="flex-1 text-sm text-[color:var(--foreground)] py-2">{session?.user?.email || "—"}</p>
+            <p className="flex-1 text-sm text-[color:var(--foreground)] py-2">{session?.user?.email || "-"}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <PrimaryButton size="xs" fullWidth={false} onClick={handleSaveProfile} disabled={saving}>
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? "Saving..." : "Save Changes"}
           </PrimaryButton>
           {saveMsg && (
             <span className={`text-xs ${saveMsg === "Saved!" ? "text-green-600" : "text-red-500"}`}>{saveMsg}</span>
@@ -176,56 +189,67 @@ export default function ProfilePage() {
 
         <div className="border-b border-[color:var(--border)] my-10" />
 
-        {/* ─── Security ───────────────────────────────────────── */}
         <SectionHeading>Security</SectionHeading>
 
-        {/* Change Password toggle */}
-        <button
-          onClick={() => {
-            setShowPasswordForm(!showPasswordForm);
-            setPwdError("");
-            setPwdSuccess("");
-          }}
-          className="flex w-full items-center justify-between py-3 hover:opacity-70 transition-opacity"
-        >
-          <div className="flex items-center gap-3">
-            <LockIcon className="h-5 w-5 text-[color:var(--muted-foreground)]" />
-            <span className="text-sm text-[color:var(--foreground)]">Change Password</span>
-          </div>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`h-4 w-4 text-[color:var(--muted-foreground)] transition-transform ${showPasswordForm ? "rotate-90" : ""}`}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
-        </button>
+        {canChangePassword !== false ? (
+          <>
+            <button
+              onClick={() => {
+                setShowPasswordForm(!showPasswordForm);
+                setPwdError("");
+                setPwdSuccess("");
+              }}
+              className="flex w-full items-center justify-between py-3 hover:opacity-70 transition-opacity"
+            >
+              <div className="flex items-center gap-3">
+                <LockIcon className="h-5 w-5 text-[color:var(--muted-foreground)]" />
+                <span className="text-sm text-[color:var(--foreground)]">Change Password</span>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`h-4 w-4 text-[color:var(--muted-foreground)] transition-transform ${showPasswordForm ? "rotate-90" : ""}`}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
 
-        {/* Inline Change Password form */}
-        {showPasswordForm && (
-          <div className="ml-8 mt-2 mb-4 space-y-3">
-            <input
-              type="password"
-              placeholder="Current password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className={INPUT_CLASSES}
-            />
-            <input
-              type="password"
-              placeholder="New password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className={INPUT_CLASSES}
-            />
-            <input
-              type="password"
-              placeholder="Confirm new password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={INPUT_CLASSES}
-            />
-            {pwdError && <p className="text-xs text-red-500">{pwdError}</p>}
-            {pwdSuccess && <p className="text-xs text-green-600">{pwdSuccess}</p>}
-            <PrimaryButton size="xs" fullWidth={false} onClick={handleChangePassword} disabled={changingPwd || !currentPassword || !newPassword || !confirmPassword}>
-              {changingPwd ? "Updating…" : "Update Password"}
-            </PrimaryButton>
+            {showPasswordForm && (
+              <div className="ml-8 mt-2 mb-4 space-y-3">
+                <input
+                  type="password"
+                  placeholder="Current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className={INPUT_CLASSES}
+                />
+                <input
+                  type="password"
+                  placeholder="New password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={INPUT_CLASSES}
+                />
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={INPUT_CLASSES}
+                />
+                {pwdError && <p className="text-xs text-red-500">{pwdError}</p>}
+                {pwdSuccess && <p className="text-xs text-green-600">{pwdSuccess}</p>}
+                <PrimaryButton size="xs" fullWidth={false} onClick={handleChangePassword} disabled={changingPwd || !currentPassword || !newPassword || !confirmPassword}>
+                  {changingPwd ? "Updating..." : "Update Password"}
+                </PrimaryButton>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="py-3">
+            <div className="flex items-center gap-3">
+              <LockIcon className="h-5 w-5 text-[color:var(--muted-foreground)]" />
+              <span className="text-sm text-[color:var(--foreground)]">Change Password</span>
+            </div>
+            <p className="ml-8 mt-2 text-xs text-[color:var(--muted-foreground)]">
+              Password changes are only available for email/password accounts.
+            </p>
           </div>
         )}
 
@@ -244,27 +268,25 @@ export default function ProfilePage() {
 
         <div className="border-b border-[color:var(--border)] my-10" />
 
-        {/* ─── Stats ──────────────────────────────────────────── */}
         <SectionHeading>Activity</SectionHeading>
 
         <div className="flex gap-12 mb-4">
           <div>
-            <p className="text-2xl font-bold text-[color:var(--foreground)]">{stats?.estimates ?? "—"}</p>
+            <p className="text-2xl font-bold text-[color:var(--foreground)]">{stats?.estimates ?? "-"}</p>
             <p className="text-xs text-[color:var(--muted-foreground)]">Estimates</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-[color:var(--foreground)]">{stats?.photos ?? "—"}</p>
+            <p className="text-2xl font-bold text-[color:var(--foreground)]">{stats?.photos ?? "-"}</p>
             <p className="text-xs text-[color:var(--muted-foreground)]">Photos</p>
           </div>
         </div>
 
         {stats !== null && stats.estimates === 0 && (
-          <p className="text-xs text-[color:var(--muted-foreground)]">No activity yet — your estimation history will appear here.</p>
+          <p className="text-xs text-[color:var(--muted-foreground)]">No activity yet - your estimation history will appear here.</p>
         )}
 
         <div className="border-b border-[color:var(--border)] my-10" />
 
-        {/* ─── Danger Zone ────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-red-500">Delete Account</p>
@@ -278,14 +300,13 @@ export default function ProfilePage() {
             disabled={deleting}
             className="shrink-0 self-start rounded-full border border-red-500 px-5 py-2 text-sm font-medium text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {deleting ? "Deleting…" : "Delete"}
+            {deleting ? "Deleting..." : "Delete"}
           </button>
         </div>
 
         <div className="h-16" />
       </main>
 
-      {/* ─── Delete Confirmation Modal ──────────────────────── */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded-2xl bg-[color:var(--card)] border border-[color:var(--border)] p-6 shadow-xl">
@@ -314,7 +335,7 @@ export default function ProfilePage() {
                 disabled={deleting}
                 className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {deleting ? "Deleting…" : "Yes, Delete"}
+                {deleting ? "Deleting..." : "Yes, Delete"}
               </button>
             </div>
           </div>
