@@ -93,3 +93,7 @@ prisma/            Schema & migrations
 ## License
 
 Private — all rights reserved.
+
+---
+
+<p align="center">Built with ❤️ by the InsureVision team.</p>
