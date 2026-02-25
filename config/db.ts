@@ -11,7 +11,7 @@ export const isDatabaseConfigured = Boolean(process.env.DATABASE_URL);
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    return undefined;
+    throw new Error("DATABASE_URL environment variable is not set");
   }
 
   const pool = new Pool({ connectionString });

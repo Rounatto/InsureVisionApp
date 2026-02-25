@@ -129,7 +129,7 @@ export const { handlers, auth } = NextAuth({
         session.user.id = token.sub;
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
-        session.user.image = token.image ?? session.user.image;
+        session.user.image = (token.image as string | null | undefined) ?? session.user.image;
       }
       return session;
     },
