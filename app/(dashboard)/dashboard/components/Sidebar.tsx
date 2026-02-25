@@ -8,12 +8,13 @@ import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
-import { HomeIcon, ClockIcon, UserIcon } from "@/lib/icons";
+import { HomeIcon, ClockIcon, UserIcon, SettingsIcon } from "@/lib/icons";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: HomeIcon },
   { href: "/dashboard/history", label: "History", icon: ClockIcon },
   { href: "/dashboard/profile", label: "Profile", icon: UserIcon },
+  { href: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export default function Sidebar() {
