@@ -74,11 +74,17 @@ export const { handlers, auth } = NextAuth({
 
       // Initial sign-in — snapshot the current tokenVersion
       if (user?.id) {
-        const dbUser = await db.user.findUnique({
-          where: { id: user.id },
-          select: { tokenVersion: true },
-        });
-        token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: user.id },
+            select: { tokenVersion: true },
+          });
+          token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        } catch (error) {
+          // If DB/client schema drifts, avoid blocking sign-in.
+          console.warn("JWT sign-in tokenVersion check skipped:", error);
+          token.tokenVersion = 0;
+        }
         token.versionCheckedAt = Date.now();
         return token;
       }
@@ -87,15 +93,20 @@ export const { handlers, auth } = NextAuth({
       if (token.sub) {
         const lastCheck = (token.versionCheckedAt as number) ?? 0;
         if (Date.now() - lastCheck > TOKEN_VERSION_CHECK_INTERVAL_MS) {
-          const dbUser = await db.user.findUnique({
-            where: { id: token.sub },
-            select: { tokenVersion: true },
-          });
+          try {
+            const dbUser = await db.user.findUnique({
+              where: { id: token.sub },
+              select: { tokenVersion: true },
+            });
 
-          if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
-            // Token version mismatch → force re-login
-            token.sub = undefined;
-            token.tokenVersion = undefined;
+            if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
+              // Token version mismatch → force re-login
+              token.sub = undefined;
+              token.tokenVersion = undefined;
+            }
+          } catch (error) {
+            // Keep session alive if tokenVersion cannot be checked.
+            console.warn("JWT periodic tokenVersion check skipped:", error);
           }
 
           token.versionCheckedAt = Date.now();
