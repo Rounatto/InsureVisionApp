@@ -59,14 +59,14 @@ export default function Navbar() {
                 {/* Menu items */}
                 <div className="py-1.5">
                   <button
-                    onClick={() => { setProfileOpen(false); router.push("/history"); }}
+                    onClick={() => { setProfileOpen(false); router.push("/dashboard/history"); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
                   >
                     <ClockIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
                     History
                   </button>
                   <button
-                    onClick={() => { setProfileOpen(false); router.push("/profile"); }}
+                    onClick={() => { setProfileOpen(false); router.push("/dashboard/profile"); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
                   >
                     <UserIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
