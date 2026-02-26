@@ -20,7 +20,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 import LightRays from "@/components/LightRays";
 
@@ -138,7 +138,7 @@ export default function Login() {
             ThemeSwitcher pilote le thème global défini par tes variables CSS
             (`--card`, `--foreground`, etc.).
           */}
-          <div className="absolute top-4 right-4 z-50">
+          <div className="absolute top-4 right-4 z-50 text-[color:var(--foreground)]">
             <ThemeSwitcher />
           </div>
 

@@ -1,45 +1,25 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
 import bcrypt from "bcrypt";
 
+import authConfig from "@/config/auth.config";
 import { db } from "@/config/db";
 import { loginSchema } from "@/lib/validations/auth";
+import { TOKEN_VERSION_CHECK_INTERVAL_MS } from "@/lib/constants";
 
-// =====================================================
-// CONFIGURATION CENTRALE NEXTAUTH
-// =====================================================
-// Ce fichier est le cœur de l'authentification :
-// - Providers (Google OAuth + Email/Mot de passe)
-// - Stratégie de session (JWT)
-// - Callbacks (mapping token/session)
-//
-// Lecture conseillée pour le flux login local :
-// 1) `Credentials.authorize()`
-// 2) `callbacks.jwt`
-// 3) `callbacks.session`
-// 4) Utilisation côté pages via `signIn(...)` / `auth()`
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  // PrismaAdapter relie NextAuth à la base (users, accounts, sessions, etc.)
+export const { handlers, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(db),
   session: {
     // JWT : pas de table session requise pour stocker l'état de session serveur
     strategy: "jwt",
   },
-  pages: {
-    // Redirige les utilisateurs non authentifiés vers la page login custom
-    signIn: "/login",
-  },
   providers: [
-    // ─── Google OAuth ──────────────────────────────────────────────────
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+    // Google comes from the base config
+    ...authConfig.providers,
 
-    // ─── Email / Password ──────────────────────────────────────────────
+    // ─── Email / Password (needs Prisma + bcrypt — not Edge-safe) ─────
     Credentials({
       name: "credentials",
       credentials: {
@@ -61,7 +41,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Refuse si compte absent ou sans mot de passe local (ex: OAuth only)
         if (!user || !user.password) return null;
 
-        // 3) Vérification du hash bcrypt
+        // Block unverified email users
+        if (!user.emailVerified) return null;
+
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) return null;
 
@@ -76,16 +58,57 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
+
+    /**
+     * JWT callback — runs on every request.
+     *
+     * On sign-in (`user` present): persist the current tokenVersion.
+     * On subsequent calls: periodically re-check the DB version.
+     * If the version has been bumped (password change / reset / delete),
+     * the JWT is effectively invalidated by clearing `token.sub`,
+     * which causes `session.user.id` to be undefined → 401.
+     */
+    async jwt({ token, user }) {
+      // Initial sign-in — snapshot the current tokenVersion
+      if (user?.id) {
+        const dbUser = await db.user.findUnique({
+          where: { id: user.id },
+          select: { tokenVersion: true },
+        });
+        token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        token.versionCheckedAt = Date.now();
+        return token;
+      }
+
+      // Existing session — periodic version check
+      if (token.sub) {
+        const lastCheck = (token.versionCheckedAt as number) ?? 0;
+        if (Date.now() - lastCheck > TOKEN_VERSION_CHECK_INTERVAL_MS) {
+          const dbUser = await db.user.findUnique({
+            where: { id: token.sub },
+            select: { tokenVersion: true },
+          });
+
+          if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
+            // Token version mismatch → force re-login
+            token.sub = undefined;
+            token.tokenVersion = undefined;
+          }
+
+          token.versionCheckedAt = Date.now();
+        }
+      }
+
+      return token;
+    },
+
     async session({ session, token }) {
       // Expose l'ID utilisateur dans `session.user.id` côté client/serveur
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
       return session;
-    },
-    async jwt({ token }) {
-      // Callback prêt pour enrichissements futurs (roles, claims personnalisés)
-      return token;
     },
   },
 });

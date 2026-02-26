@@ -1,0 +1,16 @@
+@startuml
+left to right direction
+actor User
+actor "Email Provider" as Email
+
+rectangle "Authentication Backend" {
+  usecase "Login to Account" as L
+  usecase "Request Password Reset" as F
+  usecase "Reset Password with Link" as R
+}
+
+User --> L
+User --> F
+User --> R
+F --> Email
+@enduml

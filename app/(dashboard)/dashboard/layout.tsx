@@ -1,22 +1,18 @@
-import Link from 'next/link'
+import type { ReactNode } from "react";
+import Sidebar from "./components/Sidebar";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+/**
+ * Layout for all /dashboard/* routes.
+ * Provides a persistent left sidebar with navigation and a scrollable content area.
+ */
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div>
-        <div style={{backgroundColor:"grey", padding:"10px"}}>
-            <Link href="/dashboard/home">Home</Link>
-            <Link href="/dashboard/customers">Customers</Link>
-            <Link href="/dashboard/settings">Settings</Link>
-        </div>
-
-        <div>
-            {children}
-        </div>
-
-    </div>
+    <LanguageProvider>
+      <div className="flex min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
+    </LanguageProvider>
   );
 }
