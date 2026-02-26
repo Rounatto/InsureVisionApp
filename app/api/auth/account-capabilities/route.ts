@@ -10,19 +10,20 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { password: true },
-    });
+    const user = await Promise.race([
+      db.user.findUnique({
+        where: { id: session.user.id },
+        select: { password: true },
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+    ]);
 
     return NextResponse.json({
       canChangePassword: Boolean(user?.password),
     });
   } catch (error) {
     console.error("Account capabilities error:", error);
-    return NextResponse.json(
-      { error: "Failed to load account capabilities." },
-      { status: 500 },
-    );
+    // Fail-safe: do not break profile page if DB is temporarily unavailable.
+    return NextResponse.json({ canChangePassword: false });
   }
 }
