@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash, randomBytes } from "crypto";
 
 import { db, isDatabaseConfigured } from "@/config/db";
-import { sendPasswordResetEmail } from "@/lib/email/send-password-reset-email";
+import { sendPasswordResetEmail } from "@/lib/email";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
@@ -75,10 +75,7 @@ export async function POST(req: NextRequest) {
     });
 
     const resetUrl = `${req.nextUrl.origin}/reset-password?token=${rawToken}`;
-    await sendPasswordResetEmail({
-      to: user.email,
-      resetUrl,
-    });
+    await sendPasswordResetEmail(user.email, rawToken);
 
     console.info(`[PASSWORD_RESET_EMAIL_SENT] ${user.email}`);
 

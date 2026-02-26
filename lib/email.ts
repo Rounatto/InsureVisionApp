@@ -1,27 +1,89 @@
 import nodemailer from "nodemailer";
 
 /**
- * Lazy-initialized Nodemailer transporter using Gmail SMTP.
+ * Lazy-initialized Nodemailer transporter(s) using Gmail SMTP.
  *
  * Required env vars:
- *   GMAIL_USER     — your Gmail address (e.g. yourapp@gmail.com)
- *   GMAIL_APP_PASS — a 16-char App Password generated from Google Account settings
+ *   GMAIL_USER     — one or multiple comma-separated Gmail addresses
+ *   GMAIL_APP_PASS — one app password, or comma-separated app passwords
  */
-let _transporter: nodemailer.Transporter | null = null;
+type GmailAccount = {
+  user: string;
+  pass: string;
+};
 
-function getTransporter() {
-  if (!_transporter) {
-    const user = process.env.GMAIL_USER;
-    const pass = process.env.GMAIL_APP_PASS;
-    if (!user || !pass) {
-      throw new Error("GMAIL_USER and GMAIL_APP_PASS env vars are required");
-    }
-    _transporter = nodemailer.createTransport({
+let _accounts: GmailAccount[] | null = null;
+let _transporters: nodemailer.Transporter[] | null = null;
+let _sendCursor = 0;
+
+function splitCsv(value?: string) {
+  return (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function getAccounts() {
+  if (_accounts) return _accounts;
+
+  const users = splitCsv(process.env.GMAIL_USER);
+  const passes = splitCsv(process.env.GMAIL_APP_PASS);
+
+  if (!users.length || !passes.length) {
+    throw new Error("GMAIL_USER and GMAIL_APP_PASS env vars are required");
+  }
+
+  if (passes.length === 1) {
+    _accounts = users.map((user) => ({ user, pass: passes[0] }));
+    return _accounts;
+  }
+
+  if (passes.length !== users.length) {
+    throw new Error("When using multiple Gmail users, provide one app password per user (or a single shared one)");
+  }
+
+  _accounts = users.map((user, index) => ({ user, pass: passes[index] }));
+  return _accounts;
+}
+
+function getTransporters() {
+  if (!_transporters) {
+    _transporters = getAccounts().map(({ user, pass }) =>
+      nodemailer.createTransport({
       service: "gmail",
       auth: { user, pass },
-    });
+      }),
+    );
   }
-  return _transporter;
+  return _transporters;
+}
+
+type BaseMailOptions = Omit<nodemailer.SendMailOptions, "from">;
+
+async function sendWithFallback(options: BaseMailOptions) {
+  const accounts = getAccounts();
+  const transporters = getTransporters();
+
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < transporters.length; attempt += 1) {
+    const index = (_sendCursor + attempt) % transporters.length;
+    const transporter = transporters[index];
+    const account = accounts[index];
+
+    try {
+      await transporter.sendMail({
+        from: `"InsureVision" <${account.user}>`,
+        ...options,
+      });
+      _sendCursor = (index + 1) % transporters.length;
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Failed to send email with configured Gmail accounts");
 }
 
 /* ─── Base URL helper ─────────────────────────────────────── */
@@ -33,8 +95,7 @@ function getBaseUrl(): string {
 export async function sendVerificationEmail(email: string, token: string) {
   const url = `${getBaseUrl()}/api/auth/verify-email?token=${token}`;
 
-  await getTransporter().sendMail({
-    from: `"InsureVision" <${process.env.GMAIL_USER}>`,
+  await sendWithFallback({
     to: email,
     subject: "Verify your email — InsureVision",
     html: `
@@ -58,8 +119,7 @@ export async function sendVerificationEmail(email: string, token: string) {
 export async function sendPasswordResetEmail(email: string, token: string) {
   const url = `${getBaseUrl()}/reset-password?token=${token}`;
 
-  await getTransporter().sendMail({
-    from: `"InsureVision" <${process.env.GMAIL_USER}>`,
+  await sendWithFallback({
     to: email,
     subject: "Reset your password — InsureVision",
     html: `
