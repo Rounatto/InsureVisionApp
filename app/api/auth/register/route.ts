@@ -3,6 +3,11 @@ import bcrypt from "bcrypt";
 
 import { db, isDatabaseConfigured } from "@/config/db";
 import { registerSchema } from "@/lib/validations/auth";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { RL_REGISTER, RL_WINDOW_MS, SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
+import { generateSecureToken } from "@/lib/tokens";
+import { sendVerificationEmail } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
