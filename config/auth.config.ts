@@ -20,7 +20,7 @@ const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
 
-      const publicPaths = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/dashboard"];
+      const publicPaths = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
       const isPublicPage = publicPaths.some(
         (p) =>
           nextUrl.pathname === p ||
