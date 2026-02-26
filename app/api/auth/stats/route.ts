@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/config/auth";
 import { db } from "@/config/db";
 
+const QUERY_TIMEOUT_MS = 3000;
+
 /**
  * GET /api/auth/stats
  *
@@ -19,22 +21,25 @@ export async function GET() {
     const userId = session.user.id;
 
     // Single O(index-scan) query — no in-memory aggregation.
-    const [stats] = await db.$queryRaw<
-      { estimates: number; photos: number }[]
-    >`
-      SELECT
-        COUNT(*)::int                                       AS "estimates",
-        COALESCE(SUM(array_length("photos", 1)), 0)::int   AS "photos"
-      FROM "Estimate"
-      WHERE "userId" = ${userId}
-    `;
+    const statsRows = await Promise.race([
+      db.$queryRaw<{ estimates: number; photos: number }[]>`
+        SELECT
+          COUNT(*)::int                                       AS "estimates",
+          COALESCE(SUM(array_length("photos", 1)), 0)::int   AS "photos"
+        FROM "Estimate"
+        WHERE "userId" = ${userId}
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Stats query timeout")), QUERY_TIMEOUT_MS),
+      ),
+    ]);
+
+    const [stats] = statsRows;
 
     return NextResponse.json(stats ?? { estimates: 0, photos: 0 });
   } catch (error) {
     console.error("Stats error:", error);
-    return NextResponse.json(
-      { error: "Failed to load stats." },
-      { status: 500 },
-    );
+    // Fail-safe so profile page still renders during transient DB/network issues.
+    return NextResponse.json({ estimates: 0, photos: 0 });
   }
 }

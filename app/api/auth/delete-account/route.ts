@@ -3,7 +3,9 @@ import bcrypt from "bcrypt";
 import { auth } from "@/config/auth";
 import { db } from "@/config/db";
 import { logAudit } from "@/lib/audit";
-import { getClientIp } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { ensureTrustedOrigin } from "@/lib/security";
+import { RL_DELETE_ACCOUNT, RL_WINDOW_MS } from "@/lib/constants";
 
 /**
  * DELETE /api/auth/delete-account
@@ -17,6 +19,9 @@ import { getClientIp } from "@/lib/rate-limit";
  */
 export async function DELETE(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -25,6 +30,8 @@ export async function DELETE(req: Request) {
 
     const userId = session.user.id;
     const ip = getClientIp(req);
+    const rl = checkRateLimit(`delete-account:${userId}:${ip}`, RL_DELETE_ACCOUNT, RL_WINDOW_MS);
+    if (!rl.ok) return rateLimitResponse(rl);
 
     // ── Password re-confirmation for credential accounts ───
     const user = await db.user.findUnique({

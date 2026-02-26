@@ -1,20 +1,5 @@
 "use client";
 
-// =====================================================
-// PAGE D'INSCRIPTION (REGISTER)
-// =====================================================
-// Cette page est un composant CLIENT (React côté navigateur) car elle gère :
-// - l'état du formulaire en temps réel
-// - la soumission HTTP via `fetch`
-// - les messages d'erreur utilisateur
-// - la redirection après succès
-//
-// FLUX GLOBAL :
-// 1) L'utilisateur remplit le formulaire
-// 2) `handleSubmit` envoie les données vers /api/auth/register
-// 3) Le backend valide (Zod), crée l'utilisateur, renvoie un statut
-// 4) Front affiche erreurs OU redirige vers /login
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -43,7 +28,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [generalError, setGeneralError] = useState("");
-  // Dictionnaire des erreurs par champ, ex: { email: "Invalid email" }
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // ─── Helpers ──────────────────────────────────────────────
@@ -56,20 +40,17 @@ export default function Register() {
   // ─── Submit Handler ───────────────────────────────────────
   // Handler principal du formulaire d'inscription (email/password)
   const handleSubmit = async (e: React.FormEvent) => {
-    // Empêche le comportement HTML natif (reload de la page)
     e.preventDefault();
     clearErrors();
     setLoading(true);
 
     try {
-      // Requête POST vers ton endpoint d'inscription
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, confirmPassword }),
       });
 
-      // Typage union : soit succès, soit erreur structurée
       const data: RegisterResponse | ErrorResponse = await res.json();
 
       if (res.status === 201 && data.success) {
@@ -95,7 +76,6 @@ export default function Register() {
       // Erreur réseau ou backend indisponible
       setGeneralError("Unable to connect to the server. Please try again later.");
     } finally {
-      // Toujours exécuté (succès ou erreur) pour réactiver le bouton
       setLoading(false);
     }
   };

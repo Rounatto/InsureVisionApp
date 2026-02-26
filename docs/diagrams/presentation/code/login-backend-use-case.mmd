@@ -1,0 +1,18 @@
+@startuml
+skinparam shadowing false
+
+start
+
+:User opens login page;
+:Enter email and password;
+:Submit login form;
+
+if (Credentials valid?) then (No)
+  :Show login error;
+else (Yes)
+  :Create JWT session;
+  :Redirect to dashboard;
+endif
+
+stop
+@enduml

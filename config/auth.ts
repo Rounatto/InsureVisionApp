@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 
 import authConfig from "@/config/auth.config";
-import { db } from "@/config/db";
+import { db, isDatabaseConfigured } from "@/config/db";
 import { loginSchema } from "@/lib/validations/auth";
 import { TOKEN_VERSION_CHECK_INTERVAL_MS } from "@/lib/constants";
 
@@ -12,14 +12,13 @@ export const { handlers, auth } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(db),
   session: {
-    // JWT : pas de table session requise pour stocker l'état de session serveur
     strategy: "jwt",
   },
   providers: [
     // Google comes from the base config
     ...authConfig.providers,
 
-    // ─── Email / Password (needs Prisma + bcrypt — not Edge-safe) ─────
+    // Email / Password (needs Prisma + bcrypt - not Edge-safe)
     Credentials({
       name: "credentials",
       credentials: {
@@ -27,18 +26,17 @@ export const { handlers, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // 1) Validation stricte des identifiants entrants
+        if (!isDatabaseConfigured || !db) return null;
+
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
 
-        // 2) Recherche utilisateur par email
         const user = await db.user.findUnique({
           where: { email },
         });
 
-        // Refuse si compte absent ou sans mot de passe local (ex: OAuth only)
         if (!user || !user.password) return null;
 
         // Block unverified email users
@@ -47,7 +45,6 @@ export const { handlers, auth } = NextAuth({
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) return null;
 
-        // 4) Objet utilisateur minimal injecté dans le flux NextAuth
         return {
           id: user.id,
           name: user.name,
@@ -61,39 +58,49 @@ export const { handlers, auth } = NextAuth({
     ...authConfig.callbacks,
 
     /**
-     * JWT callback — runs on every request.
-     *
-     * On sign-in (`user` present): persist the current tokenVersion.
-     * On subsequent calls: periodically re-check the DB version.
-     * If the version has been bumped (password change / reset / delete),
-     * the JWT is effectively invalidated by clearing `token.sub`,
-     * which causes `session.user.id` to be undefined → 401.
+     * JWT callback runs on every request.
+     * Uses tokenVersion to invalidate sessions after password changes.
      */
-    async jwt({ token, user }) {
-      // Initial sign-in — snapshot the current tokenVersion
+    async jwt({ token, user, trigger, session }) {
+      // Client-driven session updates (e.g. useSession().update({ name }))
+      if (trigger === "update") {
+        if (typeof session?.name === "string") token.name = session.name;
+        if (typeof session?.image === "string") token.image = session.image;
+        return token;
+      }
+
+      // Initial sign-in: snapshot tokenVersion
       if (user?.id) {
-        const dbUser = await db.user.findUnique({
-          where: { id: user.id },
-          select: { tokenVersion: true },
-        });
-        token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: user.id },
+            select: { tokenVersion: true },
+          });
+          token.tokenVersion = dbUser?.tokenVersion ?? 0;
+        } catch (error) {
+          console.warn("JWT sign-in tokenVersion check skipped:", error);
+          token.tokenVersion = 0;
+        }
         token.versionCheckedAt = Date.now();
         return token;
       }
 
-      // Existing session — periodic version check
+      // Existing session: periodic version check
       if (token.sub) {
         const lastCheck = (token.versionCheckedAt as number) ?? 0;
         if (Date.now() - lastCheck > TOKEN_VERSION_CHECK_INTERVAL_MS) {
-          const dbUser = await db.user.findUnique({
-            where: { id: token.sub },
-            select: { tokenVersion: true },
-          });
+          try {
+            const dbUser = await db.user.findUnique({
+              where: { id: token.sub },
+              select: { tokenVersion: true },
+            });
 
-          if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
-            // Token version mismatch → force re-login
-            token.sub = undefined;
-            token.tokenVersion = undefined;
+            if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
+              token.sub = undefined;
+              token.tokenVersion = undefined;
+            }
+          } catch (error) {
+            console.warn("JWT periodic tokenVersion check skipped:", error);
           }
 
           token.versionCheckedAt = Date.now();
@@ -104,9 +111,11 @@ export const { handlers, auth } = NextAuth({
     },
 
     async session({ session, token }) {
-      // Expose l'ID utilisateur dans `session.user.id` côté client/serveur
       if (token.sub && session.user) {
         session.user.id = token.sub;
+        session.user.name = token.name ?? session.user.name;
+        session.user.email = token.email ?? session.user.email;
+        session.user.image = (token.image as string | null | undefined) ?? session.user.image;
       }
       return session;
     },

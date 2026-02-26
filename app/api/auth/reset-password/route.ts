@@ -1,81 +1,121 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { db } from "@/config/db";
-import { resetPasswordSchema } from "@/lib/validations/auth";
-import { hashToken } from "@/lib/tokens";
-import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
-import { logAudit } from "@/lib/audit";
-import { SALT_ROUNDS, RL_WINDOW_MS, RL_RESET_PW } from "@/lib/constants";
+import { createHash } from "crypto";
 
-export async function POST(req: Request) {
+import { db, isDatabaseConfigured } from "@/config/db";
+import { resetPasswordSchema } from "@/lib/validations/auth";
+import type { AuthResponse, ErrorResponse } from "@/types/auth";
+
+const SALT_ROUNDS = 12;
+const PASSWORD_RESET_IDENTIFIER_PREFIX = "password-reset:";
+
+export async function POST(req: NextRequest) {
   try {
-    // ── Rate limit ─────────────────────────────────────────
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`reset:${ip}`, RL_RESET_PW, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    if (!isDatabaseConfigured || !db) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message:
+            "Auth service is not configured on this machine (missing DATABASE_URL).",
+        },
+        { status: 503 }
+      );
+    }
 
     const body = await req.json();
-
     const parsed = resetPasswordSchema.safeParse(body);
+
     if (!parsed.success) {
-      const firstError = parsed.error.issues[0]?.message || "Invalid input";
-      return NextResponse.json({ error: firstError }, { status: 400 });
+      const errors = parsed.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      }));
+
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message: "Validation failed",
+          errors,
+        },
+        { status: 400 }
+      );
     }
 
-    const { token: rawToken, password } = parsed.data;
+    const { token, password } = parsed.data;
+    const hashedToken = createHash("sha256").update(token).digest("hex");
 
-    // ── Hash before lookup ─────────────────────────────────
-    const hashed = hashToken(rawToken);
-
-    const securityToken = await db.securityToken.findUnique({
-      where: { hashedToken: hashed },
+    const resetToken = await db.verificationToken.findFirst({
+      where: { token: hashedToken },
     });
 
-    // Generic error to prevent token enumeration
-    if (!securityToken || securityToken.type !== "PASSWORD_RESET") {
-      return NextResponse.json(
-        { error: "Invalid or expired reset link." },
-        { status: 400 },
+    if (!resetToken || resetToken.expires < new Date()) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message: "This reset link is invalid or expired.",
+        },
+        { status: 400 }
       );
     }
 
-    if (new Date() > securityToken.expires) {
-      await db.securityToken.delete({ where: { id: securityToken.id } });
-      return NextResponse.json(
-        { error: "Reset link has expired. Please request a new one." },
-        { status: 400 },
+    if (!resetToken.identifier.startsWith(PASSWORD_RESET_IDENTIFIER_PREFIX)) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message: "This reset link is invalid.",
+        },
+        { status: 400 }
       );
     }
+
+    const email = resetToken.identifier.replace(
+      PASSWORD_RESET_IDENTIFIER_PREFIX,
+      ""
+    );
 
     const user = await db.user.findUnique({
-      where: { email: securityToken.identifier },
+      where: { email },
+      select: { id: true },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid or expired reset link." }, { status: 400 });
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message: "This reset link is invalid.",
+        },
+        { status: 400 }
+      );
     }
 
-    // ── Hash new password ──────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // ── Atomic: update password + bump tokenVersion + delete token ──
     await db.$transaction([
       db.user.update({
         where: { id: user.id },
-        data: {
-          password: hashedPassword,
-          tokenVersion: { increment: 1 }, // invalidates all existing JWTs
-        },
+        data: { password: hashedPassword },
       }),
-      db.securityToken.delete({ where: { id: securityToken.id } }),
+      db.verificationToken.deleteMany({
+        where: { identifier: resetToken.identifier },
+      }),
     ]);
 
-    // ── Audit ──────────────────────────────────────────────
-    logAudit({ userId: user.id, action: "PASSWORD_RESET", ip });
-
-    return NextResponse.json({ message: "Password has been reset successfully" });
+    return NextResponse.json<AuthResponse>(
+      {
+        success: true,
+        message: "Password updated successfully. You can now sign in.",
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Reset password error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("[RESET_PASSWORD_ERROR]", error);
+
+    return NextResponse.json<ErrorResponse>(
+      {
+        success: false,
+        message: "Something went wrong. Please try again later.",
+      },
+      { status: 500 }
+    );
   }
 }

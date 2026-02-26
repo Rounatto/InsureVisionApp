@@ -1,72 +1,104 @@
-import { NextResponse } from "next/server";
-import { db } from "@/config/db";
+import { NextRequest, NextResponse } from "next/server";
+import { createHash, randomBytes } from "crypto";
+
+import { db, isDatabaseConfigured } from "@/config/db";
+import { sendPasswordResetEmail } from "@/lib/email/send-password-reset-email";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
-import { sendPasswordResetEmail } from "@/lib/email";
-import { generateSecureToken } from "@/lib/tokens";
-import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
-import { logAudit } from "@/lib/audit";
-import { RL_WINDOW_MS, RL_FORGOT_PW, RESET_TOKEN_TTL_MS } from "@/lib/constants";
+import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
-/** Enumeration-safe message returned on every path. */
-const SAFE_MSG = "If an account exists with that email, a reset link has been sent.";
+const RESET_TOKEN_TTL_MS = 1000 * 60 * 30; // 30 minutes
+const PASSWORD_RESET_IDENTIFIER_PREFIX = "password-reset:";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    // ── Rate limit (IP + email) ────────────────────────────
-    const ip = getClientIp(req);
-    const rlIp = checkRateLimit(`forgot:${ip}`, RL_FORGOT_PW, RL_WINDOW_MS);
-    if (!rlIp.ok) return rateLimitResponse(rlIp);
+    if (!isDatabaseConfigured || !db) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message:
+            "Auth service is not configured on this machine (missing DATABASE_URL).",
+        },
+        { status: 503 }
+      );
+    }
 
     const body = await req.json();
     const parsed = forgotPasswordSchema.safeParse(body);
+
     if (!parsed.success) {
-      return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
+      const errors = parsed.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      }));
+
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message: "Validation failed",
+          errors,
+        },
+        { status: 400 }
+      );
     }
 
     const { email } = parsed.data;
+    const genericMessage =
+      "If an account exists for this email, a reset link has been generated.";
 
-    // Secondary rate limit keyed on email
-    const rlEmail = checkRateLimit(`forgot:${email}`, RL_FORGOT_PW, RL_WINDOW_MS);
-    if (!rlEmail.ok) return NextResponse.json({ message: SAFE_MSG });
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { email: true },
+    });
 
-    // ── Find user (always return same message) ─────────────
-    const user = await db.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json({ message: SAFE_MSG });
+      return NextResponse.json<AuthResponse>(
+        { success: true, message: genericMessage },
+        { status: 200 }
+      );
     }
 
-    // ── Generate hashed token ──────────────────────────────
-    const { raw: rawToken, hashed: hashedToken } = generateSecureToken();
+    const identifier = `${PASSWORD_RESET_IDENTIFIER_PREFIX}${user.email}`;
+    const rawToken = randomBytes(32).toString("hex");
+    const hashedToken = createHash("sha256").update(rawToken).digest("hex");
     const expires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
 
-    // ── Atomic: delete old tokens + create new one ─────────
-    await db.$transaction([
-      db.securityToken.deleteMany({
-        where: { identifier: email, type: "PASSWORD_RESET" },
-      }),
-      db.securityToken.create({
-        data: {
-          type: "PASSWORD_RESET",
-          hashedToken,
-          identifier: email,
-          expires,
-        },
-      }),
-    ]);
+    await db.verificationToken.deleteMany({
+      where: { identifier },
+    });
 
-    // ── Send reset email ───────────────────────────────────
-    try {
-      await sendPasswordResetEmail(email, rawToken);
-    } catch (emailError) {
-      console.error("Failed to send reset email:", emailError);
-    }
+    await db.verificationToken.create({
+      data: {
+        identifier,
+        token: hashedToken,
+        expires,
+      },
+    });
 
-    // ── Audit ──────────────────────────────────────────────
-    logAudit({ userId: user.id, action: "FORGOT_PASSWORD_REQUESTED", ip });
+    const resetUrl = `${req.nextUrl.origin}/reset-password?token=${rawToken}`;
+    await sendPasswordResetEmail({
+      to: user.email,
+      resetUrl,
+    });
 
-    return NextResponse.json({ message: SAFE_MSG });
+    console.info(`[PASSWORD_RESET_EMAIL_SENT] ${user.email}`);
+
+    return NextResponse.json<AuthResponse>(
+      {
+        success: true,
+        message: genericMessage,
+        ...(process.env.NODE_ENV !== "production" ? { resetUrl } : {}),
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Forgot password error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("[FORGOT_PASSWORD_ERROR]", error);
+
+    return NextResponse.json<ErrorResponse>(
+      {
+        success: false,
+        message: "Something went wrong. Please try again later.",
+      },
+      { status: 500 }
+    );
   }
 }

@@ -1,0 +1,54 @@
+@startuml
+skinparam shadowing false
+
+start
+
+:User opens login page;
+:Fill form - Email, Password;
+
+if (Which method?) then (Google)
+
+  :signIn google;
+  :Google OAuth Flow;
+  :API callback;
+
+  if (User exists in DB?) then (No)
+    :Auto-create user;
+  else (Yes)
+    :Link Google account;
+  endif
+
+  :Create JWT session;
+  :Redirect to dashboard;
+
+else (Email/Password)
+
+  :POST login request;
+  :Parse JSON body;
+
+  if (Validation valid?) then (No)
+    :Return 400 error;
+    :Show validation errors;
+  else (Yes)
+
+    if (User exists in DB?) then (No)
+      :Return 401 error;
+      :Show login error;
+    else (Yes)
+
+      if (Password correct?) then (No)
+        :Return 401 error;
+        :Show login error;
+      else (Yes)
+        :Create JWT session;
+        :Redirect to dashboard;
+      endif
+
+    endif
+
+  endif
+
+endif
+
+stop
+@enduml

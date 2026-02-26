@@ -2,14 +2,24 @@ import { NextResponse } from "next/server";
 import { auth } from "@/config/auth";
 import { db } from "@/config/db";
 import { updateProfileSchema } from "@/lib/validations/auth";
+import { ensureTrustedOrigin } from "@/lib/security";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { RL_PROFILE_UPDATE, RL_WINDOW_MS } from "@/lib/constants";
 
 export async function PATCH(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(`profile:${session.user.id}:${ip}`, RL_PROFILE_UPDATE, RL_WINDOW_MS);
+    if (!rl.ok) return rateLimitResponse(rl);
 
     const body = await req.json();
     const parsed = updateProfileSchema.safeParse(body);

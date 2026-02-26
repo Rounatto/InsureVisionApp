@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/config/auth";
 import { db } from "@/config/db";
-import { getSupabaseAdmin } from "@/config/supabase";
+import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
 import crypto from "crypto";
+import { ensureTrustedOrigin } from "@/lib/security";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { RL_ESTIMATE, RL_WINDOW_MS } from "@/lib/constants";
 
 const BUCKET = "damage-photos";
 const ALLOWED_TYPES = ["image/png", "image/jpeg"];
@@ -18,11 +21,18 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
  */
 export async function POST(req: Request) {
   try {
+    const originError = ensureTrustedOrigin(req);
+    if (originError) return originError;
+
     // Auth check
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(`estimate:${session.user.id}:${ip}`, RL_ESTIMATE, RL_WINDOW_MS);
+    if (!rl.ok) return rateLimitResponse(rl);
 
     // Parse form data
     const formData = await req.formData();
@@ -62,37 +72,42 @@ export async function POST(req: Request) {
     const estimateId = `EST-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const userId = session.user.id;
 
-    // Upload photos to Supabase Storage
-    const supabase = getSupabaseAdmin();
     const uploadedUrls: string[] = [];
+    const canUploadToSupabase = hasSupabaseAdminEnv();
+    const supabase = canUploadToSupabase ? getSupabaseAdmin() : null;
 
-    for (const photo of photos) {
-      const ext = photo.name.split(".").pop() || "jpg";
-      const fileName = `${crypto.randomUUID()}.${ext}`;
-      const storagePath = `${userId}/${estimateId}/${fileName}`;
+    if (!supabase) {
+      console.warn(
+        "Estimate: Supabase env vars are missing. Skipping photo upload and continuing with estimate.",
+      );
+    }
 
-      const buffer = Buffer.from(await photo.arrayBuffer());
+    if (supabase) {
+      for (const photo of photos) {
+        const ext = photo.name.split(".").pop() || "jpg";
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const storagePath = `${userId}/${estimateId}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(storagePath, buffer, {
-          contentType: photo.type,
-          upsert: false,
-        });
+        const buffer = Buffer.from(await photo.arrayBuffer());
 
-      if (uploadError) {
-        console.error("Supabase upload error:", uploadError);
-        return NextResponse.json(
-          { error: "Failed to upload photos. Please try again." },
-          { status: 500 }
-        );
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET)
+          .upload(storagePath, buffer, {
+            contentType: photo.type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Supabase upload error:", uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from(BUCKET)
+          .getPublicUrl(storagePath);
+
+        uploadedUrls.push(urlData.publicUrl);
       }
-
-      const { data: urlData } = supabase.storage
-        .from(BUCKET)
-        .getPublicUrl(storagePath);
-
-      uploadedUrls.push(urlData.publicUrl);
     }
 
     // ────────────────────────────────────────────────────────────

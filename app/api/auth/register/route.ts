@@ -1,13 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { db } from "@/config/db";
+import { db, isDatabaseConfigured } from "@/config/db";
 import { registerSchema } from "@/lib/validations/auth";
-import { SALT_ROUNDS, RL_WINDOW_MS, RL_REGISTER, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
-import { sendVerificationEmail } from "@/lib/email";
-import { generateSecureToken } from "@/lib/tokens";
-import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
-import { logAudit } from "@/lib/audit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
@@ -31,8 +26,12 @@ export async function POST(req: Request) {
 
       // 400 Bad Request : la requête est mal formée / invalide côté données
       return NextResponse.json<ErrorResponse>(
-        { success: false, message: "Validation failed", errors },
-        { status: 400 },
+        {
+          success: false,
+          message: "Validation failed",
+          errors,
+        },
+        { status: 400 }
       );
     }
 
@@ -47,8 +46,11 @@ export async function POST(req: Request) {
     if (existingUser) {
       // 409 Conflict : ressource déjà existante selon contrainte métier
       return NextResponse.json<ErrorResponse>(
-        { success: false, message: "An account with this email already exists" },
-        { status: 409 },
+        {
+          success: false,
+          message: "An account with this email already exists",
+        },
+        { status: 409 }
       );
     }
 
@@ -91,17 +93,24 @@ export async function POST(req: Request) {
     return NextResponse.json<RegisterResponse>(
       {
         success: true,
-        message: "Account created! Please check your email to verify your account.",
-        user: { id: user.id, name: user.name ?? "", email: user.email },
+        message: "Account created successfully",
+        user: {
+          id: user.id,
+          name: user.name ?? "",
+          email: user.email,
+        },
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error) {
     // Logging serveur (visible dans logs backend), utile pour debug prod/dev
     console.error("[REGISTER_ERROR]", error);
     return NextResponse.json<ErrorResponse>(
-      { success: false, message: "Something went wrong. Please try again later." },
-      { status: 500 },
+      {
+        success: false,
+        message: "Something went wrong. Please try again later.",
+      },
+      { status: 500 }
     );
   }
 }
