@@ -3,6 +3,7 @@ export const translations = {
     // Sidebar
     home: "Home",
     history: "History",
+    admin: "Admin",
     profile: "Profile",
     settings: "Settings",
     signOut: "Sign Out",
@@ -106,6 +107,7 @@ export const translations = {
     // Sidebar
     home: "Accueil",
     history: "Historique",
+    admin: "Admin",
     profile: "Profil",
     settings: "Paramètres",
     signOut: "Déconnexion",
@@ -209,6 +211,7 @@ export const translations = {
     // Sidebar
     home: "Inicio",
     history: "Historial",
+    admin: "Admin",
     profile: "Perfil",
     settings: "Configuración",
     signOut: "Cerrar Sesión",
@@ -312,6 +315,7 @@ export const translations = {
     // Sidebar
     home: "Startseite",
     history: "Verlauf",
+    admin: "Admin",
     profile: "Profil",
     settings: "Einstellungen",
     signOut: "Abmelden",
