@@ -78,7 +78,13 @@ export const { handlers, auth } = NextAuth({
      * JWT callback runs on every request.
      * Uses tokenVersion to invalidate sessions after password changes.
      */
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger, session, account }) {
+      // On Google sign-in, strip the Google profile image so the app
+      // always uses its own letter avatar.
+      if (account?.provider === "google" && user) {
+        token.image = null;
+      }
+
       // Client-driven session updates (e.g. useSession().update({ name }))
       if (trigger === "update") {
         if (typeof session?.name === "string") token.name = session.name;
@@ -137,6 +143,21 @@ export const { handlers, auth } = NextAuth({
         session.user.isAdmin = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;
+    },
+  },
+
+  events: {
+    /**
+     * After the Prisma adapter creates a user from Google OAuth,
+     * clear the Google profile image so we use our own letter avatar.
+     */
+    async createUser({ user }) {
+      if (user.image && user.id && db) {
+        await db.user.update({
+          where: { id: user.id },
+          data: { image: null },
+        });
+      }
     },
   },
 });
