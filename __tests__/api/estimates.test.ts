@@ -9,6 +9,7 @@ vi.mock("@/config/auth", () => ({
 }));
 
 vi.mock("@/config/db", () => ({
+  isDatabaseConfigured: true,
   db: {
     estimate: {
       findMany: (...args: unknown[]) => mockFindMany(...args),

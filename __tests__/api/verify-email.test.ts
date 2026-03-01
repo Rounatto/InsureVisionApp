@@ -8,6 +8,7 @@ const mockDelete = vi.fn();
 const mockTransaction = vi.fn();
 
 vi.mock("@/config/db", () => ({
+  isDatabaseConfigured: true,
   db: {
     securityToken: {
       findUnique: (...args: unknown[]) => mockFindUniqueToken(...args),
@@ -19,6 +20,10 @@ vi.mock("@/config/db", () => ({
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
+}));
+
+vi.mock("@/config/auth", () => ({
+  auth: vi.fn(),
 }));
 
 vi.mock("@/lib/tokens", () => ({

@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
 import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
-import { ensureTrustedOrigin } from "@/lib/security";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { RL_AVATAR_UPLOAD, RL_WINDOW_MS } from "@/lib/constants";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, db } from "@/lib/api-helpers";
+import { RL_AVATAR_UPLOAD } from "@/lib/constants";
+import type { ErrorResponse } from "@/types/auth";
 
 const BUCKET = "user-avatars";
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -13,21 +11,21 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export async function POST(req: Request) {
   try {
-    const originError = ensureTrustedOrigin(req);
+    const originError = requireTrustedOrigin(req);
     if (originError) return originError;
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`avatar:${session.user.id}:${ip}`, RL_AVATAR_UPLOAD, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
+
+    const rlError = requireRateLimit(req, `avatar:${session.user.id}`, RL_AVATAR_UPLOAD);
+    if (rlError) return rlError;
 
     if (!hasSupabaseAdminEnv()) {
-      return NextResponse.json(
-        { error: "Avatar upload is not configured on the server." },
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Avatar upload is not configured on the server." },
         { status: 500 },
       );
     }
@@ -36,19 +34,22 @@ export async function POST(req: Request) {
     const file = formData.get("avatar");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Avatar file is required." }, { status: 400 });
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Avatar file is required." },
+        { status: 400 },
+      );
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: "Invalid file type. Use PNG, JPG, or WEBP." },
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Invalid file type. Use PNG, JPG, or WEBP." },
         { status: 400 },
       );
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { error: "Avatar must be 5MB or smaller." },
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Avatar must be 5MB or smaller." },
         { status: 400 },
       );
     }
@@ -86,7 +87,10 @@ export async function POST(req: Request) {
 
     if (uploadError) {
       console.error("Avatar upload error:", uploadError);
-      return NextResponse.json({ error: "Failed to upload avatar." }, { status: 500 });
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Failed to upload avatar." },
+        { status: 500 },
+      );
     }
 
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
@@ -97,11 +101,11 @@ export async function POST(req: Request) {
       select: { id: true, name: true, email: true, image: true },
     });
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ success: true, user });
   } catch (error) {
     console.error("Avatar update error:", error);
-    return NextResponse.json(
-      { error: "Failed to update avatar. Please try again." },
+    return NextResponse.json<ErrorResponse>(
+      { success: false, message: "Failed to update avatar. Please try again." },
       { status: 500 },
     );
   }

@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
 import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
 import crypto from "crypto";
-import { ensureTrustedOrigin } from "@/lib/security";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { RL_ESTIMATE, RL_WINDOW_MS } from "@/lib/constants";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, db } from "@/lib/api-helpers";
+import { RL_ESTIMATE } from "@/lib/constants";
+import type { ErrorResponse } from "@/types/auth";
 
 const BUCKET = "damage-photos";
 const ALLOWED_TYPES = ["image/png", "image/jpeg"];
@@ -21,33 +19,32 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
  */
 export async function POST(req: Request) {
   try {
-    const originError = ensureTrustedOrigin(req);
+    const originError = requireTrustedOrigin(req);
     if (originError) return originError;
 
-    // Auth check
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`estimate:${session.user.id}:${ip}`, RL_ESTIMATE, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
+
+    const rlError = requireRateLimit(req, `estimate:${session.user.id}`, RL_ESTIMATE);
+    if (rlError) return rlError;
 
     // Parse form data
     const formData = await req.formData();
     const photos = formData.getAll("photos") as File[];
 
     if (!photos.length) {
-      return NextResponse.json(
-        { error: "At least one photo is required." },
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "At least one photo is required." },
         { status: 400 }
       );
     }
 
     if (photos.length > 8) {
-      return NextResponse.json(
-        { error: "Maximum 8 photos allowed." },
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Maximum 8 photos allowed." },
         { status: 400 }
       );
     }
@@ -55,14 +52,14 @@ export async function POST(req: Request) {
     // Validate each file
     for (const photo of photos) {
       if (!ALLOWED_TYPES.includes(photo.type)) {
-        return NextResponse.json(
-          { error: `Invalid file type: ${photo.name}. Only PNG and JPG are accepted.` },
+        return NextResponse.json<ErrorResponse>(
+          { success: false, message: `Invalid file type: ${photo.name}. Only PNG and JPG are accepted.` },
           { status: 400 }
         );
       }
       if (photo.size > MAX_SIZE) {
-        return NextResponse.json(
-          { error: `File too large: ${photo.name}. Maximum size is 10MB.` },
+        return NextResponse.json<ErrorResponse>(
+          { success: false, message: `File too large: ${photo.name}. Maximum size is 10MB.` },
           { status: 400 }
         );
       }
@@ -163,8 +160,8 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Estimate error:", error);
-    return NextResponse.json(
-      { error: "Failed to process estimation. Please try again." },
+    return NextResponse.json<ErrorResponse>(
+      { success: false, message: "Failed to process estimation. Please try again." },
       { status: 500 }
     );
   }

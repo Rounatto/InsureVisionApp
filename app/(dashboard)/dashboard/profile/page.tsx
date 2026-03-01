@@ -76,7 +76,7 @@ export default function ProfilePage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        setSaveMsg(data.error || "Failed to save.");
+        setSaveMsg(data.message || "Failed to save.");
       } else {
         await updateSession({ name: resolvedName });
         setNameTouched(false);
@@ -106,11 +106,11 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.details) {
-          const msgs = Object.values(data.details).flat().join(". ");
+        if (data.errors) {
+          const msgs = data.errors.map((e: { message: string }) => e.message).join(". ");
           setPwdError(msgs);
         } else {
-          setPwdError(data.error || "Failed to change password.");
+          setPwdError(data.message || "Failed to change password.");
         }
       } else {
         setPwdSuccess("Password changed successfully!");
@@ -147,7 +147,7 @@ export default function ProfilePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setAvatarMsg(data.error || "Failed to upload avatar.");
+        setAvatarMsg(data.message || "Failed to upload avatar.");
       } else {
         await updateSession({ image: data.user.image });
         setAvatarFile(null);
@@ -168,7 +168,7 @@ export default function ProfilePage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setDeleteError(data.error || "Failed to delete account");
+        setDeleteError(data.message || "Failed to delete account");
         setDeleting(false);
         return;
       }

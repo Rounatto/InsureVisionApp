@@ -9,7 +9,6 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { HomeIcon, ClockIcon, UserIcon, SettingsIcon, ShieldIcon } from "@/lib/icons";
-import { isAdminEmail } from "@/lib/admin";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Sidebar() {
@@ -19,7 +18,7 @@ export default function Sidebar() {
   const { data: session, status } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const canAccessAdmin = isAdminEmail(session?.user?.email);
+  const canAccessAdmin = session?.user?.isAdmin ?? false;
 
   const navItems = [
     { href: "/dashboard", label: t("home"), icon: HomeIcon },

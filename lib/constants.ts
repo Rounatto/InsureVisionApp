@@ -10,6 +10,9 @@ export const NETWORK_ERROR_MESSAGE =
 /** 15-minute window for most auth endpoints. */
 export const RL_WINDOW_MS = 15 * 60 * 1000;
 
+/** Max login attempts per IP per window. */
+export const RL_LOGIN = 10;
+
 /** Max registration attempts per IP per window. */
 export const RL_REGISTER = 5;
 

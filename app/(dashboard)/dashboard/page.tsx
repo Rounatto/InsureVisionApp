@@ -118,7 +118,7 @@ export default function Home() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Estimation failed. Please try again.");
+        setError(data.message || "Estimation failed. Please try again.");
         setSubmitting(false);
         return;
       }

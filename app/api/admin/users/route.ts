@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
-import { isAdminEmail } from "@/lib/admin";
+import { NextResponse } from "next/server";
+import { requireDb, requireAdmin, db } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
+import type { ErrorResponse } from "@/types/auth";
 
 const PAGE_SIZE = 20;
 
@@ -11,12 +12,16 @@ const PAGE_SIZE = 20;
  * Returns a paginated list of users for the admin dashboard.
  * Restricted to allowlisted admin emails.
  */
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const dbError = requireDb();
+    if (dbError) return dbError;
+
+    const { session, error: adminError } = await requireAdmin();
+    if (adminError) return adminError;
+
+    const ip = getClientIp(req);
+    logAudit({ userId: session.user.id, action: "ADMIN_ACCESS", ip, metadata: { route: "/api/admin/users" } });
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page") ?? 1));
@@ -67,8 +72,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("[ADMIN_USERS_ERROR]", error);
-    return NextResponse.json(
-      { error: "Failed to load users" },
+    return NextResponse.json<ErrorResponse>(
+      { success: false, message: "Failed to load users" },
       { status: 500 },
     );
   }

@@ -1,66 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { db, isDatabaseConfigured } from "@/config/db";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { loginSchema } from "@/lib/validations/auth";
+import { RL_LOGIN } from "@/lib/constants";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
 import type { LoginResponse, ErrorResponse } from "@/types/auth";
 // =====================================================
 // POST /api/auth/login
 // =====================================================
-// Responsabilité : authentifier un utilisateur existant (email/password)
-//
-// Contrat de sortie :
-// - 200 : login réussi
-// - 400 : validation invalide
-// - 401 : identifiants incorrects
-// - 500 : erreur serveur inattendue
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    if (!isDatabaseConfigured || !db) {
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message:
-            "Auth service is not configured on this machine (missing DATABASE_URL).",
-        },
-        { status: 503 }
-      );
-    }
+    // ── Rate limit (IP-based) ──────────────────────────────
+    const rlError = requireRateLimit(req, "login", RL_LOGIN);
+    if (rlError) return rlError;
 
-    // 1. Parse request body
-    // Lecture JSON brute envoyée par le frontend
+    const dbError = requireDb();
+    if (dbError) return dbError;
+
     const body = await req.json();
+    const { data: validated, error: valError } = validateBody(loginSchema, body);
+    if (valError) return valError;
 
-    // 2. Validate input with Zod
-    const parsed = loginSchema.safeParse(body);
+    const { email, password } = validated;
+    const ip = getClientIp(req);
 
-    if (!parsed.success) {
-      const errors = parsed.error.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      }));
-
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message: "Validation failed",
-          errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Données validées
-    const { email, password } = parsed.data;
-
-    // 3. Check if user exists
+    // Check if user exists (generic message to prevent enumeration)
     const user = await db.user.findUnique({
       where: { email },
     });
 
-    // Important : on ne précise pas si email ou password est faux
-    // pour éviter les attaques par enumeration.
     if (!user || !user.password) {
+      logAudit({ action: "LOGIN_FAILED", ip, metadata: { email } });
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
@@ -70,14 +42,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Compare password
-    // bcrypt compare le mot de passe envoyé avec le hash stocké
+    // Compare password
     const isPasswordValid = await bcrypt.compare(
       password,
       user.password
     );
 
     if (!isPasswordValid) {
+      logAudit({ action: "LOGIN_FAILED", ip, metadata: { email } });
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
@@ -87,8 +59,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Return success response
-    // On ne renvoie jamais le password ni le hash.
+    // ── Audit ──────────────────────────────────────────────
+    logAudit({ userId: user.id, action: "LOGIN_SUCCESS", ip });
+
     return NextResponse.json<LoginResponse>(
       {
         success: true,

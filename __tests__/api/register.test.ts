@@ -28,6 +28,11 @@ vi.mock("@/config/db", () => ({
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
+  isDatabaseConfigured: true,
+}));
+
+vi.mock("@/config/auth", () => ({
+  auth: vi.fn(),
 }));
 
 vi.mock("bcrypt", () => ({
@@ -83,7 +88,10 @@ describe("POST /api/auth/register", () => {
     mockTransaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
       const tx = {
         user: { create: (...args: unknown[]) => mockCreate(...args) },
-        securityToken: { create: (...args: unknown[]) => mockCreateToken(...args) },
+        securityToken: {
+          create: (...args: unknown[]) => mockCreateToken(...args),
+          deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
       };
       return cb(tx);
     });

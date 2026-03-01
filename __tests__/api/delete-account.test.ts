@@ -22,6 +22,7 @@ vi.mock("@/config/db", () => ({
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
+  isDatabaseConfigured: true,
 }));
 
 vi.mock("bcrypt", () => ({
@@ -31,7 +32,13 @@ vi.mock("bcrypt", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ ok: true, remaining: 5, retryAfterMs: 0 }),
+  rateLimitResponse: vi.fn(),
   getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+vi.mock("@/lib/security", () => ({
+  ensureTrustedOrigin: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("@/lib/audit", () => ({
@@ -73,7 +80,7 @@ describe("DELETE /api/auth/delete-account", () => {
     const res = await DELETE(buildRequest()); // no body
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/password/i);
+    expect(data.message).toMatch(/password/i);
   });
 
   it("returns 400 when password is incorrect", async () => {
@@ -86,7 +93,7 @@ describe("DELETE /api/auth/delete-account", () => {
     const res = await DELETE(buildRequest({ password: "wrong" }));
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/incorrect/i);
+    expect(data.message).toMatch(/incorrect/i);
   });
 
   it("deletes the user atomically on correct password", async () => {

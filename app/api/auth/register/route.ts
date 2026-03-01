@@ -1,47 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { db, isDatabaseConfigured } from "@/config/db";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { registerSchema } from "@/lib/validations/auth";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { RL_REGISTER, RL_WINDOW_MS, SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
+import { RL_REGISTER, SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
 import { generateSecureToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
   try {
     // ── Rate limit (IP-based) ──────────────────────────────
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`register:${ip}`, RL_REGISTER, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    const rlError = requireRateLimit(req, "register", RL_REGISTER);
+    if (rlError) return rlError;
+
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
     // ── Parse & validate ───────────────────────────────────
     const body = await req.json();
-    const parsed = registerSchema.safeParse(body);
+    const { data: validated, error: valError } = validateBody(registerSchema, body);
+    if (valError) return valError;
 
-    if (!parsed.success) {
-      // On transforme les erreurs Zod en format front-friendly :
-      // [{ field: "email", message: "Invalid email" }, ...]
-      const errors = parsed.error.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      }));
-
-      // 400 Bad Request : la requête est mal formée / invalide côté données
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message: "Validation failed",
-          errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Ici TypeScript sait que les données sont valides selon `registerSchema`
-    const { name, email, password } = parsed.data;
+    const { name, email, password } = validated;
 
     // ── Check duplicate ────────────────────────────────────
     const existingUser = await db.user.findUnique({
@@ -97,6 +80,7 @@ export async function POST(req: Request) {
     }
 
     // ── Audit ──────────────────────────────────────────────
+    const ip = getClientIp(req);
     logAudit({ userId: user.id, action: "REGISTER", ip });
 
     return NextResponse.json<RegisterResponse>(

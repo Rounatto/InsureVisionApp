@@ -1,37 +1,28 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { updateProfileSchema } from "@/lib/validations/auth";
-import { ensureTrustedOrigin } from "@/lib/security";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { RL_PROFILE_UPDATE, RL_WINDOW_MS } from "@/lib/constants";
+import { RL_PROFILE_UPDATE } from "@/lib/constants";
+import type { ErrorResponse } from "@/types/auth";
 
 export async function PATCH(req: Request) {
   try {
-    const originError = ensureTrustedOrigin(req);
+    const originError = requireTrustedOrigin(req);
     if (originError) return originError;
 
-    const session = await auth();
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
 
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`profile:${session.user.id}:${ip}`, RL_PROFILE_UPDATE, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    const rlError = requireRateLimit(req, `profile:${session.user.id}`, RL_PROFILE_UPDATE);
+    if (rlError) return rlError;
 
     const body = await req.json();
-    const parsed = updateProfileSchema.safeParse(body);
+    const { data: validated, error: valError } = validateBody(updateProfileSchema, body);
+    if (valError) return valError;
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
-    }
-
-    const { name } = parsed.data;
+    const { name } = validated;
 
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
@@ -39,11 +30,11 @@ export async function PATCH(req: Request) {
       select: { id: true, name: true, email: true },
     });
 
-    return NextResponse.json({ user: updatedUser });
+    return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Update profile error:", error);
-    return NextResponse.json(
-      { error: "Failed to update profile. Please try again." },
+    return NextResponse.json<ErrorResponse>(
+      { success: false, message: "Failed to update profile. Please try again." },
       { status: 500 }
     );
   }

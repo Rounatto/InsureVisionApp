@@ -1,40 +1,32 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { changePasswordSchema } from "@/lib/validations/auth";
-import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
-import { SALT_ROUNDS, RL_WINDOW_MS, RL_CHANGE_PW } from "@/lib/constants";
-import { ensureTrustedOrigin } from "@/lib/security";
+import { SALT_ROUNDS, RL_CHANGE_PW } from "@/lib/constants";
+import { getClientIp } from "@/lib/rate-limit";
+import type { ErrorResponse } from "@/types/auth";
 
 export async function PATCH(req: Request) {
   try {
-    const originError = ensureTrustedOrigin(req);
+    const originError = requireTrustedOrigin(req);
     if (originError) return originError;
 
-    const session = await auth();
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
 
     // ── Rate limit (per user) ──────────────────────────────
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`changepw:${session.user.id}`, RL_CHANGE_PW, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    const rlError = requireRateLimit(req, `changepw:${session.user.id}`, RL_CHANGE_PW);
+    if (rlError) return rlError;
 
     const body = await req.json();
-    const parsed = changePasswordSchema.safeParse(body);
+    const { data: validated, error: valError } = validateBody(changePasswordSchema, body);
+    if (valError) return valError;
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
-      );
-    }
-
-    const { currentPassword, newPassword } = parsed.data;
+    const { currentPassword, newPassword } = validated;
 
     // ── Fetch user with password ───────────────────────────
     const user = await db.user.findUnique({
@@ -43,17 +35,17 @@ export async function PATCH(req: Request) {
     });
 
     if (!user?.password) {
-      return NextResponse.json(
-        { error: "Your account uses Google Sign-In and has no password to change." },
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Your account uses Google Sign-In and has no password to change." },
         { status: 400 },
       );
     }
 
-    // ── Verify current password ────────────────────────────
+    // ── Verify current password ────────────────────────
     const isCorrect = await bcrypt.compare(currentPassword, user.password);
     if (!isCorrect) {
-      return NextResponse.json(
-        { error: "Current password is incorrect." },
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Current password is incorrect." },
         { status: 400 },
       );
     }
@@ -70,13 +62,14 @@ export async function PATCH(req: Request) {
     });
 
     // ── Audit ──────────────────────────────────────────────
+    const ip = getClientIp(req);
     logAudit({ userId: session.user.id, action: "PASSWORD_CHANGED", ip });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: "Password changed successfully." });
   } catch (error) {
     console.error("Change password error:", error);
-    return NextResponse.json(
-      { error: "Failed to change password. Please try again." },
+    return NextResponse.json<ErrorResponse>(
+      { success: false, message: "Failed to change password. Please try again." },
       { status: 500 },
     );
   }

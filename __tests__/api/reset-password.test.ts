@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Mocks ────────────────────────────────────────────────────
-const mockFindUniqueToken = vi.fn();
+const mockFindFirstToken = vi.fn();
 const mockDeleteToken = vi.fn();
+const mockDeleteManyTokens = vi.fn();
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
 const mockTransaction = vi.fn();
@@ -10,8 +11,9 @@ const mockTransaction = vi.fn();
 vi.mock("@/config/db", () => ({
   db: {
     securityToken: {
-      findUnique: (...args: unknown[]) => mockFindUniqueToken(...args),
+      findFirst: (...args: unknown[]) => mockFindFirstToken(...args),
       delete: (...args: unknown[]) => mockDeleteToken(...args),
+      deleteMany: (...args: unknown[]) => mockDeleteManyTokens(...args),
     },
     user: {
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
@@ -19,6 +21,11 @@ vi.mock("@/config/db", () => ({
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
+  isDatabaseConfigured: true,
+}));
+
+vi.mock("@/config/auth", () => ({
+  auth: vi.fn(),
 }));
 
 vi.mock("bcrypt", () => ({
@@ -77,16 +84,16 @@ describe("POST /api/auth/reset-password", () => {
   });
 
   it("returns 400 for invalid token", async () => {
-    mockFindUniqueToken.mockResolvedValue(null);
+    mockFindFirstToken.mockResolvedValue(null);
 
     const res = await POST(buildRequest(validBody));
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/invalid|expired/i);
+    expect(data.message).toMatch(/invalid|expired/i);
   });
 
   it("returns 400 for expired token", async () => {
-    mockFindUniqueToken.mockResolvedValue({
+    mockFindFirstToken.mockResolvedValue({
       id: "tok1",
       type: "PASSWORD_RESET",
       hashedToken: "hashed_valid-token-123",
@@ -98,11 +105,11 @@ describe("POST /api/auth/reset-password", () => {
     const res = await POST(buildRequest(validBody));
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/expired/i);
+    expect(data.message).toMatch(/invalid|expired/i);
   });
 
   it("returns generic error when user not found", async () => {
-    mockFindUniqueToken.mockResolvedValue({
+    mockFindFirstToken.mockResolvedValue({
       id: "tok1",
       type: "PASSWORD_RESET",
       hashedToken: "hashed_valid-token-123",
@@ -114,11 +121,11 @@ describe("POST /api/auth/reset-password", () => {
     const res = await POST(buildRequest(validBody));
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/invalid|expired/i);
+    expect(data.message).toMatch(/invalid/i);
   });
 
   it("resets password atomically and deletes token on success", async () => {
-    mockFindUniqueToken.mockResolvedValue({
+    mockFindFirstToken.mockResolvedValue({
       id: "tok1",
       type: "PASSWORD_RESET",
       hashedToken: "hashed_valid-token-123",
@@ -127,12 +134,12 @@ describe("POST /api/auth/reset-password", () => {
     });
     mockFindUnique.mockResolvedValue({ id: "u1", email: "user@test.com" });
     mockUpdate.mockResolvedValue({});
-    mockDeleteToken.mockResolvedValue({});
+    mockDeleteManyTokens.mockResolvedValue({});
 
     const res = await POST(buildRequest(validBody));
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.message).toMatch(/reset successfully/i);
+    expect(data.message).toMatch(/password updated/i);
 
     // Transaction was invoked (password update + tokenVersion bump + token delete)
     expect(mockTransaction).toHaveBeenCalled();

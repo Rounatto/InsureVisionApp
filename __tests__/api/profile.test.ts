@@ -14,6 +14,17 @@ vi.mock("@/config/db", () => ({
       update: (...args: unknown[]) => mockUpdate(...args),
     },
   },
+  isDatabaseConfigured: true,
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ ok: true, remaining: 5, retryAfterMs: 0 }),
+  rateLimitResponse: vi.fn(),
+  getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
+vi.mock("@/lib/security", () => ({
+  ensureTrustedOrigin: vi.fn().mockReturnValue(null),
 }));
 
 // ── Helpers ──────────────────────────────────────────────────

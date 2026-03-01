@@ -1,54 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { createHash } from "crypto";
 
-import { db, isDatabaseConfigured } from "@/config/db";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { resetPasswordSchema } from "@/lib/validations/auth";
+import { RL_RESET_PW, SALT_ROUNDS } from "@/lib/constants";
+import { hashToken } from "@/lib/tokens";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
-const SALT_ROUNDS = 12;
-const PASSWORD_RESET_IDENTIFIER_PREFIX = "password-reset:";
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    if (!isDatabaseConfigured || !db) {
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message:
-            "Auth service is not configured on this machine (missing DATABASE_URL).",
-        },
-        { status: 503 }
-      );
-    }
+    // ── Rate limit (IP-based) ──────────────────────────────
+    const rlError = requireRateLimit(req, "resetpw", RL_RESET_PW);
+    if (rlError) return rlError;
+
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
     const body = await req.json();
-    const parsed = resetPasswordSchema.safeParse(body);
+    const { data: validated, error: valError } = validateBody(resetPasswordSchema, body);
+    if (valError) return valError;
 
-    if (!parsed.success) {
-      const errors = parsed.error.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      }));
+    const { token, password } = validated;
+    const hashedTokenValue = hashToken(token);
 
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message: "Validation failed",
-          errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { token, password } = parsed.data;
-    const hashedToken = createHash("sha256").update(token).digest("hex");
-
-    const resetToken = await db.verificationToken.findFirst({
-      where: { token: hashedToken },
+    const resetToken = await db.securityToken.findFirst({
+      where: { hashedToken: hashedTokenValue, type: "PASSWORD_RESET" },
     });
 
     if (!resetToken || resetToken.expires < new Date()) {
+      // Clean up expired token if it exists
+      if (resetToken) {
+        await db.securityToken.delete({ where: { id: resetToken.id } }).catch(() => {});
+      }
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
@@ -58,20 +43,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!resetToken.identifier.startsWith(PASSWORD_RESET_IDENTIFIER_PREFIX)) {
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message: "This reset link is invalid.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const email = resetToken.identifier.replace(
-      PASSWORD_RESET_IDENTIFIER_PREFIX,
-      ""
-    );
+    const email = resetToken.identifier;
 
     const user = await db.user.findUnique({
       where: { email },
@@ -93,12 +65,19 @@ export async function POST(req: NextRequest) {
     await db.$transaction([
       db.user.update({
         where: { id: user.id },
-        data: { password: hashedPassword },
+        data: {
+          password: hashedPassword,
+          tokenVersion: { increment: 1 }, // invalidates all existing JWTs
+        },
       }),
-      db.verificationToken.deleteMany({
-        where: { identifier: resetToken.identifier },
+      db.securityToken.deleteMany({
+        where: { identifier: email, type: "PASSWORD_RESET" },
       }),
     ]);
+
+    // ── Audit ──────────────────────────────────────────────
+    const ip = getClientIp(req);
+    logAudit({ userId: user.id, action: "PASSWORD_RESET", ip });
 
     return NextResponse.json<AuthResponse>(
       {

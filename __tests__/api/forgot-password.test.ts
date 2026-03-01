@@ -15,8 +15,12 @@ vi.mock("@/config/db", () => ({
       deleteMany: (...args: unknown[]) => mockDeleteMany(...args),
       create: (...args: unknown[]) => mockCreateToken(...args),
     },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
+  isDatabaseConfigured: true,
+}));
+
+vi.mock("@/config/auth", () => ({
+  auth: vi.fn(),
 }));
 
 vi.mock("@/lib/email", () => ({
@@ -55,9 +59,6 @@ describe("POST /api/auth/forgot-password", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockTransaction.mockImplementation(async (ops: Promise<unknown>[]) =>
-      Promise.all(ops)
-    );
     const mod = await import("@/app/api/auth/forgot-password/route");
     POST = mod.POST;
   });
@@ -83,8 +84,22 @@ describe("POST /api/auth/forgot-password", () => {
     const res = await POST(buildRequest({ email: "user@test.com" }));
     expect(res.status).toBe(200);
 
-    // Transaction was called (atomic delete + create)
-    expect(mockTransaction).toHaveBeenCalled();
+    // SecurityToken.deleteMany + SecurityToken.create were called
+    expect(mockDeleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ identifier: "user@test.com", type: "PASSWORD_RESET" }),
+      })
+    );
+    expect(mockCreateToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "PASSWORD_RESET",
+          hashedToken: "hashed-reset-token",
+          identifier: "user@test.com",
+          expires: expect.any(Date),
+        }),
+      })
+    );
   });
 
   it("sends reset email with the raw token", async () => {

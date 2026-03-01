@@ -1,47 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createHash, randomBytes } from "crypto";
+import { NextResponse } from "next/server";
 
-import { db, isDatabaseConfigured } from "@/config/db";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
+import { RL_FORGOT_PW, RESET_TOKEN_TTL_MS } from "@/lib/constants";
+import { generateSecureToken } from "@/lib/tokens";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
-const RESET_TOKEN_TTL_MS = 1000 * 60 * 30; // 30 minutes
-const PASSWORD_RESET_IDENTIFIER_PREFIX = "password-reset:";
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    if (!isDatabaseConfigured || !db) {
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message:
-            "Auth service is not configured on this machine (missing DATABASE_URL).",
-        },
-        { status: 503 }
-      );
-    }
+    // ── Rate limit (IP-based) ──────────────────────────────
+    const rlError = requireRateLimit(req, "forgotpw", RL_FORGOT_PW);
+    if (rlError) return rlError;
+
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
     const body = await req.json();
-    const parsed = forgotPasswordSchema.safeParse(body);
+    const { data: validated, error: valError } = validateBody(forgotPasswordSchema, body);
+    if (valError) return valError;
 
-    if (!parsed.success) {
-      const errors = parsed.error.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      }));
-
-      return NextResponse.json<ErrorResponse>(
-        {
-          success: false,
-          message: "Validation failed",
-          errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { email } = parsed.data;
+    const { email } = validated;
     const genericMessage =
       "If an account exists for this email, a reset link has been generated.";
 
@@ -57,35 +38,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const identifier = `${PASSWORD_RESET_IDENTIFIER_PREFIX}${user.email}`;
-    const rawToken = randomBytes(32).toString("hex");
-    const hashedToken = createHash("sha256").update(rawToken).digest("hex");
+    // ── Generate hashed reset token ────────────────────────
+    const { raw: rawToken, hashed: hashedToken } = generateSecureToken();
     const expires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
 
-    await db.verificationToken.deleteMany({
-      where: { identifier },
+    await db.securityToken.deleteMany({
+      where: { identifier: user.email, type: "PASSWORD_RESET" },
     });
 
-    await db.verificationToken.create({
+    await db.securityToken.create({
       data: {
-        identifier,
-        token: hashedToken,
+        type: "PASSWORD_RESET",
+        hashedToken,
+        identifier: user.email,
         expires,
       },
     });
 
-    const resetUrl = `${req.nextUrl.origin}/reset-password?token=${rawToken}`;
     await sendPasswordResetEmail(user.email, rawToken);
 
+    // ── Audit ────────────────────────────────────────────
+    const ip = getClientIp(req);
+    logAudit({ action: "FORGOT_PASSWORD_REQUESTED", ip, metadata: { email: user.email } });
     console.info(`[PASSWORD_RESET_EMAIL_SENT] ${user.email}`);
 
     return NextResponse.json<AuthResponse>(
-      {
-        success: true,
-        message: genericMessage,
-        ...(process.env.NODE_ENV !== "production" ? { resetUrl } : {}),
-      },
-      { status: 200 }
+      { success: true, message: genericMessage },
+      { status: 200 },
     );
   } catch (error) {
     console.error("[FORGOT_PASSWORD_ERROR]", error);

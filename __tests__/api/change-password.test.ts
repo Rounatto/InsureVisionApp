@@ -16,6 +16,7 @@ vi.mock("@/config/db", () => ({
       update: (...args: unknown[]) => mockUpdate(...args),
     },
   },
+  isDatabaseConfigured: true,
 }));
 
 vi.mock("bcrypt", () => ({
@@ -33,6 +34,10 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/audit", () => ({
   logAudit: vi.fn(),
+}));
+
+vi.mock("@/lib/security", () => ({
+  ensureTrustedOrigin: vi.fn().mockReturnValue(null),
 }));
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -81,7 +86,7 @@ describe("PATCH /api/auth/change-password", () => {
     const res = await PATCH(buildRequest(validBody));
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/google/i);
+    expect(data.message).toMatch(/google/i);
   });
 
   it("returns 400 when current password is wrong", async () => {
@@ -94,7 +99,7 @@ describe("PATCH /api/auth/change-password", () => {
     const res = await PATCH(buildRequest(validBody));
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/incorrect/i);
+    expect(data.message).toMatch(/incorrect/i);
   });
 
   it("changes password and bumps tokenVersion on valid input", async () => {

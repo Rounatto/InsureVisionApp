@@ -73,7 +73,7 @@ export function checkRateLimit(
  */
 export function rateLimitResponse(result: RateLimitResult): NextResponse {
   return NextResponse.json(
-    { error: "Too many requests. Please try again later." },
+    { success: false, message: "Too many requests. Please try again later." },
     {
       status: 429,
       headers: {

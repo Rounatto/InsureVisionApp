@@ -9,6 +9,7 @@ vi.mock("@/config/auth", () => ({
 }));
 
 vi.mock("@/config/db", () => ({
+  isDatabaseConfigured: true,
   db: {
     $queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
   },

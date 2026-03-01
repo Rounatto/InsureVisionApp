@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { isAdminEmail } from "@/lib/admin";
 
 interface AdminStats {
   totalUsers: number;
@@ -32,7 +31,7 @@ interface UsersResponse {
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
-  const canAccessAdmin = isAdminEmail(session?.user?.email);
+  const canAccessAdmin = session?.user?.isAdmin ?? false;
 
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [usersData, setUsersData] = useState<UsersResponse | null>(null);

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, db } from "@/lib/api-helpers";
 import { logAudit } from "@/lib/audit";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { ensureTrustedOrigin } from "@/lib/security";
-import { RL_DELETE_ACCOUNT, RL_WINDOW_MS } from "@/lib/constants";
+import { getClientIp } from "@/lib/rate-limit";
+import { RL_DELETE_ACCOUNT } from "@/lib/constants";
+import type { ErrorResponse } from "@/types/auth";
 
 /**
  * DELETE /api/auth/delete-account
@@ -19,19 +18,18 @@ import { RL_DELETE_ACCOUNT, RL_WINDOW_MS } from "@/lib/constants";
  */
 export async function DELETE(req: Request) {
   try {
-    const originError = ensureTrustedOrigin(req);
+    const originError = requireTrustedOrigin(req);
     if (originError) return originError;
 
-    const session = await auth();
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
 
     const userId = session.user.id;
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`delete-account:${userId}:${ip}`, RL_DELETE_ACCOUNT, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    const rlError = requireRateLimit(req, `delete-account:${userId}`, RL_DELETE_ACCOUNT);
+    if (rlError) return rlError;
 
     // ── Password re-confirmation for credential accounts ───
     const user = await db.user.findUnique({
@@ -40,7 +38,10 @@ export async function DELETE(req: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "User not found" },
+        { status: 404 },
+      );
     }
 
     if (user.password) {
@@ -49,23 +50,23 @@ export async function DELETE(req: Request) {
       try {
         body = await req.json();
       } catch {
-        return NextResponse.json(
-          { error: "Password confirmation is required to delete your account." },
+        return NextResponse.json<ErrorResponse>(
+          { success: false, message: "Password confirmation is required to delete your account." },
           { status: 400 },
         );
       }
 
       if (!body.password) {
-        return NextResponse.json(
-          { error: "Password confirmation is required to delete your account." },
+        return NextResponse.json<ErrorResponse>(
+          { success: false, message: "Password confirmation is required to delete your account." },
           { status: 400 },
         );
       }
 
       const match = await bcrypt.compare(body.password, user.password);
       if (!match) {
-        return NextResponse.json(
-          { error: "Incorrect password." },
+        return NextResponse.json<ErrorResponse>(
+          { success: false, message: "Incorrect password." },
           { status: 400 },
         );
       }
@@ -78,13 +79,14 @@ export async function DELETE(req: Request) {
     ]);
 
     // ── Audit (userId will no longer exist, but we log it for records) ───
+    const ip = getClientIp(req);
     logAudit({ userId, action: "ACCOUNT_DELETED", ip });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: "Account deleted successfully." });
   } catch (error) {
     console.error("Delete account error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete account. Please try again." },
+    return NextResponse.json<ErrorResponse>(
+      { success: false, message: "Failed to delete account. Please try again." },
       { status: 500 },
     );
   }

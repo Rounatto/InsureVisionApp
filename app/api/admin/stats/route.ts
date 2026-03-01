@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
-import { isAdminEmail } from "@/lib/admin";
+import { requireDb, requireAdmin, db } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
+import type { ErrorResponse } from "@/types/auth";
 
 /**
  * GET /api/admin/stats
@@ -9,12 +10,16 @@ import { isAdminEmail } from "@/lib/admin";
  * Returns aggregated platform stats for the admin dashboard.
  * Restricted to allowlisted admin emails.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const dbError = requireDb();
+    if (dbError) return dbError;
+
+    const { session, error: adminError } = await requireAdmin();
+    if (adminError) return adminError;
+
+    const ip = getClientIp(req);
+    logAudit({ userId: session.user.id, action: "ADMIN_ACCESS", ip, metadata: { route: "/api/admin/stats" } });
 
     const now = new Date();
 
@@ -42,8 +47,8 @@ export async function GET() {
     });
   } catch (error) {
     console.error("[ADMIN_STATS_ERROR]", error);
-    return NextResponse.json(
-      { error: "Failed to load stats" },
+    return NextResponse.json<ErrorResponse>(
+      { success: false, message: "Failed to load stats" },
       { status: 500 },
     );
   }

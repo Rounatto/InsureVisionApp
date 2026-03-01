@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/config/auth";
-import { db } from "@/config/db";
+import { requireDb, requireAuth, db } from "@/lib/api-helpers";
 
 export async function GET() {
   try {
-    const session = await auth();
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
 
     const user = await Promise.race([
       db.user.findUnique({

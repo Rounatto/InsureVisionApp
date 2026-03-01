@@ -7,6 +7,7 @@ import authConfig from "@/config/auth.config";
 import { db, isDatabaseConfigured } from "@/config/db";
 import { loginSchema } from "@/lib/validations/auth";
 import { TOKEN_VERSION_CHECK_INTERVAL_MS } from "@/lib/constants";
+import { isAdminEmail } from "@/lib/admin";
 
 export const { handlers, auth } = NextAuth({
   ...authConfig,
@@ -97,6 +98,7 @@ export const { handlers, auth } = NextAuth({
           console.warn("JWT sign-in tokenVersion check skipped:", error);
           token.tokenVersion = 0;
         }
+        token.isAdmin = isAdminEmail(user.email);
         token.versionCheckedAt = Date.now();
         return token;
       }
@@ -132,6 +134,7 @@ export const { handlers, auth } = NextAuth({
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
         session.user.image = (token.image as string | null | undefined) ?? session.user.image;
+        session.user.isAdmin = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;
     },

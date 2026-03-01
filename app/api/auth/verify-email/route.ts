@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { db } from "@/config/db";
+import { requireDb, requireRateLimit, db } from "@/lib/api-helpers";
 import { hashToken } from "@/lib/tokens";
-import { checkRateLimit, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
-import { RL_WINDOW_MS, RL_VERIFY_EMAIL } from "@/lib/constants";
+import { getClientIp } from "@/lib/rate-limit";
+import { RL_VERIFY_EMAIL } from "@/lib/constants";
 
 /**
  * GET /api/auth/verify-email?token=...
@@ -14,10 +14,12 @@ import { RL_WINDOW_MS, RL_VERIFY_EMAIL } from "@/lib/constants";
  */
 export async function GET(req: Request) {
   try {
-    // ── Rate limit ─────────────────────────────────────────
-    const ip = getClientIp(req);
-    const rl = checkRateLimit(`verify:${ip}`, RL_VERIFY_EMAIL, RL_WINDOW_MS);
-    if (!rl.ok) return rateLimitResponse(rl);
+    // ── Rate limit ───────────────────────────────────────
+    const rlError = requireRateLimit(req, "verify", RL_VERIFY_EMAIL);
+    if (rlError) return rlError;
+
+    const dbError = requireDb();
+    if (dbError) return dbError;
 
     const { searchParams } = new URL(req.url);
     const rawToken = searchParams.get("token");
@@ -61,6 +63,7 @@ export async function GET(req: Request) {
     ]);
 
     // ── Audit ──────────────────────────────────────────────
+    const ip = getClientIp(req);
     logAudit({ userId: user.id, action: "EMAIL_VERIFIED", ip });
 
     return NextResponse.redirect(new URL("/login?verified=true", req.url));

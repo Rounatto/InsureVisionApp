@@ -1,35 +1,33 @@
 import { describe, it, expect } from "vitest";
+import authConfig from "@/config/auth.config";
 
 /**
  * Unit-tests for the middleware authorization callback logic.
  *
- * Rather than running the real NextAuth middleware (which needs
- * an Edge-compatible environment), we extract and test the core
- * decision function in isolation.
+ * We import the real `authorized` callback from auth.config.ts and
+ * wrap it with a thin adapter that builds the NextAuth-shaped args.
  */
 
-// Re-implement the logic under test (same as auth.config.ts → authorized)
+const authorizedCallback = authConfig.callbacks!.authorized as (args: {
+  auth: { user: Record<string, unknown> } | null;
+  request: { nextUrl: URL };
+}) => boolean | Response;
+
 function authorized(
   isLoggedIn: boolean,
-  pathname: string
+  pathname: string,
 ): { allowed: boolean; redirect?: string } {
-  const publicPaths = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
-  const isPublicPage = publicPaths.some(
-    (p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/")),
-  );
-  const isAuthApi = pathname.startsWith("/api/auth");
+  const nextUrl = new URL(pathname, "http://localhost:3000");
+  const auth = isLoggedIn ? { user: { id: "u1" } } : null;
 
-  if (isPublicPage || isAuthApi) {
-    const isAuthPage = ["/login", "/register", "/forgot-password", "/reset-password"].some(
-      (p) => pathname === p || pathname.startsWith(p + "/"),
-    );
-    if (isLoggedIn && (isAuthPage || pathname === "/")) {
-      return { allowed: false, redirect: "/dashboard" };
-    }
-    return { allowed: true };
+  const result = authorizedCallback({ auth, request: { nextUrl } });
+
+  if (result instanceof Response) {
+    const location = result.headers.get("location") ?? "";
+    const redirect = new URL(location).pathname;
+    return { allowed: false, redirect };
   }
-
-  return { allowed: isLoggedIn };
+  return { allowed: result };
 }
 
 describe("middleware authorization logic", () => {
