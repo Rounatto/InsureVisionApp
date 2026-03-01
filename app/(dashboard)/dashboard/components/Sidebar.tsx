@@ -84,12 +84,21 @@ export default function Sidebar() {
               textSize="text-xs"
             />
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-semibold text-[color:var(--foreground)] truncate">
-                {session?.user?.name || "User"}
-              </p>
-              <p className="text-xs text-[color:var(--muted-foreground)] truncate">
-                {session?.user?.email || ""}
-              </p>
+              {status === "loading" ? (
+                <>
+                  <div className="h-4 w-24 rounded bg-[color:var(--muted)] animate-pulse mb-1" />
+                  <div className="h-3 w-32 rounded bg-[color:var(--muted)] animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-[color:var(--foreground)] truncate">
+                    {session?.user?.name || "User"}
+                  </p>
+                  <p className="text-xs text-[color:var(--muted-foreground)] truncate">
+                    {session?.user?.email || ""}
+                  </p>
+                </>
+              )}
             </div>
             <svg
               xmlns="http://www.w3.org/2000/svg"

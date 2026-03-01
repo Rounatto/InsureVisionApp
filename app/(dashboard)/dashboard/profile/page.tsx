@@ -161,8 +161,17 @@ export default function ProfilePage() {
         <div className="flex items-center gap-5 mb-12">
           <UserAvatar name={session?.user?.name} image={session?.user?.image} loading={status === "loading"} size="h-16 w-16" textSize="text-2xl" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{session?.user?.name || "User"}</h1>
-            <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Member since February 2026</p>
+            {status === "loading" ? (
+              <>
+                <div className="h-7 w-40 rounded bg-[color:var(--muted)] animate-pulse mb-1" />
+                <div className="h-4 w-28 rounded bg-[color:var(--muted)] animate-pulse" />
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{session?.user?.name || "User"}</h1>
+                <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Member since February 2026</p>
+              </>
+            )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label className="rounded-full border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium text-[color:var(--foreground)] cursor-pointer hover:bg-[color:var(--muted)] transition-colors">
                 Choose Photo

@@ -50,8 +50,17 @@ export default function Navbar() {
                   <div className="flex items-center gap-3">
                     <UserAvatar name={session?.user?.name} image={session?.user?.image} loading={status === "loading"} size="h-10 w-10" textSize="text-sm" />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[color:var(--foreground)] truncate">{session?.user?.name || "User"}</p>
-                      <p className="text-xs text-[color:var(--muted-foreground)] truncate">{session?.user?.email || ""}</p>
+                      {status === "loading" ? (
+                        <>
+                          <div className="h-4 w-24 rounded bg-[color:var(--muted)] animate-pulse mb-1" />
+                          <div className="h-3 w-32 rounded bg-[color:var(--muted)] animate-pulse" />
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-[color:var(--foreground)] truncate">{session?.user?.name || "User"}</p>
+                          <p className="text-xs text-[color:var(--muted-foreground)] truncate">{session?.user?.email || ""}</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
