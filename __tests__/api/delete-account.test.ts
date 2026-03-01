@@ -25,12 +25,6 @@ vi.mock("@/config/db", () => ({
   isDatabaseConfigured: true,
 }));
 
-vi.mock("bcrypt", () => ({
-  default: {
-    compare: vi.fn(),
-  },
-}));
-
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn().mockReturnValue({ ok: true, remaining: 5, retryAfterMs: 0 }),
   rateLimitResponse: vi.fn(),
@@ -46,11 +40,9 @@ vi.mock("@/lib/audit", () => ({
 }));
 
 // ── Helpers ──────────────────────────────────────────────────
-function buildRequest(body?: unknown): Request {
+function buildRequest(): Request {
   return new Request("http://localhost:3000/api/auth/delete-account", {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
   });
 }
 
@@ -73,48 +65,32 @@ describe("DELETE /api/auth/delete-account", () => {
     expect(res.status).toBe(401);
   });
 
-  it("requires password confirmation for credential accounts", async () => {
+  it("returns 404 when user not found in database", async () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } });
-    mockFindUnique.mockResolvedValue({ password: "hashed_pw", email: "u@t.com" });
+    mockFindUnique.mockResolvedValue(null);
 
-    const res = await DELETE(buildRequest()); // no body
-    expect(res.status).toBe(400);
+    const res = await DELETE(buildRequest());
+    expect(res.status).toBe(404);
     const data = await res.json();
-    expect(data.message).toMatch(/password/i);
+    expect(data.message).toMatch(/not found/i);
   });
 
-  it("returns 400 when password is incorrect", async () => {
+  it("deletes a credential account successfully", async () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } });
-    mockFindUnique.mockResolvedValue({ password: "hashed_pw", email: "u@t.com" });
-
-    const bcrypt = await import("bcrypt");
-    (bcrypt.default.compare as ReturnType<typeof vi.fn>).mockResolvedValue(false);
-
-    const res = await DELETE(buildRequest({ password: "wrong" }));
-    expect(res.status).toBe(400);
-    const data = await res.json();
-    expect(data.message).toMatch(/incorrect/i);
-  });
-
-  it("deletes the user atomically on correct password", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "u1" } });
-    mockFindUnique.mockResolvedValue({ password: "hashed_pw", email: "u@t.com" });
+    mockFindUnique.mockResolvedValue({ email: "u@t.com" });
     mockDeleteManyTokens.mockResolvedValue({});
     mockDelete.mockResolvedValue({});
 
-    const bcrypt = await import("bcrypt");
-    (bcrypt.default.compare as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-
-    const res = await DELETE(buildRequest({ password: "correct" }));
+    const res = await DELETE(buildRequest());
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(mockTransaction).toHaveBeenCalled();
   });
 
-  it("deletes OAuth-only account without password", async () => {
+  it("deletes an OAuth-only account successfully", async () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } });
-    mockFindUnique.mockResolvedValue({ password: null, email: "u@t.com" });
+    mockFindUnique.mockResolvedValue({ email: "oauth@t.com" });
     mockDeleteManyTokens.mockResolvedValue({});
     mockDelete.mockResolvedValue({});
 
