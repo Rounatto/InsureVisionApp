@@ -3,35 +3,87 @@
 // =====================================================
 // PAGE DE CONNEXION (LOGIN)
 // =====================================================
-// Cette page est un composant CLIENT car elle utilise :
-// - des hooks React (`useState`) pour l'état local
-// - des interactions utilisateur (clic sur bouton, saisie, etc.)
-//
-// OBJECTIF MÉTIER :
-// Permettre à un utilisateur existant de se connecter via :
-// 1) Email + mot de passe
-// 2) Google OAuth (bouton social)
-//
-// ÉTAT ACTUEL :
-// - L'interface est complète côté UX.
-// - Le bouton Google est prêt à être branché sur `signIn("google")`.
-// - Le submit Email/Mot de passe reste à connecter à `signIn("credentials")`
-//   pour finaliser le flux de login local.
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 import LightRays from "@/components/LightRays";
+import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
 
-export default function Login() {
-  // -------------------------------------------------------------------
-  // ÉTAT LOCAL : visibilité du mot de passe
-  // -------------------------------------------------------------------
-  // false  => input type="password" (masqué)
-  // true   => input type="text" (visible)
-  // Cet état est purement côté navigateur et ne sort pas de ce composant.
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <Login />
+    </Suspense>
+  );
+}
+
+function Login() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ─── Form State ───────────────────────────────────────────
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // ─── UI State ─────────────────────────────────────────────
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // ─── Query-param driven messages (email verification, etc.) ──
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      setSuccess("Email verified! You can now sign in.");
+    }
+    const err = searchParams.get("error");
+    if (err === "expired-token") setError("Verification link expired. Please register again.");
+    if (err === "invalid-token") setError("Invalid verification link.");
+  }, [searchParams]);
+
+  // ─── Submit Handler ───────────────────────────────────────
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Invalid email or password. If you just registered, check your email to verify your account.");
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch {
+      setError(NETWORK_ERROR_MESSAGE);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Google Sign-In Handler ───────────────────────────────
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch {
+      setError("Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
+    }
+  };
 
   return (
     // ==================================================================
@@ -147,8 +199,8 @@ export default function Login() {
             <InsureVisionLogo className="h-auto w-16" />
           </div>
 
-          {/* Bloc formulaire (actuellement visuel, sans submit API explicite) */}
-          <div className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
+          {/* Bloc formulaire */}
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-serif text-primary italic mb-2">
                 Welcome Back
@@ -159,13 +211,21 @@ export default function Login() {
             </div>
 
             <div className="flex flex-col gap-5">
+              {/* Success message (e.g. after email verification) */}
+              {success && (
+                <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-xs text-green-700 text-center">
+                  {success}
+                </div>
+              )}
+
+              {/* General error message */}
+              {error && (
+                <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-xs text-red-600 text-center">
+                  {error}
+                </div>
+              )}
+
               {/* Email */}
-              {/*
-                Champ email :
-                - `type="email"` aide la validation navigateur native
-                - placeholder pour guider le format attendu
-                - style avec ring au focus pour feedback UX
-              */}
               <div>
                 <label className="block mb-2 ml-1 text-xs font-medium text-[color:var(--foreground)]">
                   Email
@@ -173,7 +233,10 @@ export default function Login() {
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="w-full rounded-full border border-[color:var(--border)] bg-white p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder:text-gray-400"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  className="w-full rounded-full border border-[color:var(--border)] bg-white p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder:text-gray-400 disabled:opacity-50"
                 />
               </div>
 
@@ -195,7 +258,10 @@ export default function Login() {
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    className="w-full rounded-full border border-[color:var(--border)] bg-white p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder:text-gray-400"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-full border border-[color:var(--border)] bg-white p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder:text-gray-400 disabled:opacity-50"
                   />
                   <button 
                     type="button"
@@ -236,26 +302,32 @@ export default function Login() {
                   Bouton principal login (UI).
                   Astuce design : inverse les couleurs en dark mode pour conserver contraste.
                 */}
-                <button className="w-full rounded-full [.theme-light_&]:bg-black [.theme-light_&]:text-white [.theme-dark_&]:bg-white [.theme-dark_&]:text-black py-4 font-bold text-sm active:scale-95 hover:opacity-90 cursor-pointer shadow-lg">
-                  Sign In
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-full [.theme-light_&]:bg-black [.theme-light_&]:text-white [.theme-dark_&]:bg-white [.theme-dark_&]:text-black py-4 font-bold text-sm active:scale-95 hover:opacity-90 cursor-pointer shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Signing In..." : "Sign In"}
                 </button>
 
                 {/*
                   Bouton social Google.
                   Le SVG est le logo officiel stylisé en 4 couleurs.
                 */}
-                <button className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-4 font-semibold text-gray-900 hover:bg-gray-50 text-sm cursor-pointer">
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading || loading}
+                  className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-4 font-semibold text-gray-900 hover:bg-gray-50 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <svg viewBox="0 0 48 48" className="h-5 w-5"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
-                  Sign In with Google
+                  {googleLoading ? "Connecting..." : "Sign In with Google"}
                 </button>
               </div>
             </div>
-          </div>
+          </form>
 
-          {/*
-            Pied de carte : navigation secondaire vers inscription.
-            Pattern classique "pas encore de compte ?".
-          */}
+          {/* Pied de carte : navigation secondaire vers inscription. */}
           <div className="flex-none text-center pb-2 pt-4">
             <p className="text-xs text-[color:var(--muted-foreground)]">
               Don't have an account ?{" "}

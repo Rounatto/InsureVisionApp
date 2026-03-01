@@ -28,6 +28,9 @@ yarn-error.log*
 .env.production
 # vercel
 .vercel
+# IDE
+.idea/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

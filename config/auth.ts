@@ -10,9 +10,25 @@ import { TOKEN_VERSION_CHECK_INTERVAL_MS } from "@/lib/constants";
 
 export const { handlers, auth } = NextAuth({
   ...authConfig,
-  adapter: PrismaAdapter(db),
+  adapter: db ? PrismaAdapter(db) : undefined,
   session: {
     strategy: "jwt",
+  },
+  // Session cookie (no persistent maxAge) so users must sign in again
+  // after closing the browser.
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   providers: [
     // Google comes from the base config
