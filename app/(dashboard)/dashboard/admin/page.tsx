@@ -1,19 +1,85 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { isAdminEmail } from "@/lib/admin";
+
+interface AdminStats {
+  totalUsers: number;
+  verifiedUsers: number;
+  unverifiedUsers: number;
+  totalEstimates: number;
+  recentSignups: number;
+}
+
+interface AdminUser {
+  id: string;
+  name: string | null;
+  email: string;
+  emailVerified: boolean;
+  image: string | null;
+  createdAt: string;
+  estimateCount: number;
+}
+
+interface UsersResponse {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const canAccessAdmin = isAdminEmail(session?.user?.email);
 
-  const recentUsers = [
-    { name: "Rayan M.", email: "rayan@example.com", role: "Admin", status: "Active" },
-    { name: "Sara B.", email: "sara@example.com", role: "Manager", status: "Active" },
-    { name: "Youssef K.", email: "youssef@example.com", role: "Agent", status: "Pending" },
-    { name: "Lina T.", email: "lina@example.com", role: "Agent", status: "Suspended" },
-  ];
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [usersData, setUsersData] = useState<UsersResponse | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/stats");
+      if (res.ok) setStats(await res.json());
+    } catch { /* silent */ }
+    finally { setLoadingStats(false); }
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const params = new URLSearchParams({ page: String(page) });
+      if (search) params.set("search", search);
+      const res = await fetch(`/api/admin/users?${params}`);
+      if (res.ok) setUsersData(await res.json());
+    } catch { /* silent */ }
+    finally { setLoadingUsers(false); }
+  }, [page, search]);
+
+  useEffect(() => {
+    if (canAccessAdmin) {
+      fetchStats();
+    }
+  }, [canAccessAdmin, fetchStats]);
+
+  useEffect(() => {
+    if (canAccessAdmin) {
+      fetchUsers();
+    }
+  }, [canAccessAdmin, fetchUsers]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    fetchUsers();
+  };
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
@@ -43,35 +109,57 @@ export default function AdminPage() {
       <div className="mb-12">
         <h1 className="mb-3 text-4xl font-bold text-[color:var(--foreground)]">Admin Panel</h1>
         <p className="text-sm text-[color:var(--muted-foreground)]">
-          Frontend preview for admin dashboard controls and monitoring.
+          Platform overview and user management.
         </p>
       </div>
 
+      {/* ── Stats Cards ─────────────────────────────────── */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
           <p className="text-xs text-[color:var(--muted-foreground)]">Total Users</p>
-          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">1,284</p>
+          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
+            {loadingStats ? "…" : (stats?.totalUsers ?? 0).toLocaleString()}
+          </p>
         </div>
         <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
-          <p className="text-xs text-[color:var(--muted-foreground)]">Active Sessions</p>
-          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">312</p>
+          <p className="text-xs text-[color:var(--muted-foreground)]">Verified Users</p>
+          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
+            {loadingStats ? "…" : (stats?.verifiedUsers ?? 0).toLocaleString()}
+          </p>
         </div>
         <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
-          <p className="text-xs text-[color:var(--muted-foreground)]">Open Reports</p>
-          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">27</p>
+          <p className="text-xs text-[color:var(--muted-foreground)]">Total Estimates</p>
+          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
+            {loadingStats ? "…" : (stats?.totalEstimates ?? 0).toLocaleString()}
+          </p>
         </div>
         <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
-          <p className="text-xs text-[color:var(--muted-foreground)]">System Health</p>
-          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">98%</p>
+          <p className="text-xs text-[color:var(--muted-foreground)]">Signups (7 days)</p>
+          <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
+            {loadingStats ? "…" : (stats?.recentSignups ?? 0).toLocaleString()}
+          </p>
         </div>
       </div>
 
+      {/* ── Users Table ─────────────────────────────────── */}
       <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[color:var(--foreground)]">Recent User Activity</h2>
-          <button className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors">
-            Export
-          </button>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg font-semibold text-[color:var(--foreground)]">Users</h2>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-xl border border-[color:var(--border)] bg-[color:var(--background)] px-3 py-2 text-xs text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-primary/20 w-56"
+            />
+            <button
+              type="submit"
+              className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
+            >
+              Search
+            </button>
+          </form>
         </div>
 
         <div className="overflow-x-auto">
@@ -80,43 +168,78 @@ export default function AdminPage() {
               <tr className="text-left text-xs text-[color:var(--muted-foreground)]">
                 <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Email</th>
-                <th className="px-3 py-2 font-medium">Role</th>
+                <th className="px-3 py-2 font-medium">Estimates</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Actions</th>
+                <th className="px-3 py-2 font-medium">Joined</th>
               </tr>
             </thead>
             <tbody>
-              {recentUsers.map((user) => (
-                <tr
-                  key={user.email}
-                  className="rounded-xl bg-[color:var(--background)] text-sm text-[color:var(--foreground)]"
-                >
-                  <td className="px-3 py-3 font-medium">{user.name}</td>
-                  <td className="px-3 py-3 text-[color:var(--muted-foreground)]">{user.email}</td>
-                  <td className="px-3 py-3">{user.role}</td>
-                  <td className="px-3 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        user.status === "Active"
-                          ? "bg-green-500/10 text-green-500"
-                          : user.status === "Pending"
-                            ? "bg-yellow-500/10 text-yellow-500"
-                            : "bg-red-500/10 text-red-500"
-                      }`}
-                    >
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <button className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors">
-                      View
-                    </button>
+              {loadingUsers ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]">
+                    Loading users…
                   </td>
                 </tr>
-              ))}
+              ) : !usersData?.users.length ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]">
+                    No users found.
+                  </td>
+                </tr>
+              ) : (
+                usersData.users.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="rounded-xl bg-[color:var(--background)] text-sm text-[color:var(--foreground)]"
+                  >
+                    <td className="px-3 py-3 font-medium">{user.name || "—"}</td>
+                    <td className="px-3 py-3 text-[color:var(--muted-foreground)]">{user.email}</td>
+                    <td className="px-3 py-3">{user.estimateCount}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                          user.emailVerified
+                            ? "bg-green-500/10 text-green-500"
+                            : "bg-yellow-500/10 text-yellow-500"
+                        }`}
+                      >
+                        {user.emailVerified ? "Verified" : "Pending"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
+                      {formatDate(user.createdAt)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* ── Pagination ──────────────────────────────── */}
+        {usersData && usersData.totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between text-xs text-[color:var(--muted-foreground)]">
+            <span>
+              Page {usersData.page} of {usersData.totalPages} ({usersData.total} users)
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 font-medium hover:bg-[color:var(--muted)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= (usersData?.totalPages ?? 1)}
+                className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 font-medium hover:bg-[color:var(--muted)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
         </>
       )}
