@@ -62,6 +62,7 @@ export const translations = {
     cancelDeletion: "Cancel",
     deleteAccountWarning: "Are you sure you want to delete your account? This action cannot be undone.",
     typeDeleteToConfirm: "Type DELETE to confirm:",
+    enterPasswordToConfirm: "Enter your password to confirm:",
     deleting: "Deleting…",
 
     // Settings Page
@@ -162,6 +163,7 @@ export const translations = {
     cancelDeletion: "Annuler",
     deleteAccountWarning: "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
     typeDeleteToConfirm: "Tapez SUPPRIMER pour confirmer :",
+    enterPasswordToConfirm: "Entrez votre mot de passe pour confirmer :",
     deleting: "Suppression…",
 
     // Settings Page
@@ -262,6 +264,7 @@ export const translations = {
     cancelDeletion: "Cancelar",
     deleteAccountWarning: "¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.",
     typeDeleteToConfirm: "Escribe ELIMINAR para confirmar:",
+    enterPasswordToConfirm: "Ingresa tu contraseña para confirmar:",
     deleting: "Eliminando…",
 
     // Settings Page
@@ -362,6 +365,7 @@ export const translations = {
     cancelDeletion: "Abbrechen",
     deleteAccountWarning: "Sind Sie sicher, dass Sie Ihr Konto löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
     typeDeleteToConfirm: "Geben Sie LÖSCHEN ein, um zu bestätigen:",
+    enterPasswordToConfirm: "Geben Sie Ihr Passwort zur Bestätigung ein:",
     deleting: "Löschen…",
 
     // Settings Page

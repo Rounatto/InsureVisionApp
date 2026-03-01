@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
   const [downloadingData, setDownloadingData] = useState(false);
   const [downloadError, setDownloadError] = useState("");
 
@@ -50,7 +51,11 @@ export default function SettingsPage() {
     setDeleteError("");
 
     try {
-      const res = await fetch("/api/auth/delete-account", { method: "DELETE" });
+      const res = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
+      });
 
       if (!res.ok) {
         const data = await res.json();
@@ -143,6 +148,7 @@ export default function SettingsPage() {
               onClick={() => {
                 setShowDeleteConfirm(true);
                 setDeleteConfirmText("");
+                setDeletePassword("");
                 setDeleteError("");
               }}
               disabled={deleting}
@@ -176,6 +182,17 @@ export default function SettingsPage() {
               placeholder="DELETE"
             />
 
+            <label className="block text-xs text-[color:var(--muted-foreground)] mb-2">
+              {t("enterPasswordToConfirm")}
+            </label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="w-full rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm text-[color:var(--foreground)] outline-none focus:border-red-500 transition-colors mb-4"
+              placeholder={t("currentPassword")}
+            />
+
             {deleteError && (
               <p className="text-xs text-red-500 mb-4">{deleteError}</p>
             )}
@@ -193,7 +210,7 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={handleDeleteAccount}
-                disabled={deleting || deleteConfirmText !== "DELETE"}
+                disabled={deleting || deleteConfirmText !== "DELETE" || !deletePassword}
                 className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? t("deleting") : t("confirmDeletion")}
