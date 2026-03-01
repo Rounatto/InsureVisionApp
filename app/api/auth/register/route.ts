@@ -73,6 +73,10 @@ export async function POST(req: Request) {
         select: { id: true, name: true, email: true },
       });
 
+      await tx.securityToken.deleteMany({
+        where: { identifier: email, type: "EMAIL_VERIFICATION" },
+      });
+
       await tx.securityToken.create({
         data: {
           type: "EMAIL_VERIFICATION",
