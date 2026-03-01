@@ -121,4 +121,4 @@ Private — all rights reserved.
 
 ---
 
-<p align="center">Built with by the InsureVision Team</p>
+<p align="center">Built by the InsureVision Team</p>
