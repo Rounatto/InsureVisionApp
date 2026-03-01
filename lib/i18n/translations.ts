@@ -67,16 +67,12 @@ export const translations = {
     // Settings Page
     settingsTitle: "Settings",
     managePreferences: "Manage your application preferences and notifications",
-    notificationsSection: "Notifications",
-    pushNotifications: "Push Notifications",
-    pushNotificationsDesc: "Receive notifications about estimate results",
-    emailUpdates: "Email Updates",
-    emailUpdatesDesc: "Get email notifications for completed estimates",
     languageRegion: "Language & Region",
-    displayLanguage: "Display Language",
     dataPrivacy: "Data & Privacy",
     downloadYourData: "Download Your Data",
-    deleteAllData: "Delete All Data",
+    downloadDataDesc: "Export all your personal data and estimates as a JSON file",
+    downloading: "Downloading…",
+    displayLanguage: "Display Language",
 
     // Auth Pages
     loginTitle: "Sign in to your account",
@@ -171,16 +167,12 @@ export const translations = {
     // Settings Page
     settingsTitle: "Paramètres",
     managePreferences: "Gérez vos préférences d'application et notifications",
-    notificationsSection: "Notifications",
-    pushNotifications: "Notifications Push",
-    pushNotificationsDesc: "Recevoir des notifications sur les résultats d'estimation",
-    emailUpdates: "Mises à Jour par Email",
-    emailUpdatesDesc: "Recevoir des notifications par email pour les estimations terminées",
-    languageRegion: "Langue et Région",
-    displayLanguage: "Langue d'Affichage",
     dataPrivacy: "Données et Confidentialité",
     downloadYourData: "Télécharger Vos Données",
-    deleteAllData: "Supprimer Toutes les Données",
+    downloadDataDesc: "Exportez toutes vos données personnelles et estimations en fichier JSON",
+    downloading: "Téléchargement…",
+    languageRegion: "Langue et Région",
+    displayLanguage: "Langue d'Affichage",
 
     // Auth Pages
     loginTitle: "Connectez-vous à votre compte",
@@ -274,17 +266,13 @@ export const translations = {
 
     // Settings Page
     settingsTitle: "Configuración",
-    managePreferences: "Administra tus preferencias de aplicación y notificaciones",
-    notificationsSection: "Notificaciones",
-    pushNotifications: "Notificaciones Push",
-    pushNotificationsDesc: "Recibir notificaciones sobre resultados de estimación",
-    emailUpdates: "Actualizaciones por Correo",
-    emailUpdatesDesc: "Recibir notificaciones por correo de estimaciones completadas",
-    languageRegion: "Idioma y Región",
-    displayLanguage: "Idioma de Visualización",
     dataPrivacy: "Datos y Privacidad",
     downloadYourData: "Descargar Tus Datos",
-    deleteAllData: "Eliminar Todos los Datos",
+    downloadDataDesc: "Exporta todos tus datos personales y estimaciones como un archivo JSON",
+    downloading: "Descargando…",
+    managePreferences: "Administra tus preferencias de aplicación y notificaciones",
+    languageRegion: "Idioma y Región",
+    displayLanguage: "Idioma de Visualización",
 
     // Auth Pages
     loginTitle: "Inicia sesión en tu cuenta",
@@ -379,16 +367,12 @@ export const translations = {
     // Settings Page
     settingsTitle: "Einstellungen",
     managePreferences: "Verwalten Sie Ihre Anwendungspräferenzen und Benachrichtigungen",
-    notificationsSection: "Benachrichtigungen",
-    pushNotifications: "Push-Benachrichtigungen",
-    pushNotificationsDesc: "Benachrichtigungen über Schätzungsergebnisse erhalten",
-    emailUpdates: "E-Mail-Updates",
-    emailUpdatesDesc: "E-Mail-Benachrichtigungen für abgeschlossene Schätzungen erhalten",
-    languageRegion: "Sprache & Region",
-    displayLanguage: "Anzeigesprache",
     dataPrivacy: "Daten & Datenschutz",
     downloadYourData: "Ihre Daten Herunterladen",
-    deleteAllData: "Alle Daten Löschen",
+    downloadDataDesc: "Exportieren Sie alle Ihre persönlichen Daten und Schätzungen als JSON-Datei",
+    downloading: "Herunterladen…",
+    languageRegion: "Sprache & Region",
+    displayLanguage: "Anzeigesprache",
 
     // Auth Pages
     loginTitle: "Melden Sie sich bei Ihrem Konto an",
