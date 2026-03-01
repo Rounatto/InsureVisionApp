@@ -80,9 +80,20 @@ export const { handlers, auth } = NextAuth({
      */
     async jwt({ token, user, trigger, session, account }) {
       // On Google sign-in, strip the Google profile image so the app
-      // always uses its own letter avatar.
+      // always uses its own letter avatar — also clear it in the DB for
+      // existing users who already have a Google image stored.
       if (account?.provider === "google" && user) {
         token.image = null;
+        if (user.id && db) {
+          try {
+            await db.user.update({
+              where: { id: user.id },
+              data: { image: null },
+            });
+          } catch {
+            // non-critical, ignore
+          }
+        }
       }
 
       // Client-driven session updates (e.g. useSession().update({ name }))
@@ -139,25 +150,10 @@ export const { handlers, auth } = NextAuth({
         session.user.id = token.sub;
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
-        session.user.image = (token.image as string | null | undefined) ?? session.user.image;
+        session.user.image = "image" in token ? (token.image as string | null) : session.user.image;
         session.user.isAdmin = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;
-    },
-  },
-
-  events: {
-    /**
-     * After the Prisma adapter creates a user from Google OAuth,
-     * clear the Google profile image so we use our own letter avatar.
-     */
-    async createUser({ user }) {
-      if (user.image && user.id && db) {
-        await db.user.update({
-          where: { id: user.id },
-          data: { image: null },
-        });
-      }
     },
   },
 });
