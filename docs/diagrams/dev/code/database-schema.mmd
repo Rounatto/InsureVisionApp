@@ -6,6 +6,7 @@ erDiagram
         DateTime emailVerified "nullable"
         String image "nullable"
         String password "nullable (null for OAuth users)"
+        Int tokenVersion
         DateTime createdAt "default: now()"
         DateTime updatedAt "auto-updated"
     }
@@ -13,24 +14,16 @@ erDiagram
     Account {
         String id PK "cuid()"
         String userId FK
-        String type
         String provider
         String providerAccountId
-        String refresh_token "nullable"
-        String access_token "nullable"
-        Int expires_at "nullable"
-        String token_type "nullable"
-        String scope "nullable"
-        String id_token "nullable"
-        String session_state "nullable"
         DateTime createdAt "default: now()"
         DateTime updatedAt "auto-updated"
     }
 
     Session {
         String id PK "cuid()"
-        String sessionToken UK "unique"
         String userId FK
+        String sessionToken UK "unique"
         DateTime expires
         DateTime createdAt "default: now()"
         DateTime updatedAt "auto-updated"
@@ -42,6 +35,41 @@ erDiagram
         DateTime expires
     }
 
-    User ||--o{ Account : "(1) ---- (0..n)"
-    User ||--o{ Session : "(1) ---- (0..n)"
-    User ||--o| VerificationToken : "(1) ---- (0..1)"
+    SecurityToken {
+        String id PK "cuid()"
+        String type
+        String hashedToken UK
+        String identifier
+        DateTime expires
+        DateTime createdAt "default: now()"
+    }
+
+    AuditLog {
+        String id PK "cuid()"
+        String userId "nullable"
+        String action
+        String ip "nullable"
+        Json metadata "nullable"
+        DateTime createdAt "default: now()"
+    }
+
+    Estimate {
+        String id PK "cuid()"
+        String userId FK
+        String summary
+        Float totalCost
+        DateTime createdAt "default: now()"
+    }
+
+    EstimatePart {
+        String id PK "cuid()"
+        String estimateId FK
+        String name
+        Float cost
+        String severity
+    }
+
+    User ||--o{ Account : has
+    User ||--o{ Session : has
+    User ||--o{ Estimate : owns
+    Estimate ||--|{ EstimatePart : contains

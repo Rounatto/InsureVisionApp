@@ -1,16 +1,14 @@
-@startuml
-left to right direction
-actor User
-actor "Email Provider" as Email
+flowchart LR
+    User([User])
+    Email([Email Provider])
 
-rectangle "Authentication Backend" {
-  usecase "Login to Account" as L
-  usecase "Request Password Reset" as F
-  usecase "Reset Password with Link" as R
-}
+    subgraph Backend[Authentication Backend]
+        Login((Login to Account))
+        Forgot((Request Password Reset))
+        Reset((Reset Password with Link))
+    end
 
-User --> L
-User --> F
-User --> R
-F --> Email
-@enduml
+    User --> Login
+    User --> Forgot
+    User --> Reset
+    Forgot --> Email

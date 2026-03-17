@@ -1,9 +1,10 @@
 erDiagram
     User {
         String id PK
-        String name
         String email UK
-        String password
+        String password nullable
+        DateTime emailVerified nullable
+        Int tokenVersion
         DateTime createdAt
     }
 
@@ -21,12 +22,30 @@ erDiagram
         DateTime expires
     }
 
-    VerificationToken {
+    SecurityToken {
+        String id PK
+        String type
+        String hashedToken UK
         String identifier
-        String token
         DateTime expires
     }
 
-    User ||--o{ Account : "(1) ---- (0..n)"
-    User ||--o{ Session : "(1) ---- (0..n)"
-    User ||--o| VerificationToken : "(1) ---- (0..1)"
+    Estimate {
+        String id PK
+        String userId FK
+        Float totalCost
+        DateTime createdAt
+    }
+
+    EstimatePart {
+        String id PK
+        String estimateId FK
+        String name
+        Float cost
+        String severity
+    }
+
+    User ||--o{ Account : has
+    User ||--o{ Session : has
+    User ||--o{ Estimate : owns
+    Estimate ||--|{ EstimatePart : contains

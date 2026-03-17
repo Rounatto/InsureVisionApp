@@ -1,51 +1,51 @@
-@startuml
-left to right direction
-actor "User" as U
-actor "Email Service" as ES
-actor "Token Service (JWT/Session)" as TS
-actor "Database" as DB
-actor "Rate Limiter" as RL
+flowchart LR
+    User([User])
+    EmailSvc([Email Service])
+    TokenSvc([Token and Session Service])
+    Database([Database])
+    RateLimiter([Rate Limiter])
 
-rectangle "Auth Backend API" {
-  usecase "Login" as UC1
-  usecase "Validate Credentials" as UC2
-  usecase "Issue Access/Refresh Token" as UC3
-  usecase "Store Session / Refresh Token Hash" as UC4
-  usecase "Forgot Password Request" as UC5
-  usecase "Generate Reset Token" as UC6
-  usecase "Store Reset Token (hashed + expiry)" as UC7
-  usecase "Send Reset Email" as UC8
-  usecase "Reset Password" as UC9
-  usecase "Validate Reset Token" as UC10
-  usecase "Update Password Hash" as UC11
-  usecase "Invalidate Existing Sessions" as UC12
-}
+    subgraph Backend[Auth Backend API]
+        Login((Login))
+        Validate((Validate Credentials))
+        IssueToken((Issue Session Token))
+        StoreSession((Store Session State))
 
-U --> UC1
-U --> UC5
-U --> UC9
+        Forgot((Forgot Password Request))
+        CreateReset((Generate Reset Token))
+        SaveReset((Store Reset Token Hash))
+        SendReset((Send Reset Email))
 
-UC1 .> UC2 : <<include>>
-UC1 .> UC3 : <<include>>
-UC1 .> UC4 : <<include>>
-UC1 .> RL : <<include>>
+        Reset((Reset Password))
+        ValidateReset((Validate Reset Token))
+        UpdatePassword((Update Password Hash))
+        Invalidate((Invalidate Existing Sessions))
+    end
 
-UC5 .> UC6 : <<include>>
-UC5 .> UC7 : <<include>>
-UC5 .> UC8 : <<include>>
-UC5 .> RL : <<include>>
+    User --> Login
+    User --> Forgot
+    User --> Reset
 
-UC9 .> UC10 : <<include>>
-UC9 .> UC11 : <<include>>
-UC9 .> UC12 : <<include>>
+    Login --> Validate
+    Login --> IssueToken
+    Login --> StoreSession
+    Login --> RateLimiter
 
-UC2 --> DB
-UC4 --> DB
-UC7 --> DB
-UC10 --> DB
-UC11 --> DB
-UC12 --> DB
+    Forgot --> CreateReset
+    Forgot --> SaveReset
+    Forgot --> SendReset
+    Forgot --> RateLimiter
 
-UC3 --> TS
-UC8 --> ES
-@enduml
+    Reset --> ValidateReset
+    Reset --> UpdatePassword
+    Reset --> Invalidate
+
+    Validate --> Database
+    StoreSession --> Database
+    SaveReset --> Database
+    ValidateReset --> Database
+    UpdatePassword --> Database
+    Invalidate --> Database
+
+    IssueToken --> TokenSvc
+    SendReset --> EmailSvc

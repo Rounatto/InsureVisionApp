@@ -1,69 +1,45 @@
-@startuml
-autonumber
-skinparam shadowing false
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Login Page
+    participant NA as NextAuth Handler
+    participant DB as Prisma/Postgres
+    participant JWT as JWT Session
 
-actor User
-participant "Login Page" as UI
-participant "Auth API" as API
-database "Database" as DB
-participant "Google OAuth" as Google
-participant "JWT Service" as JWT
+    User->>UI: Open login page
+    User->>UI: Enter email and password
 
-User -> UI : Open login page
-User -> UI : Enter email and password
-
-alt Google Login
-
-    UI -> Google : signIn google
-    Google -> API : OAuth callback
-    API -> DB : Check if user exists
-    DB --> API : User result
-
-    alt User does not exist
-        API -> DB : Auto-create user
-    else User exists
-        API -> API : Link Google account
-    end
-
-    API -> JWT : Create session
-    JWT --> API : Session token
-    API --> UI : Success
-    UI --> User : Redirect to dashboard
-
-else Email/Password Login
-
-    UI -> API : POST login request
-    API -> API : Parse JSON body
-    API -> API : Validate input
-
-    alt Validation invalid
-        API --> UI : 400 Validation error
-        UI --> User : Show validation errors
-    else Validation valid
-
-        API -> DB : Check user by email
-        DB --> API : User result
-
-        alt User not found
-            API --> UI : 401 User not found
-            UI --> User : Show login error
-        else User exists
-
-            API -> API : Verify password
-
-            alt Password incorrect
-                API --> UI : 401 Invalid credentials
-                UI --> User : Show login error
-            else Password correct
-                API -> JWT : Create session
-                JWT --> API : Session token
-                API --> UI : Success
-                UI --> User : Redirect to dashboard
+    alt Google login
+        UI->>NA: signIn("google")
+        NA->>DB: Find or create OAuth user
+        DB-->>NA: User record
+        NA->>JWT: Build JWT session
+        JWT-->>NA: Session token
+        NA-->>UI: Success
+        UI-->>User: Redirect to /dashboard
+    else Email/password login
+        UI->>NA: signIn("credentials")
+        NA->>NA: Validate input payload
+        alt Validation invalid
+            NA-->>UI: Validation error
+            UI-->>User: Show field errors
+        else Validation valid
+            NA->>DB: Find user by email
+            DB-->>NA: User record
+            alt User missing or password missing
+                NA-->>UI: Invalid credentials
+                UI-->>User: Show login error
+            else User found
+                NA->>NA: Verify bcrypt password
+                alt Password incorrect
+                    NA-->>UI: Invalid credentials
+                    UI-->>User: Show login error
+                else Password correct
+                    NA->>JWT: Build JWT session
+                    JWT-->>NA: Session token
+                    NA-->>UI: Success
+                    UI-->>User: Redirect to /dashboard
+                end
             end
-
         end
-
     end
-
-end
-@enduml

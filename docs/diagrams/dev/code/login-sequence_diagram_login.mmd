@@ -1,30 +1,25 @@
-@startuml
-actor User
-participant "Client App" as Client
-participant "Auth API" as API
-participant "Rate Limiter" as RL
-database "User DB" as DB
-participant "Token Service" as TS
-database "Session Store" as SS
+sequenceDiagram
+    autonumber
+    actor User
+    participant Client as Client App
+    participant API as Auth API
+    participant RL as Rate Limiter
+    participant DB as User DB
+    participant JWT as JWT Session Service
 
-User -> Client: Enter email + password
-Client -> API: POST /auth/login
-API -> RL: check(ip,email)
-RL --> API: allowed
+    User->>Client: Enter email and password
+    Client->>API: POST /api/auth/login
+    API->>RL: Check request limit
+    RL-->>API: Allowed
 
-API -> DB: findUserByEmail(email)
-DB --> API: user + passwordHash + status
+    API->>DB: Find user by email
+    DB-->>API: User record
 
-API -> API: verifyPassword(password, hash)
-alt invalid credentials
-  API --> Client: 401 Unauthorized
-else valid credentials
-  API -> TS: generateAccessToken(userId, roles)
-  TS --> API: accessToken
-  API -> TS: generateRefreshToken()
-  TS --> API: refreshToken
-  API -> SS: save(refreshTokenHash, userId, expiry)
-  SS --> API: ok
-  API --> Client: 200 {accessToken, refreshToken}
-end
-@enduml
+    API->>API: Verify bcrypt password
+    alt Invalid credentials
+        API-->>Client: 401 Unauthorized
+    else Valid credentials
+        API->>JWT: Create session payload
+        JWT-->>API: Session token data
+        API-->>Client: 200 Login success
+    end

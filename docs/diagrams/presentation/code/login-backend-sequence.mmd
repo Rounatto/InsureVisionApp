@@ -1,25 +1,22 @@
-@startuml
-autonumber
-skinparam shadowing false
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Login Page
+    participant API as Auth API
+    participant DB as Database
+    participant JWT as JWT Session Service
 
-actor User
-participant "Login Page" as UI
-participant "Auth API" as API
-database "Database" as DB
-participant "JWT Service" as JWT
+    User->>UI: Enter email and password
+    UI->>API: Submit credentials
+    API->>DB: Check user and password
+    DB-->>API: User result
 
-User -> UI : Enter email and password
-UI -> API : POST login request
-API -> DB : Check user and password
-DB --> API : Result
-
-alt Invalid credentials
-    API --> UI : 401 Error
-    UI --> User : Show login error
-else Valid credentials
-    API -> JWT : Create session
-    JWT --> API : Session token
-    API --> UI : Success
-    UI --> User : Redirect to dashboard
-end
-@enduml
+    alt Invalid credentials
+        API-->>UI: 401 Unauthorized
+        UI-->>User: Show login error
+    else Valid credentials
+        API->>JWT: Create session token
+        JWT-->>API: Token payload
+        API-->>UI: Success
+        UI-->>User: Redirect to dashboard
+    end

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
@@ -11,7 +11,12 @@ import { useClickOutside } from "@/hooks/useClickOutside";
 import { HomeIcon, ClockIcon, UserIcon, SettingsIcon, ShieldIcon } from "@/lib/icons";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-export default function Sidebar() {
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ open, onClose }: SidebarProps) {
   const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
@@ -34,8 +39,25 @@ export default function Sidebar() {
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
 
-  return (
-    <aside className="flex h-screen w-64 flex-col border-r border-[color:var(--border)] bg-[color:var(--card)]/50">
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    onClose();
+  }, [pathname, onClose]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  const sidebarContent = (
+    <>
       {/* Logo & Brand */}
       <div className="flex h-16 items-center gap-2.5 px-6 border-b border-[color:var(--border)]">
         <InsureVisionLogo className="h-7 w-7" />
@@ -143,6 +165,44 @@ export default function Sidebar() {
           )}
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* ── Desktop sidebar: sticky column ── */}
+      <aside className="hidden md:flex sticky top-0 h-screen w-64 flex-col border-r border-[color:var(--border)] bg-[color:var(--card)]/50">
+        {sidebarContent}
+      </aside>
+
+      {/* ── Mobile overlay drawer ── */}
+      {/* Backdrop */}
+      <div
+        className={`md:hidden fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Drawer */}
+      <aside
+        className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-[color:var(--border)] bg-[color:var(--card)] shadow-2xl transition-transform duration-300 ease-in-out ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Close button inside drawer */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-3 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[color:var(--muted)] transition-colors z-10"
+          aria-label="Close sidebar"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5 text-[color:var(--foreground)]">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        {sidebarContent}
+      </aside>
+    </>
   );
 }
