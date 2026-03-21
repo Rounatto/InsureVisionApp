@@ -12,6 +12,8 @@ import type { ErrorResponse, RegisterResponse } from "@/types/auth";
 export default function Register() {
   // `router` sert à naviguer programmatiquement après un événement (ex: succès)
   const router = useRouter();
+  const claudeUserFont = "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif";
+  const claudeAssistantFont = "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif";
 
   // ─── Form State ───────────────────────────────────────────
   // États contrôlés (controlled inputs) :
@@ -97,7 +99,13 @@ export default function Register() {
 
   return (
     // Conteneur plein écran, centré, avec image de fond
-    <div className="relative flex h-screen w-full items-center justify-center bg-black p-4 overflow-hidden">
+    <div
+      className="relative flex min-h-[100svh] w-full items-start justify-center overflow-x-hidden overflow-y-auto bg-black p-4 md:min-h-screen md:items-center"
+      style={{
+        fontFamily: claudeUserFont,
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+      }}
+    >
       <div className="absolute inset-0 pointer-events-none">
         <LightRays
           raysOrigin="top-center"
@@ -116,8 +124,8 @@ export default function Register() {
       </div>
 
       {/* CARTE PRINCIPALE */}
-      <div className="relative z-10 flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] text-[color:var(--card-foreground)] font-sans">
-        <div className="absolute inset-0 pointer-events-none">
+      <div className="relative z-10 flex w-full max-w-5xl min-h-0 overflow-hidden rounded-[40px] bg-[color:var(--card)] font-sans text-[color:var(--card-foreground)] shadow-2xl md:h-[85vh] md:min-h-[600px]">
+        <div className="pointer-events-none absolute inset-0 hidden md:block">
           <LightRays
             raysOrigin="top-center"
             raysColor="#ffffff"
@@ -133,7 +141,7 @@ export default function Register() {
             distortion={0}
           />
         </div>
-        
+
         {/* SECTION GAUCHE (Texte dynamique avec sécurité contraste) */}
         <div className="hidden md:flex md:w-1/2 flex-col justify-between bg-transparent p-12 relative overflow-hidden">
           
@@ -147,13 +155,13 @@ export default function Register() {
 
           {/* BAS : Titre et Témoignage */}
           <div className="relative z-10 mb-4">
-            <h1 className="text-5xl font-serif italic leading-tight mb-4 [.theme-light_&]:text-black [.theme-dark_&]:text-white">
+            <h1 style={{ fontFamily: claudeAssistantFont }} className="text-5xl font-semibold leading-tight mb-4 [.theme-light_&]:text-black [.theme-dark_&]:text-white">
               Accelerate<br />Your Claims<br />Processing
             </h1>
             
             {/* Carte de témoignage teintée par la couleur dynamique */}
             <div className="backdrop-blur-md p-4 rounded-2xl max-w-xs [.theme-light_&]:bg-black/5 [.theme-light_&]:border [.theme-light_&]:border-black/10 [.theme-dark_&]:bg-white/10 [.theme-dark_&]:border [.theme-dark_&]:border-white/20">
-              <p className="text-sm leading-relaxed mb-3 italic [.theme-light_&]:text-black/90 [.theme-dark_&]:text-white/90">
+              <p style={{ fontFamily: claudeAssistantFont }} className="text-sm leading-relaxed mb-3 italic [.theme-light_&]:text-black/90 [.theme-dark_&]:text-white/90">
                     "InsureVision has saved our adjusters 40% of their time."
                 </p>
                 <div className="flex items-center gap-3">
@@ -168,7 +176,7 @@ export default function Register() {
         </div>
 
         {/* SECTION DROITE (Formulaire) */}
-        <div className="relative flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-4 justify-between bg-[color:var(--card)]">
+        <div className="relative flex h-full w-full flex-col justify-between overflow-y-auto bg-[color:var(--card)] px-8 py-4 md:w-1/2 md:px-12">
           
           {/* SÉLECTEUR DE COULEUR - Coin supérieur droit de la section */}
           <div className="absolute top-4 right-4 z-50 text-[color:var(--foreground)]">
@@ -185,8 +193,8 @@ export default function Register() {
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-green-600"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
               </div>
-              <h1 className="text-3xl font-serif text-primary italic">Check Your Email</h1>
-              <p className="text-sm text-[color:var(--muted-foreground)] max-w-xs">
+              <h1 className="text-3xl font-semibold text-primary">Check Your Email</h1>
+              <p style={{ fontFamily: claudeAssistantFont }} className="text-sm text-[color:var(--muted-foreground)] max-w-xs">
                 We&apos;ve sent a verification link to <strong className="text-[color:var(--foreground)]">{email}</strong>. Please check your inbox and click the link to activate your account.
               </p>
               <Link href="/login" className="mt-2 text-xs font-semibold text-[color:var(--foreground)] hover:underline">
@@ -201,9 +209,9 @@ export default function Register() {
             */}
             <div className="text-center mb-5">
               {/* TITRE : Dynamique */}
-              <h1 className="text-4xl font-serif text-primary italic mb-2">Create Account</h1>
+              <h1 className="text-4xl font-semibold text-primary mb-2">Create Account</h1>
               {/* SOUS-TITRE : Dynamique doux */}
-              <p className="text-xs text-[color:var(--muted-foreground)]">Join our network of smart insurance adjusters</p>
+              <p style={{ fontFamily: claudeAssistantFont }} className="text-xs text-[color:var(--muted-foreground)]">Join our network of smart insurance adjusters</p>
             </div>
 
             <div className="flex flex-col gap-2.5 text-[color:var(--foreground)]">

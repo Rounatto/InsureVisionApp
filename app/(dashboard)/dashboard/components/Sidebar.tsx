@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
@@ -10,6 +10,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { HomeIcon, ClockIcon, UserIcon, SettingsIcon, ShieldIcon } from "@/lib/icons";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { forceClientSignOut } from "@/lib/client-signout";
 
 interface SidebarProps {
   open: boolean;
@@ -18,7 +19,6 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { t } = useLanguage();
-  const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -34,7 +34,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   ];
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/login" });
+    await forceClientSignOut("/login");
   };
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
@@ -101,6 +101,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           >
             <UserAvatar
               name={session?.user?.name}
+              image={session?.user?.image}
               loading={status === "loading"}
               size="h-9 w-9"
               textSize="text-xs"
@@ -139,9 +140,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           {profileOpen && (
             <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-xl overflow-hidden">
               <button
-                onClick={() => {
+                onMouseDown={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setProfileOpen(false);
-                  handleSignOut();
+                  await handleSignOut();
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
               >

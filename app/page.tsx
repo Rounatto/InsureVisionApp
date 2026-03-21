@@ -1,6 +1,61 @@
 import Link from "next/link";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { ShieldIcon, ClockIcon } from "@/lib/icons";
+
+function PhoneIcon({ className = "h-14 w-14" }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 2.25h10.5A2.25 2.25 0 0119.5 4.5v15a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5v-15A2.25 2.25 0 016.75 2.25z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 18.75h3" />
+    </svg>
+  );
+}
+
+function CameraIcon({ className = "h-10 w-10" }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l1.5-2.25h7.5l1.5 2.25h2.25A2.25 2.25 0 0121.75 9.75v8.25a2.25 2.25 0 01-2.25 2.25h-15A2.25 2.25 0 012.25 18V9.75A2.25 2.25 0 014.5 7.5h2.25z" />
+      <circle cx="12" cy="13.5" r="3.25" />
+    </svg>
+  );
+}
+
+function BotIcon({ className = "h-10 w-10" }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 3.75h6M12 3.75v2.5M6.75 8.25h10.5A2.25 2.25 0 0119.5 10.5v6A2.25 2.25 0 0117.25 18.75H6.75A2.25 2.25 0 014.5 16.5v-6A2.25 2.25 0 016.75 8.25zM8.625 12h.008v.008h-.008V12zm6.75 0h.008v.008h-.008V12z" />
+    </svg>
+  );
+}
+
+function CashIcon({ className = "h-10 w-10" }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 7.5h16.5v9H3.75v-9z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a4.5 4.5 0 009 0 4.5 4.5 0 00-9 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v4M10.75 11.5h2a1 1 0 110 2h-1.5" />
+    </svg>
+  );
+}
+
+function BoltIcon({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 2.25L5.25 13.5h5.25l-1.5 8.25L18.75 10.5h-5.25l0-8.25z" />
+    </svg>
+  );
+}
+
+function TargetIcon({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r="1.5" />
+    </svg>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -60,8 +115,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="bg-[color:var(--muted)] rounded-2xl h-96 flex items-center justify-center border border-[color:var(--border)]">
-            <p className="text-6xl">📱</p>
+          <div className="bg-[color:var(--muted)] rounded-2xl h-96 flex items-center justify-center border border-[color:var(--border)] text-[color:var(--foreground)]">
+            <PhoneIcon className="h-20 w-20" />
           </div>
         </div>
       </section>
@@ -74,12 +129,12 @@ export default function LandingPage() {
           </p>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { icon: "📸", title: "Take a Photo", desc: "Photograph the damage to your vehicle from different angles for a complete analysis." },
-              { icon: "🤖", title: "AI Analyzes", desc: "Our artificial intelligence examines the images and evaluates the extent of the damage in depth." },
-              { icon: "💰", title: "Get an Estimate", desc: "Receive a detailed report with the estimated repair cost and affected parts." },
+              { icon: <CameraIcon />, title: "Take a Photo", desc: "Photograph the damage to your vehicle from different angles for a complete analysis." },
+              { icon: <BotIcon />, title: "AI Analyzes", desc: "Our artificial intelligence examines the images and evaluates the extent of the damage in depth." },
+              { icon: <CashIcon />, title: "Get an Estimate", desc: "Receive a detailed report with the estimated repair cost and affected parts." },
             ].map((step) => (
               <div key={step.title} className="text-center">
-                <div className="w-20 h-20 mx-auto bg-[color:var(--background)] rounded-full flex items-center justify-center mb-6 text-4xl border border-[color:var(--border)]">
+                <div className="w-20 h-20 mx-auto bg-[color:var(--background)] rounded-full flex items-center justify-center mb-6 text-[color:var(--foreground)] border border-[color:var(--border)]">
                   {step.icon}
                 </div>
                 <h3 className="text-xl font-bold mb-3">{step.title}</h3>
@@ -96,15 +151,15 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-2 gap-8">
           {[
-            { icon: "⚡", title: "Fast", desc: "Get an estimate in less than a minute without having to visit a garage.", color: "blue" },
-            { icon: "🎯", title: "Accurate", desc: "Thanks to advanced AI, our estimates have exceptional accuracy compared to traditional methods.", color: "purple" },
-            { icon: "🔒", title: "Secure", desc: "Your data is encrypted and protected. No sharing without your consent.", color: "green" },
-            { icon: "📱", title: "Available 24/7", desc: "Available on all devices, anytime, anywhere for your insurance needs.", color: "orange" },
+            { icon: <BoltIcon />, title: "Fast", desc: "Get an estimate in less than a minute without having to visit a garage." },
+            { icon: <TargetIcon />, title: "Accurate", desc: "Thanks to advanced AI, our estimates have exceptional accuracy compared to traditional methods." },
+            { icon: <ShieldIcon className="h-7 w-7" />, title: "Secure", desc: "Your data is encrypted and protected. No sharing without your consent." },
+            { icon: <ClockIcon className="h-7 w-7" />, title: "Available 24/7", desc: "Available on all devices, anytime, anywhere for your insurance needs." },
           ].map((item) => (
             <div key={item.title} className="flex gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-lg bg-[color:var(--muted)] flex items-center justify-center">
-                  <span className="text-2xl">{item.icon}</span>
+                <div className="w-12 h-12 rounded-lg bg-[color:var(--muted)] text-[color:var(--foreground)] flex items-center justify-center">
+                  {item.icon}
                 </div>
               </div>
               <div>
@@ -149,9 +204,18 @@ export default function LandingPage() {
               key={faq.q}
               className="group border border-[color:var(--border)] rounded-xl p-5 cursor-pointer hover:bg-[color:var(--muted)] transition"
             >
-              <summary className="font-bold text-base flex justify-between items-center">
+              <summary className="font-bold text-base flex justify-between items-center list-none [&::-webkit-details-marker]:hidden">
                 {faq.q}
-                <span className="group-open:rotate-180 transition text-[color:var(--muted-foreground)]">⌄</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  className="h-4 w-4 group-open:rotate-180 transition text-[color:var(--muted-foreground)]"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
               </summary>
               <p className="text-[color:var(--muted-foreground)] mt-4 text-sm leading-relaxed">{faq.a}</p>
             </details>

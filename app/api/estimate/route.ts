@@ -3,6 +3,7 @@ import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
 import crypto from "crypto";
 import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, db } from "@/lib/api-helpers";
 import { RL_ESTIMATE } from "@/lib/constants";
+import { generateEstimate } from "@/lib/estimate/provider";
 import type { ErrorResponse } from "@/types/auth";
 
 const BUCKET = "damage-photos";
@@ -107,36 +108,21 @@ export async function POST(req: Request) {
       }
     }
 
-    // ────────────────────────────────────────────────────────────
-    // AI_MODEL_CALL: Replace the mock below with the real model.
-    //
-    // Photos are now stored in Supabase Storage.
-    // Pass `uploadedUrls` to the model for analysis.
-    // ────────────────────────────────────────────────────────────
+    const modelOutput = await generateEstimate({
+      estimateId,
+      userId,
+      photoUrls: uploadedUrls,
+      photoCount: photos.length,
+    });
 
-    // Mock estimation result
-    const mockParts = [
-      { name: "Front Bumper", cost: 450, severity: "High" },
-      { name: "Hood", cost: 800, severity: "Medium" },
-      { name: "Left Headlight", cost: 320, severity: "High" },
-      { name: "Front Grille", cost: 180, severity: "Low" },
-      { name: "Paint Work", cost: 600, severity: "Medium" },
-    ];
-
-    // Randomly include 3–5 parts for variety
-    const count = 3 + Math.floor(Math.random() * 3);
-    const selectedParts = mockParts
-      .sort(() => Math.random() - 0.5)
-      .slice(0, count);
-
-    const totalCost = selectedParts.reduce((sum, p) => sum + p.cost, 0);
+    const totalCost = modelOutput.parts.reduce((sum, p) => sum + p.cost, 0);
 
     const result = {
       id: estimateId,
       totalCost,
-      parts: selectedParts,
+      parts: modelOutput.parts,
       photos: uploadedUrls,
-      summary: `Based on ${photos.length} uploaded photo${photos.length > 1 ? "s" : ""}, we detected damage to ${count} component${count > 1 ? "s" : ""}. This is a preliminary estimate — final costs may vary after physical inspection.`,
+      summary: modelOutput.summary,
     };
 
     // Persist estimate to database
@@ -148,7 +134,7 @@ export async function POST(req: Request) {
         totalCost,
         photos: uploadedUrls,
         parts: {
-          create: selectedParts.map((p) => ({
+          create: modelOutput.parts.map((p) => ({
             name: p.name,
             cost: p.cost,
             severity: p.severity,

@@ -16,6 +16,7 @@ interface AdminUser {
   id: string;
   name: string | null;
   email: string;
+  authProvider: "Google" | "Credentials";
   emailVerified: boolean;
   image: string | null;
   createdAt: string;
@@ -167,21 +168,22 @@ export default function AdminPage() {
               <tr className="text-left text-xs text-[color:var(--muted-foreground)]">
                 <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Email</th>
+                <th className="px-3 py-2 font-medium">Auth Provider</th>
                 <th className="px-3 py-2 font-medium">Estimates</th>
-                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2 font-medium">Email Verified</th>
                 <th className="px-3 py-2 font-medium">Joined</th>
               </tr>
             </thead>
             <tbody>
               {loadingUsers ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]">
+                  <td colSpan={6} className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]">
                     Loading users…
                   </td>
                 </tr>
               ) : !usersData?.users.length ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]">
+                  <td colSpan={6} className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]">
                     No users found.
                   </td>
                 </tr>
@@ -193,6 +195,7 @@ export default function AdminPage() {
                   >
                     <td className="px-3 py-3 font-medium">{user.name || "—"}</td>
                     <td className="px-3 py-3 text-[color:var(--muted-foreground)]">{user.email}</td>
+                    <td className="px-3 py-3">{user.authProvider}</td>
                     <td className="px-3 py-3">{user.estimateCount}</td>
                     <td className="px-3 py-3">
                       <span
@@ -202,7 +205,7 @@ export default function AdminPage() {
                             : "bg-yellow-500/10 text-yellow-500"
                         }`}
                       >
-                        {user.emailVerified ? "Verified" : "Pending"}
+                        {user.emailVerified ? "Verified" : "Not Verified"}
                       </span>
                     </td>
                     <td className="px-3 py-3 text-[color:var(--muted-foreground)]">

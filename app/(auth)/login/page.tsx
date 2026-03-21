@@ -24,6 +24,8 @@ export default function LoginPage() {
 function Login() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const claudeUserFont = "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif";
+  const claudeAssistantFont = "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif";
 
   // ─── Form State ───────────────────────────────────────────
   const [email, setEmail] = useState("");
@@ -92,7 +94,13 @@ function Login() {
     // - `h-screen` : prend toute la hauteur du viewport
     // - `bg-[url('/background2.jpg')]` : image de fond principale
     // - `overflow-hidden` : évite les barres de scroll causées par effets visuels
-    <div className="relative flex h-screen w-full items-center justify-center bg-black p-4 overflow-hidden">
+    <div
+      className="relative flex min-h-[100svh] w-full items-start justify-center overflow-x-hidden overflow-y-auto bg-black p-4 md:min-h-screen md:items-center"
+      style={{
+        fontFamily: claudeUserFont,
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+      }}
+    >
       <div className="absolute inset-0 pointer-events-none">
         <LightRays
           raysOrigin="top-center"
@@ -121,8 +129,8 @@ function Login() {
         - h-[85vh] + min-h-[600px] : équilibre entre densité visuelle et lisibilité
         - rounded-[40px] + shadow-2xl : style "glass card" premium
       */}
-      <div className="relative z-10 flex w-full max-w-5xl h-[85vh] min-h-[600px] overflow-hidden rounded-[40px] shadow-2xl bg-[color:var(--card)] font-sans">
-        <div className="absolute inset-0 pointer-events-none">
+      <div className="relative z-10 flex w-full max-w-5xl min-h-0 overflow-hidden rounded-[40px] bg-[color:var(--card)] font-sans shadow-2xl md:h-[85vh] md:min-h-[600px]">
+        <div className="pointer-events-none absolute inset-0 hidden md:block">
           <LightRays
             raysOrigin="top-center"
             raysColor="#ffffff"
@@ -138,7 +146,7 @@ function Login() {
             distortion={0}
           />
         </div>
-        
+
         {/* SECTION GAUCHE */}
         {/*
           SECTION DÉCORATIVE / BRANDING
@@ -157,10 +165,10 @@ function Login() {
 
           {/* Message marketing principal */}
           <div className="relative z-10 mb-4">
-            <h1 className="text-5xl font-serif italic leading-tight mb-4 [.theme-light_&]:text-black [.theme-dark_&]:text-white">
+            <h1 className="text-5xl font-semibold leading-tight mb-4 [.theme-light_&]:text-black [.theme-dark_&]:text-white">
               Smart<br />Damage<br />Estimation
             </h1>
-            <p className="text-sm font-light leading-relaxed max-w-xs [.theme-light_&]:text-black/80 [.theme-dark_&]:text-white/80">
+            <p style={{ fontFamily: claudeAssistantFont }} className="text-sm font-light leading-relaxed max-w-xs [.theme-light_&]:text-black/80 [.theme-dark_&]:text-white/80">
               Upload detailed car photos and let our AI generate accurate repair costs in seconds.
             </p>
             
@@ -183,7 +191,7 @@ function Login() {
           SECTION FONCTIONNELLE : formulaire + actions de connexion.
           C'est la partie qui doit rester lisible et prioritaire à tout écran.
         */}
-        <div className="relative flex w-full md:w-1/2 flex-col h-full px-8 md:px-12 py-6 justify-between bg-[color:var(--card)]">
+        <div className="relative flex h-full w-full flex-col justify-between overflow-y-auto bg-[color:var(--card)] px-8 py-6 md:w-1/2 md:px-12">
           
           {/* SÉLECTEUR DE COULEUR - Coin supérieur droit de la section */}
           {/*
@@ -202,10 +210,10 @@ function Login() {
           {/* Bloc formulaire */}
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-center w-full max-w-[380px] mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-serif text-primary italic mb-2">
+              <h1 className="text-4xl font-semibold text-primary mb-2">
                 Welcome Back
               </h1>
-              <p className="text-xs text-[color:var(--muted-foreground)]">
+              <p style={{ fontFamily: claudeAssistantFont }} className="text-xs text-[color:var(--muted-foreground)]">
                 Enter your email and password to access your account
               </p>
             </div>
@@ -292,7 +300,7 @@ function Login() {
                   <input type="checkbox" className="rounded border-gray-300 accent-primary" /> Remember me
                 </label>
                 <Link href="/forgot-password" title="Forgot Password" className="text-xs font-semibold text-[color:var(--foreground)] hover:underline">
-                  Forgot Password
+                  Forgot Password?
                 </Link>
               </div>
 

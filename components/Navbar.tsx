@@ -2,12 +2,13 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { UserIcon, ClockIcon } from "@/lib/icons";
+import { forceClientSignOut } from "@/lib/client-signout";
 
 export default function Navbar() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function Navbar() {
   const profileRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/login" });
+    await forceClientSignOut("/login");
   };
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
@@ -86,7 +87,12 @@ export default function Navbar() {
                 {/* Sign out */}
                 <div className="border-t border-[color:var(--border)] py-1.5">
                   <button
-                    onClick={() => { setProfileOpen(false); handleSignOut(); }}
+                    onMouseDown={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setProfileOpen(false);
+                      await handleSignOut();
+                    }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-[18px] w-[18px]">

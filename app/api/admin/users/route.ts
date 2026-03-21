@@ -46,6 +46,11 @@ export async function GET(req: Request) {
           emailVerified: true,
           image: true,
           createdAt: true,
+          accounts: {
+            select: {
+              provider: true,
+            },
+          },
           _count: { select: { estimates: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -57,6 +62,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       users: users.map((u) => ({
+        authProvider: u.accounts.some((a) => a.provider === "google") ? "Google" : "Credentials",
         id: u.id,
         name: u.name,
         email: u.email,

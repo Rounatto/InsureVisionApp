@@ -181,3 +181,46 @@ Cascade delete is configured from `User` to child records through relations.
 - `/api/auth/forgot-password` is intentionally enumeration-safe.
 - `/api/estimate` currently stores real uploaded photos but mock AI estimate data.
 - `SUPABASE_SERVICE_ROLE_KEY` must remain server-only.
+
+---
+
+## 7) AI integration handoff (ready mode)
+
+`/api/estimate` now calls a provider boundary in `lib/estimate/provider.ts`.
+
+- `AI_PROVIDER=mock` (default): existing mock behavior.
+- `AI_PROVIDER=http`: calls external AI endpoint and falls back to mock if the call fails.
+
+### Env vars for HTTP mode
+
+- `AI_PROVIDER=http`
+- `AI_ENDPOINT=https://...` (AI team's inference endpoint)
+- `AI_API_KEY=...` (optional bearer token)
+- `AI_TIMEOUT_MS=15000` (optional, defaults to 15000)
+
+### Contract the AI team should implement
+
+- Endpoint: `POST` JSON
+- Request body:
+  - `estimateId: string`
+  - `userId: string`
+  - `photoUrls: string[]`
+  - `photoCount: number`
+- Response body:
+  - `parts: { name: string; cost: number; severity: string }[]`
+  - `summary: string`
+
+### What the AI team should do
+
+1. Expose the above endpoint and auth scheme.
+2. Ensure response matches the exact JSON contract.
+3. Return at least one part with numeric `cost`.
+4. Share endpoint URL, key format, and expected timeout.
+
+### What you should do to link their work
+
+1. Set the env vars in your runtime (`AI_PROVIDER=http`, `AI_ENDPOINT`, optional `AI_API_KEY`).
+2. Keep `/api/estimate` unchanged; it already routes through the provider.
+3. Test with one real estimate submission.
+4. If provider fails, app still returns a mock estimate (safe fallback) while logs show provider errors.
+

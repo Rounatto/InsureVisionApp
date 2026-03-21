@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
+import { useClickOutside } from "@/hooks/useClickOutside";
+import { forceClientSignOut } from "@/lib/client-signout";
 
 export default function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
+  const languageRef = useRef<HTMLDivElement>(null);
 
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -14,6 +16,18 @@ export default function SettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [downloadingData, setDownloadingData] = useState(false);
   const [downloadError, setDownloadError] = useState("");
+  const [languageOpen, setLanguageOpen] = useState(false);
+
+  const languageOptions: { value: "en" | "fr" | "es" | "de"; label: string }[] = [
+    { value: "en", label: "English" },
+    { value: "fr", label: "Français" },
+    { value: "es", label: "Español" },
+    { value: "de", label: "Deutsch" },
+  ];
+
+  const selectedLanguage = languageOptions.find((opt) => opt.value === language)?.label || "English";
+
+  useClickOutside(languageRef, () => setLanguageOpen(false));
 
   const handleDownloadData = async () => {
     setDownloadingData(true);
@@ -59,7 +73,7 @@ export default function SettingsPage() {
         return;
       }
 
-      await signOut({ callbackUrl: "/login" });
+      await forceClientSignOut("/login");
     } catch {
       setDeleteError(NETWORK_ERROR_MESSAGE);
       setDeleting(false);
@@ -90,16 +104,71 @@ export default function SettingsPage() {
                 <span className="text-sm font-medium text-[color:var(--foreground)] mb-2 block">
                   {t("displayLanguage")}
                 </span>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as "en" | "fr" | "es" | "de")}
-                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2.5 text-sm text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--foreground)]/20"
-                >
-                  <option value="en">English</option>
-                  <option value="fr">Français</option>
-                  <option value="es">Español</option>
-                  <option value="de">Deutsch</option>
-                </select>
+                <div className="relative" ref={languageRef}>
+                  <button
+                    type="button"
+                    onClick={() => setLanguageOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2.5 text-left text-sm text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--foreground)]/20"
+                    aria-haspopup="listbox"
+                    aria-expanded={languageOpen}
+                  >
+                    <span>{selectedLanguage}</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className={`h-4 w-4 text-[color:var(--muted-foreground)] transition-transform ${languageOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+
+                  {languageOpen && (
+                    <div className="absolute z-20 mt-2 w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-1 shadow-lg">
+                      <ul role="listbox" className="space-y-1">
+                        {languageOptions.map((option) => {
+                          const isSelected = language === option.value;
+                          return (
+                            <li key={option.value}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLanguage(option.value);
+                                  setLanguageOpen(false);
+                                }}
+                                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+                                  isSelected
+                                    ? "bg-[color:var(--foreground)] text-[color:var(--background)]"
+                                    : "text-[color:var(--foreground)] hover:bg-[color:var(--muted)]"
+                                }`}
+                              >
+                                <span>{option.label}</span>
+                                {isSelected && (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    className="h-4 w-4"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.704 5.29a1 1 0 010 1.414l-7.2 7.2a1 1 0 01-1.414 0l-3.2-3.2a1 1 0 111.414-1.414l2.493 2.493 6.493-6.493a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </label>
             </div>
           </div>

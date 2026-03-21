@@ -71,6 +71,23 @@ export const { handlers, auth } = NextAuth({
       },
     }),
   ],
+  events: {
+    async linkAccount({ user, account }) {
+      // Treat Google OAuth linking as verified ownership of the email.
+      if (!isDatabaseConfigured || !db) return;
+      if (account?.provider !== "google") return;
+      if (!user?.id) return;
+
+      try {
+        await db.user.update({
+          where: { id: user.id },
+          data: { emailVerified: new Date() },
+        });
+      } catch (error) {
+        console.warn("OAuth linkAccount emailVerified update skipped:", error);
+      }
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
 

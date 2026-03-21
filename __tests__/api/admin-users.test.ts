@@ -46,6 +46,7 @@ const mockUser = {
   emailVerified: new Date(),
   image: null,
   createdAt: new Date(),
+  accounts: [{ provider: "google" }],
   _count: { estimates: 3 },
 };
 
@@ -79,6 +80,7 @@ describe("GET /api/admin/users", () => {
 
     expect(data.users).toHaveLength(1);
     expect(data.users[0].name).toBe("Alice");
+    expect(data.users[0].authProvider).toBe("Google");
     expect(data.users[0].estimateCount).toBe(3);
     expect(data.total).toBe(1);
     expect(data.page).toBe(1);
