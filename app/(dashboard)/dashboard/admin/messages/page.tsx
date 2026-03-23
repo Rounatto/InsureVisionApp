@@ -87,9 +87,12 @@ export default function AdminMessagesPage() {
       setError(null);
 
       const res = await fetch(`/api/admin/messages/${conversationId}?page=1`);
-      if (!res.ok) throw new Error("Failed to fetch conversation");
-
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to fetch conversation");
+      }
+
       const messagesStr = JSON.stringify(data.conversation.messages || []);
 
       // Always update to ensure messages load properly
