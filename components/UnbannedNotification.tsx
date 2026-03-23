@@ -10,10 +10,11 @@ export default function UnbannedNotification() {
   useEffect(() => {
     if (!session?.user?.id) return;
 
+    const storageKey = `ban-status-${session.user.id}`;
+
     const checkUnbannedStatus = async () => {
       try {
         const res = await fetch("/api/messages/conversation");
-        const storageKey = `ban-status-${session.user.id}`;
 
         // If user is CURRENTLY BANNED, never show anything
         if (res.status === 403) {
@@ -45,7 +46,13 @@ export default function UnbannedNotification() {
       }
     };
 
+    // Check immediately on mount
     checkUnbannedStatus();
+
+    // Then poll silently every 4 seconds
+    const interval = setInterval(checkUnbannedStatus, 4000);
+
+    return () => clearInterval(interval);
   }, [session?.user?.id]);
 
   if (!showNotification) return null;
