@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { MessageIcon } from "@/lib/icons";
 
@@ -21,30 +21,10 @@ export default function BannedNotification() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [previousLength, setPreviousLength] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const lastFetchRef = useRef<string>("");
-
-  // Check if user is at bottom AFTER rendering
-  const isAtBottom = useCallback(() => {
-    if (!messagesContainerRef.current) return false;
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    // Consider "at bottom" if within 100px of bottom
-    return scrollHeight - (scrollTop + clientHeight) < 100;
-  }, []);
-
-  // Auto-scroll ONLY if new message arrived and user is at bottom
-  useEffect(() => {
-    if (messages.length > previousLength && isAtBottom()) {
-      // New message arrived and user is at bottom - scroll
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 0);
-    }
-    setPreviousLength(messages.length);
-  }, [messages, previousLength, isAtBottom]);
 
   // Check if user is banned on mount
   useEffect(() => {
@@ -57,7 +37,6 @@ export default function BannedNotification() {
           setIsBanned(true);
           const data = await res.json();
           setMessages(data.messages || []);
-          setPreviousLength(data.messages?.length || 0);
           lastFetchRef.current = JSON.stringify(data.messages);
         }
       } catch (err) {

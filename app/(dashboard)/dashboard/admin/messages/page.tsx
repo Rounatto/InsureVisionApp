@@ -42,7 +42,6 @@ export default function AdminMessagesPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationPreview | null>(null);
-  const [previousMessageCount, setPreviousMessageCount] = useState(0);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [messageInput, setMessageInput] = useState("");
@@ -55,25 +54,6 @@ export default function AdminMessagesPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const lastConversationsRef = useRef<string>("");
   const lastMessagesRef = useRef<string>("");
-
-  // Check if user is at bottom AFTER rendering
-  const isAtBottom = useCallback(() => {
-    if (!messagesContainerRef.current) return false;
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    // Consider "at bottom" if within 100px of bottom
-    return scrollHeight - (scrollTop + clientHeight) < 100;
-  }, []);
-
-  // Auto-scroll ONLY if new message arrived and user is at bottom
-  useEffect(() => {
-    if (threadMessages.length > previousMessageCount && isAtBottom()) {
-      // New message arrived and user is at bottom - scroll
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 0);
-    }
-    setPreviousMessageCount(threadMessages.length);
-  }, [threadMessages, previousMessageCount, isAtBottom]);
 
   // Fetch conversations list - silent, no visible loading
   const fetchConversations = useCallback(async (showLoading = false) => {
@@ -356,135 +336,117 @@ export default function AdminMessagesPage() {
 
         {/* Thread View */}
         {viewMode === "thread" && selectedConversation && (
-          <div className="flex flex-col h-full max-w-2xl mx-auto w-full">
-            {/* Header */}
-            <div className="p-6 border-b border-[color:var(--border)] flex items-center justify-between">
-              <div>
-                <button
-                  onClick={handleBackToList}
-                  className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-2 transition-colors"
-                >
-                  ← Back
-                </button>
-                <h1 className="text-2xl font-bold text-[color:var(--foreground)]">
-                  {selectedConversation.user.name || selectedConversation.user.email}
-                </h1>
-                <p className="text-sm text-[color:var(--muted-foreground)] mt-1">
-                  {selectedConversation.user.email}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span className="inline-block px-3 py-1 bg-red-500/10 text-red-600 text-xs font-medium rounded-full border border-red-500/20">
-                  Banned
-                </span>
-                <button
-                  onClick={handleUnbanUser}
-                  disabled={unbanning}
-                  className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                >
-                  {unbanning ? (
-                    <span className="flex items-center gap-1">
-                      <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse"></span>
-                      Processing...
-                    </span>
-                  ) : (
-                    "Unban User"
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Success message */}
-            {successMsg && (
-              <div className="p-4 bg-green-500/10 border border-green-500/20 text-green-700 rounded-lg m-4 animate-slideDown flex items-start gap-3">
-                <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
+          <div className="flex flex-col h-full max-w-4xl mx-auto w-full px-6 mb-6">
+            <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-lg overflow-hidden flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--border)] bg-[color:var(--muted)]/30">
                 <div>
-                  <p className="font-medium text-green-900">{successMsg}</p>
-                  <p className="text-xs text-green-700 mt-1">Redirecting...</p>
-                </div>
-              </div>
-            )}
-
-            {/* Error message */}
-            {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg m-4 animate-slideDown">
-                {error}
-              </div>
-            )}
-
-            {/* Messages container */}
-            <div
-              ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-5 space-y-3 bg-[color:var(--background)]"
-            >
-              {threadMessages.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-center text-[color:var(--muted-foreground)]">
-                    No messages yet. Start the conversation!
+                  <h3 className="text-base font-bold text-[color:var(--foreground)]">
+                    {selectedConversation.user.name || selectedConversation.user.email}
+                  </h3>
+                  <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">
+                    {selectedConversation.user.email}
                   </p>
                 </div>
-              ) : (
-                threadMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${
-                      msg.senderType === "ADMIN" ? "justify-end" : "justify-start"
-                    } animate-fadeIn`}
+                <div className="flex items-center gap-3">
+                  <span className="inline-block px-3 py-1 bg-red-500/10 text-red-600 text-xs font-medium rounded-full border border-red-500/20">
+                    Banned
+                  </span>
+                  <button
+                    onClick={handleUnbanUser}
+                    disabled={unbanning}
+                    className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   >
-                    <div
-                      className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm font-normal break-words ${
-                        msg.senderType === "ADMIN"
-                          ? "bg-blue-600 text-white"
-                          : "bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]"
-                      }`}
-                    >
-                      <p>{msg.content}</p>
-                      <p
-                        className={`text-xs mt-1.5 ${
-                          msg.senderType === "ADMIN"
-                            ? "text-blue-100"
-                            : "text-[color:var(--muted-foreground)]"
-                        }`}
-                      >
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
+                    {unbanning ? (
+                      <span className="flex items-center gap-1">
+                        <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse"></span>
+                        Processing...
+                      </span>
+                    ) : (
+                      "Unban User"
+                    )}
+                  </button>
+                  <button
+                    onClick={handleBackToList}
+                    className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[color:var(--muted)] transition-colors text-[color:var(--muted-foreground)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Success message */}
+              {successMsg && (
+                <div className="p-4 bg-green-500/10 border-b border-green-500/20 text-green-700 animate-slideDown flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="font-medium text-green-900">{successMsg}</p>
+                    <p className="text-xs text-green-700 mt-1">Redirecting...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Error message */}
+              {error && (
+                <div className="p-4 bg-red-500/10 border-b border-red-500/20 text-red-600 animate-slideDown">
+                  {error}
+                </div>
+              )}
+
+              {/* Messages */}
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto max-h-96 px-5 py-4 space-y-3 bg-[color:var(--background)]">
+                {threadMessages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <p className="text-sm text-[color:var(--muted-foreground)]">No messages yet</p>
+                      <p className="text-xs text-[color:var(--muted-foreground)] mt-1">Start the conversation!</p>
                     </div>
                   </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                ) : (
+                  threadMessages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.senderType === "ADMIN" ? "justify-end" : "justify-start"} animate-fadeIn`}>
+                      <div
+                        className={`max-w-xs px-4 py-2 rounded-2xl text-sm break-words ${
+                          msg.senderType === "ADMIN"
+                            ? "bg-blue-600 text-white"
+                            : "bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]"
+                        }`}
+                      >
+                        <p>{msg.content}</p>
+                        <p className={`text-xs mt-1.5 ${msg.senderType === "ADMIN" ? "text-blue-100" : "text-[color:var(--muted-foreground)]"}`}>
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
 
-            {/* Input form */}
-            <div className="border-t border-[color:var(--border)] px-5 py-4 bg-[color:var(--muted)]/30">
-              <form onSubmit={handleSendReply} className="flex gap-2">
-                <input
-                  type="text"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  placeholder="Type a message..."
-                  disabled={sending}
-                  className="flex-1 rounded-full border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2.5 text-sm text-[color:var(--foreground)] placeholder-[color:var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={!messageInput.trim() || sending}
-                  className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                >
-                  {sending ? (
-                    <span className="flex items-center gap-1">
-                      <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse"></span>
-                    </span>
-                  ) : (
-                    "Send"
-                  )}
-                </button>
-              </form>
+              {/* Input */}
+              <div className="border-t border-[color:var(--border)] px-5 py-4 bg-[color:var(--muted)]/30">
+                <form onSubmit={handleSendReply} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Type a message..."
+                    disabled={sending}
+                    className="flex-1 rounded-full border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2.5 text-sm text-[color:var(--foreground)] placeholder-[color:var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!messageInput.trim() || sending}
+                    className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {sending ? "..." : "Send"}
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         )}
