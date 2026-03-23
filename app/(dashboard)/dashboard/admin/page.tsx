@@ -220,9 +220,23 @@ export default function AdminPage() {
             <h1 className="mb-3 text-4xl font-bold text-[color:var(--foreground)]">
               Admin Panel
             </h1>
-            <p className="text-sm text-[color:var(--muted-foreground)]">
+            <p className="text-sm text-[color:var(--muted-foreground)] mb-4">
               Platform overview and user management.
             </p>
+            <div className="flex gap-2">
+              <Link
+                href="/dashboard/admin"
+                className="px-4 py-2 rounded-lg border border-[color:var(--border)] text-sm font-medium hover:bg-[color:var(--muted)] transition-colors"
+              >
+                Users
+              </Link>
+              <Link
+                href="/dashboard/admin/messages"
+                className="px-4 py-2 rounded-lg border border-[color:var(--border)] text-sm font-medium hover:bg-[color:var(--muted)] transition-colors"
+              >
+                Banned User Messages
+              </Link>
+            </div>
           </div>
 
           {/* ── Stats Cards ─────────────────────────────────── */}

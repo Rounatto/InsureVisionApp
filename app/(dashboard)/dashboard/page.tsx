@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { downloadEstimatePdf } from "@/lib/generatePdf";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
+import BannedNotification from "@/components/BannedNotification";
 
 const MAX_FILES = 8;
 const MAX_SIZE_MB = 10;
@@ -132,6 +133,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
+      <BannedNotification />
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-[color:var(--foreground)] mb-3">
           Damage Estimation

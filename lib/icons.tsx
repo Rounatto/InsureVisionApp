@@ -83,6 +83,14 @@ export function SettingsIcon({ className = "w-[18px] h-[18px]", ...props }: Icon
   );
 }
 
+export function MessageIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
+  return (
+    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-1.804 9-4.023V8.25m0 13.976V8.25M21 6.257V6c0-1.657-2.239-3-5-3H8c-2.761 0-5 1.343-5 3v12c0 1.657 2.239 3 5 3h14c2.761 0 5-1.343 5-3V6.257" />
+    </svg>
+  );
+}
+
 /* ── Google coloured logo ────────────────────────────────── */
 
 export function GoogleLogo({ className = "h-5 w-5" }: { className?: string }) {

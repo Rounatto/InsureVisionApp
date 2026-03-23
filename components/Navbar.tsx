@@ -7,7 +7,7 @@ import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
-import { UserIcon, ClockIcon } from "@/lib/icons";
+import { UserIcon, ClockIcon, MessageIcon } from "@/lib/icons";
 import { forceClientSignOut } from "@/lib/client-signout";
 
 export default function Navbar() {
@@ -74,6 +74,13 @@ export default function Navbar() {
                   >
                     <ClockIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
                     History
+                  </button>
+                  <button
+                    onClick={() => { setProfileOpen(false); router.push("/dashboard/messages"); }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
+                  >
+                    <MessageIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
+                    Messages
                   </button>
                   <button
                     onClick={() => { setProfileOpen(false); router.push("/dashboard/profile"); }}

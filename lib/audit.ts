@@ -16,7 +16,9 @@ export type AuditAction =
   | "ADMIN_ACCESS"
   | "ADMIN_DELETE_USER"
   | "ADMIN_BAN_USER"
-  | "ADMIN_UNBAN_USER";
+  | "ADMIN_UNBAN_USER"
+  | "BANNED_USER_MESSAGE_SENT"
+  | "ADMIN_MESSAGE_SENT";
 
 /**
  * Fire-and-forget audit logger.
