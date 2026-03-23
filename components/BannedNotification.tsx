@@ -31,10 +31,16 @@ export default function BannedNotification() {
     const checkBannedStatus = async () => {
       try {
         const res = await fetch("/api/messages/conversation");
+        const storageKey = `ban-status-${session?.user?.id}`;
+
         if (res.status === 403) {
+          // 403 = User is NOT banned
           setIsBanned(false);
+          sessionStorage.setItem(storageKey, "unbanned");
         } else if (res.ok) {
+          // 200 = User IS banned
           setIsBanned(true);
+          sessionStorage.setItem(storageKey, "banned");
           const data = await res.json();
           setMessages(data.messages || []);
           lastFetchRef.current = JSON.stringify(data.messages);
@@ -53,14 +59,18 @@ export default function BannedNotification() {
   useEffect(() => {
     if (!session?.user?.id) return;
 
+    const storageKey = `ban-status-${session?.user?.id}`;
+
     const checkBanStatusInRealTime = async () => {
       try {
         const res = await fetch("/api/messages/conversation");
         // If user gets 403, they're no longer banned - close this notification
         if (res.status === 403) {
           setIsBanned(false);
+          sessionStorage.setItem(storageKey, "unbanned");
         } else if (res.ok) {
           setIsBanned(true);
+          sessionStorage.setItem(storageKey, "banned");
         }
       } catch (err) {
         // Silently fail

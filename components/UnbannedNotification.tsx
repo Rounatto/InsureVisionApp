@@ -16,18 +16,11 @@ export default function UnbannedNotification() {
       try {
         const res = await fetch("/api/messages/conversation");
 
-        // If user is CURRENTLY BANNED, never show anything
+        // If 403 (Forbidden), user is NOT banned - can't access banned conversations
         if (res.status === 403) {
-          sessionStorage.setItem(storageKey, "banned");
-          setShowNotification(false);
-          return; // IMPORTANT: Exit early, don't check previous status
-        }
-
-        // User is NOT banned
-        if (res.ok) {
           const previousStatus = sessionStorage.getItem(storageKey);
 
-          // ONLY show if they were previously banned and now they're not
+          // ONLY show celebration if they were previously banned
           if (previousStatus === "banned") {
             setShowNotification(true);
           } else {
@@ -36,6 +29,13 @@ export default function UnbannedNotification() {
 
           // Update status to unbanned
           sessionStorage.setItem(storageKey, "unbanned");
+          return;
+        }
+
+        // If 200 OK, user IS banned - can access their conversation
+        if (res.ok) {
+          sessionStorage.setItem(storageKey, "banned");
+          setShowNotification(false);
         } else {
           // Any other status, don't show
           setShowNotification(false);
