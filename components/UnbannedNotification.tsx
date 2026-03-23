@@ -49,8 +49,8 @@ export default function UnbannedNotification() {
     // Check immediately on mount
     checkUnbannedStatus();
 
-    // Then poll silently every 4 seconds
-    const interval = setInterval(checkUnbannedStatus, 4000);
+    // Then poll silently every 2 seconds
+    const interval = setInterval(checkUnbannedStatus, 2000);
 
     return () => clearInterval(interval);
   }, [session?.user?.id]);

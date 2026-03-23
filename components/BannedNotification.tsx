@@ -49,6 +49,29 @@ export default function BannedNotification() {
     }
   }, [session?.user?.id]);
 
+  // Silently poll ban status every 2 seconds - close notification if unbanned
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const checkBanStatusInRealTime = async () => {
+      try {
+        const res = await fetch("/api/messages/conversation");
+        // If user gets 403, they're no longer banned - close this notification
+        if (res.status === 403) {
+          setIsBanned(false);
+        } else if (res.ok) {
+          setIsBanned(true);
+        }
+      } catch (err) {
+        // Silently fail
+      }
+    };
+
+    // Poll every 2 seconds to detect unbanning in real time
+    const interval = setInterval(checkBanStatusInRealTime, 2000);
+    return () => clearInterval(interval);
+  }, [session?.user?.id]);
+
   // Silently poll for new admin messages in background
   useEffect(() => {
     if (!showChat || !isBanned) return;
