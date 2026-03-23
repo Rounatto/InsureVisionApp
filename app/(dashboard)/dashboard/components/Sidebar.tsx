@@ -1,16 +1,23 @@
-"use client";
+'use client';
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
-import Link from "next/link";
-import InsureVisionLogo from "@/components/InsureVisionLogo";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
-import UserAvatar from "@/components/UserAvatar";
-import { useClickOutside } from "@/hooks/useClickOutside";
-import { HomeIcon, ClockIcon, UserIcon, SettingsIcon, ShieldIcon } from "@/lib/icons";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { forceClientSignOut } from "@/lib/client-signout";
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { ChevronDown, LogOut, X } from 'lucide-react';
+import InsureVisionLogo from '@/components/InsureVisionLogo';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
+import UserAvatar from '@/components/UserAvatar';
+import { useClickOutside } from '@/hooks/useClickOutside';
+import {
+  HomeIcon,
+  ClockIcon,
+  UserIcon,
+  SettingsIcon,
+  ShieldIcon,
+} from '@/lib/icons';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { forceClientSignOut } from '@/lib/client-signout';
 
 interface SidebarProps {
   open: boolean;
@@ -26,18 +33,23 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const canAccessAdmin = session?.user?.isAdmin ?? false;
 
   const navItems = [
-    { href: "/dashboard", label: t("home"), icon: HomeIcon },
-    { href: "/dashboard/history", label: t("history"), icon: ClockIcon },
-    ...(canAccessAdmin ? [{ href: "/dashboard/admin", label: t("admin"), icon: ShieldIcon }] : []),
-    { href: "/dashboard/profile", label: t("profile"), icon: UserIcon },
-    { href: "/dashboard/settings", label: t("settings"), icon: SettingsIcon },
+    { href: '/dashboard', label: t('home'), icon: HomeIcon },
+    { href: '/dashboard/history', label: t('history'), icon: ClockIcon },
+    ...(canAccessAdmin
+      ? [{ href: '/dashboard/admin', label: t('admin'), icon: ShieldIcon }]
+      : []),
+    { href: '/dashboard/profile', label: t('profile'), icon: UserIcon },
+    { href: '/dashboard/settings', label: t('settings'), icon: SettingsIcon },
   ];
 
   const handleSignOut = async () => {
-    await forceClientSignOut("/login");
+    await forceClientSignOut('/login');
   };
 
-  useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
+  useClickOutside(
+    profileRef,
+    useCallback(() => setProfileOpen(false), [])
+  );
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -47,12 +59,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, [open]);
 
@@ -76,8 +88,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 href={item.href}
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[color:var(--foreground)] text-[color:var(--background)]"
-                    : "text-[color:var(--foreground)] hover:bg-[color:var(--muted)]"
+                    ? 'bg-[color:var(--foreground)] text-[color:var(--background)]'
+                    : 'text-[color:var(--foreground)] hover:bg-[color:var(--muted)]'
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -102,12 +114,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <UserAvatar
               name={session?.user?.name}
               image={session?.user?.image}
-              loading={status === "loading"}
+              loading={status === 'loading'}
               size="h-9 w-9"
               textSize="text-xs"
             />
             <div className="flex-1 min-w-0 text-left">
-              {status === "loading" ? (
+              {status === 'loading' ? (
                 <>
                   <div className="h-4 w-24 rounded bg-[color:var(--muted)] animate-pulse mb-1" />
                   <div className="h-3 w-32 rounded bg-[color:var(--muted)] animate-pulse" />
@@ -115,26 +127,19 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               ) : (
                 <>
                   <p className="text-sm font-semibold text-[color:var(--foreground)] truncate">
-                    {session?.user?.name || "User"}
+                    {session?.user?.name || 'User'}
                   </p>
                   <p className="text-xs text-[color:var(--muted-foreground)] truncate">
-                    {session?.user?.email || ""}
+                    {session?.user?.email || ''}
                   </p>
                 </>
               )}
             </div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
+            <ChevronDown
               className={`h-4 w-4 text-[color:var(--muted-foreground)] transition-transform ${
-                profileOpen ? "rotate-180" : ""
+                profileOpen ? 'rotate-180' : ''
               }`}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-            </svg>
+            />
           </button>
 
           {profileOpen && (
@@ -148,21 +153,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
-                  />
-                </svg>
-                {t("signOut")}
+                <LogOut className="h-5 w-5" />
+                {t('signOut')}
               </button>
             </div>
           )}
@@ -182,7 +174,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       {/* Backdrop */}
       <div
         className={`md:hidden fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
-          open ? "opacity-100" : "opacity-0 pointer-events-none"
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
         aria-hidden="true"
@@ -191,7 +183,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       {/* Drawer */}
       <aside
         className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-[color:var(--border)] bg-[color:var(--card)] shadow-2xl transition-transform duration-300 ease-in-out ${
-          open ? "translate-x-0" : "-translate-x-full"
+          open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Close button inside drawer */}
@@ -200,9 +192,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           className="absolute top-4 right-3 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[color:var(--muted)] transition-colors z-10"
           aria-label="Close sidebar"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5 text-[color:var(--foreground)]">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="h-5 w-5 text-[color:var(--foreground)]" />
         </button>
         {sidebarContent}
       </aside>

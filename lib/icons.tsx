@@ -1,105 +1,102 @@
-/**
- * Shared SVG icon components.
- *
- * Every icon accepts an optional `className` for sizing / colour overrides.
- * The default size is 18 × 18 px (matches auth inputs).
- */
+import type { LucideProps } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  User,
+  Shield,
+  CircleCheck,
+  Clock3,
+  House,
+  Settings,
+  MessageSquare,
+} from 'lucide-react';
 
-import type { SVGProps } from "react";
+type IconProps = LucideProps;
 
-type IconProps = SVGProps<SVGSVGElement>;
-
-const defaults: IconProps = {
-  xmlns: "http://www.w3.org/2000/svg",
-  fill: "none",
-  strokeWidth: 1.5,
-  stroke: "currentColor",
-};
-
-/* ── Hero-style outline icons ────────────────────────────── */
-
-export function EmailIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-    </svg>
-  );
+export function EmailIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <Mail className={className} {...props} />;
 }
 
-export function LockIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-    </svg>
-  );
+export function LockIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <Lock className={className} {...props} />;
 }
 
-export function UserIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-    </svg>
-  );
+export function UserIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <User className={className} {...props} />;
 }
 
-export function ShieldIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-    </svg>
-  );
+export function ShieldIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <Shield className={className} {...props} />;
 }
 
-export function CheckCircleIcon({ className = "w-8 h-8", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
+export function CheckCircleIcon({
+  className = 'w-8 h-8',
+  ...props
+}: IconProps) {
+  return <CircleCheck className={className} {...props} />;
 }
 
-export function ClockIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
+export function ClockIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <Clock3 className={className} {...props} />;
 }
 
-export function HomeIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-    </svg>
-  );
+export function HomeIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <House className={className} {...props} />;
 }
 
-export function SettingsIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
+export function SettingsIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <Settings className={className} {...props} />;
 }
 
-export function MessageIcon({ className = "w-[18px] h-[18px]", ...props }: IconProps) {
-  return (
-    <svg {...defaults} viewBox="0 0 24 24" className={className} {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-1.804 9-4.023V8.25m0 13.976V8.25M21 6.257V6c0-1.657-2.239-3-5-3H8c-2.761 0-5 1.343-5 3v12c0 1.657 2.239 3 5 3h14c2.761 0 5-1.343 5-3V6.257" />
-    </svg>
-  );
+export function MessageIcon({
+  className = 'w-[18px] h-[18px]',
+  ...props
+}: IconProps) {
+  return <MessageSquare className={className} {...props} />;
 }
 
 /* ── Google coloured logo ────────────────────────────────── */
 
-export function GoogleLogo({ className = "h-5 w-5" }: { className?: string }) {
+export function GoogleLogo({ className = 'h-5 w-5' }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={className}>
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z" />
-      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z" />
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z" />
+      <path
+        fill="#FFC107"
+        d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"
+      />
     </svg>
   );
 }
