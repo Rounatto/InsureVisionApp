@@ -215,7 +215,7 @@ export default function BannedNotification() {
                 Admin Support
               </h3>
               <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">
-                kmrzed59@gmail.com
+                Available to assist
               </p>
             </div>
             <button

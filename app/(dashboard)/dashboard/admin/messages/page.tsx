@@ -412,17 +412,24 @@ export default function AdminMessagesPage() {
                 ) : (
                   threadMessages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.senderType === "ADMIN" ? "justify-end" : "justify-start"} animate-fadeIn`}>
-                      <div
-                        className={`max-w-xs px-4 py-2 rounded-2xl text-sm break-words ${
-                          msg.senderType === "ADMIN"
-                            ? "bg-blue-600 text-white"
-                            : "bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]"
-                        }`}
-                      >
-                        <p>{msg.content}</p>
-                        <p className={`text-xs mt-1.5 ${msg.senderType === "ADMIN" ? "text-blue-100" : "text-[color:var(--muted-foreground)]"}`}>
-                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </p>
+                      <div className="flex flex-col gap-1">
+                        {msg.senderType === "ADMIN" && (
+                          <div className="text-xs text-blue-600 text-right pr-2">
+                            {msg.senderEmail === session?.user?.email ? "You" : msg.senderEmail}
+                          </div>
+                        )}
+                        <div
+                          className={`max-w-xs px-4 py-2 rounded-2xl text-sm break-words ${
+                            msg.senderType === "ADMIN"
+                              ? "bg-blue-600 text-white"
+                              : "bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]"
+                          }`}
+                        >
+                          <p>{msg.content}</p>
+                          <p className={`text-xs mt-1.5 ${msg.senderType === "ADMIN" ? "text-blue-100" : "text-[color:var(--muted-foreground)]"}`}>
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))
