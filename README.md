@@ -91,14 +91,14 @@ AI variables:
 
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
 # Generate Prisma client & push schema
-pnpm prisma generate
-pnpm prisma db push
+npx prisma generate
+npx prisma db push
 
 # Start development server
-pnpm dev
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
@@ -119,12 +119,12 @@ prisma/            Schema & migrations
 
 ## Scripts
 
-| Command      | Description                               |
-| ------------ | ----------------------------------------- |
-| `pnpm dev`   | Start dev server (Turbopack)              |
-| `pnpm build` | Generate Prisma client & production build |
-| `pnpm start` | Start production server                   |
-| `pnpm lint`  | Run ESLint                                |
+| Command         | Description                               |
+| --------------- | ----------------------------------------- |
+| `npm run dev`   | Start dev server (Turbopack)              |
+| `npm run build` | Generate Prisma client & production build |
+| `npm run start` | Start production server                   |
+| `npm run lint`  | Run ESLint                                |
 
 ## License
 
