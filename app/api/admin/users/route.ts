@@ -261,6 +261,16 @@ export async function PATCH(req: Request) {
       await db.session.deleteMany({ where: { userId } });
     }
 
+    // Delete all messages and conversation if unbanning
+    if (action === 'unban') {
+      await db.message.deleteMany({
+        where: {
+          conversation: { bannedUserId: userId },
+        },
+      });
+      await db.conversation.deleteMany({ where: { bannedUserId: userId } });
+    }
+
     return NextResponse.json(
       {
         success: true,

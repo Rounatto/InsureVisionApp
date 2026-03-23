@@ -120,34 +120,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleActionChange = async (userId: string, action: string, isBanned: boolean) => {
-    if (action === '-') return;
-
-    let confirmed = true;
-    let actionName = '';
-
-    if (action === 'ban') {
-      actionName = 'ban this user';
-      confirmed = window.confirm(`Are you sure you want to ${actionName}?`);
-    } else if (action === 'unban') {
-      actionName = 'unban this user';
-      confirmed = window.confirm(`Are you sure you want to ${actionName}?`);
-    } else if (action === 'delete') {
-      actionName = 'delete this user permanently';
-      confirmed = window.confirm(
-        `Are you sure you want to ${actionName}? This action cannot be undone.`
-      );
-    }
-
-    if (!confirmed) return;
-
-    if (action === 'ban' || action === 'unban') {
-      await handleBanUser(userId, isBanned);
-    } else if (action === 'delete') {
-      await handleDeleteUser(userId);
-    }
-  };
-
   const handleBanUser = async (userId: string, currentlyBanned: boolean) => {
     const action = currentlyBanned ? 'unban' : 'ban';
 
@@ -220,9 +192,17 @@ export default function AdminPage() {
             <h1 className="mb-3 text-4xl font-bold text-[color:var(--foreground)]">
               Admin Panel
             </h1>
-            <p className="text-sm text-[color:var(--muted-foreground)]">
+            <p className="text-sm text-[color:var(--muted-foreground)] mb-4">
               Platform overview and user management.
             </p>
+            <div className="flex gap-2">
+              <Link
+                href="/dashboard/admin/messages"
+                className="px-4 py-2 rounded-lg border border-[color:var(--border)] text-sm font-medium hover:bg-[color:var(--muted)] transition-colors"
+              >
+                Banned User Messages
+              </Link>
+            </div>
           </div>
 
           {/* ── Stats Cards ─────────────────────────────────── */}
@@ -374,26 +354,48 @@ export default function AdminPage() {
                         <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
                           {formatDate(user.createdAt)}
                         </td>
-                        <td className="px-3 py-3 space-x-1 flex flex-wrap gap-1">
+                        <td className="px-3 py-3">
                           {!user.isAdmin && (
-                            <select
-                              onChange={(e) => handleActionChange(user.id, e.target.value, user.banned)}
-                              disabled={banning === user.id || deleting === user.id}
-                              value="-"
-                              className="rounded-md border border-[color:var(--border)] bg-[color:var(--background)] px-2 py-1 text-xs font-medium text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--muted)] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <option value="-">Actions</option>
-                              {user.banned ? (
-                                <option value="unban">Unban</option>
-                              ) : (
-                                <option value="ban">Ban</option>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleBanUser(user.id, user.banned)
+                                }
+                                disabled={
+                                  banning === user.id || deleting === user.id
+                                }
+                                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                  user.banned
+                                    ? 'border-green-500/30 bg-green-500/10 text-green-600 hover:bg-green-500/15'
+                                    : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/15'
+                                }`}
+                              >
+                                {user.banned ? 'Unban' : 'Ban'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(user.id)}
+                                disabled={
+                                  banning === user.id || deleting === user.id
+                                }
+                                className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-600 transition-colors hover:bg-red-500/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Delete
+                              </button>
+
+                              {(banning === user.id ||
+                                deleting === user.id) && (
+                                <span className="text-[11px] text-[color:var(--muted-foreground)]">
+                                  Processing...
+                                </span>
                               )}
-                              <option value="delete">Delete</option>
-                            </select>
+                            </div>
                           )}
                           {user.isAdmin && (
-                            <span className="text-xs text-[color:var(--muted-foreground)]">
-                              —
+                            <span className="inline-flex rounded-full border border-[color:var(--border)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--muted-foreground)]">
+                              Protected
                             </span>
                           )}
                         </td>

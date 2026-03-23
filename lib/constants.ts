@@ -40,6 +40,12 @@ export const RL_ESTIMATE = 12;
 /** Max verify-email hits per IP per window. */
 export const RL_VERIFY_EMAIL = 10;
 
+/** Max banned user messages per session per window. */
+export const RL_BANNED_USER_MESSAGE = 10;
+
+/** Max admin messages per session per window. */
+export const RL_ADMIN_MESSAGE = 20;
+
 /* ─── Token lifetimes ────────────────────────────────────── */
 
 /** Email-verification token lifetime (24 h). */

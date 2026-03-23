@@ -24,10 +24,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts     Account[]
-  sessions     Session[]
-  estimates    Estimate[]
-  tokenVersion Int        @default(0)
+  accounts      Account[]
+  sessions      Session[]
+  estimates     Estimate[]
+  conversation  Conversation?
+  tokenVersion  Int           @default(0)
 }
 
 model Account {
@@ -106,6 +107,8 @@ enum AuditAction {
   ADMIN_DELETE_USER
   ADMIN_BAN_USER
   ADMIN_UNBAN_USER
+  BANNED_USER_MESSAGE_SENT
+  ADMIN_MESSAGE_SENT
 }
 
 model AuditLog {
@@ -143,4 +146,45 @@ model EstimatePart {
   severity   String // "High" | "Medium" | "Low"
 
   estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+}
+
+// ─── Messaging System ─────────────────────────────────────────────────────
+
+model Conversation {
+  id           String   @id @default(cuid())
+  bannedUserId String   @unique
+  user         User     @relation(fields: [bannedUserId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([bannedUserId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  senderEmail    String   // Store email for admin messages
+  senderType     String   // "USER" or "ADMIN"
+  content        String   @db.Text
+  createdAt      DateTime @default(now())
+  readByAdmins   AdminMessageRead[]
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model AdminMessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  adminEmail String   // Which admin read it
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, adminEmail])
+  @@index([messageId])
+  @@index([adminEmail])
 }
