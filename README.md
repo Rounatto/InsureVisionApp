@@ -22,34 +22,34 @@
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Auth | NextAuth v5 (beta) — Credentials + Google |
-| Database | PostgreSQL via Prisma 7 |
-| Styling | Tailwind CSS 4 |
-| PDF | jsPDF |
-| Validation | Zod |
-| Language | TypeScript |
+| Layer      | Technology                                |
+| ---------- | ----------------------------------------- |
+| Framework  | Next.js 16 (App Router, Turbopack)        |
+| Auth       | NextAuth v5 (beta) — Credentials + Google |
+| Database   | PostgreSQL via Prisma 7                   |
+| Styling    | Tailwind CSS 4                            |
+| PDF        | jsPDF                                     |
+| Validation | Zod                                       |
+| Language   | TypeScript                                |
 
 ## Ordre de lecture du projet (A → Z)
 
 Si tu veux comprendre toutes les pages et le flux complet sans te perdre, lis dans cet ordre :
 
 1. `app/layout.tsx`
-	- Comprendre la structure globale (HTML, fonts, CSS global).
+   - Comprendre la structure globale (HTML, fonts, CSS global).
 2. `app/page.tsx`
-	- Comprendre la landing page (navigation, sections marketing, CTA).
+   - Comprendre la landing page (navigation, sections marketing, CTA).
 3. `app/(auth)/register/page.tsx`
-	- Comprendre le formulaire d'inscription côté client et l'appel API.
+   - Comprendre le formulaire d'inscription côté client et l'appel API.
 4. `app/api/auth/register/route.ts`
-	- Comprendre la validation, le hash du mot de passe, la création DB.
+   - Comprendre la validation, le hash du mot de passe, la création DB.
 5. `config/auth.ts`
-	- Comprendre la configuration NextAuth (Google + Credentials, session JWT).
+   - Comprendre la configuration NextAuth (Google + Credentials, session JWT).
 6. `app/api/auth/[...nextauth]/route.ts`
-	- Comprendre comment NextAuth expose ses endpoints API.
+   - Comprendre comment NextAuth expose ses endpoints API.
 7. `app/(auth)/login/page.tsx`
-	- Comprendre l'UI login actuelle et les points d'intégration auth à finaliser.
+   - Comprendre l'UI login actuelle et les points d'intégration auth à finaliser.
 
 Fichiers support utiles après ce parcours :
 
@@ -74,20 +74,31 @@ DATABASE_URL="postgresql://user:password@host:5432/insurevision"
 AUTH_SECRET="your-random-secret"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
+AI_PROVIDER="mock"
+AI_ENDPOINT="https://your-ai-provider.example.com/estimate"
+AI_API_KEY="your-ai-provider-api-key"
+AI_TIMEOUT_MS="15000"
 ```
+
+AI variables:
+
+- `AI_PROVIDER`: `mock` (default) or `http`
+- `AI_ENDPOINT`: Required when `AI_PROVIDER=http`
+- `AI_API_KEY`: Optional bearer token used for `Authorization: Bearer <token>`
+- `AI_TIMEOUT_MS`: Request timeout in milliseconds (default: `15000`)
 
 ### Install & Run
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Generate Prisma client & push schema
-npx prisma generate
-npx prisma db push
+pnpm prisma generate
+pnpm prisma db push
 
 # Start development server
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
@@ -108,12 +119,12 @@ prisma/            Schema & migrations
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server (Turbopack) |
-| `npm run build` | Generate Prisma client & production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
+| Command      | Description                               |
+| ------------ | ----------------------------------------- |
+| `pnpm dev`   | Start dev server (Turbopack)              |
+| `pnpm build` | Generate Prisma client & production build |
+| `pnpm start` | Start production server                   |
+| `pnpm lint`  | Run ESLint                                |
 
 ## License
 
