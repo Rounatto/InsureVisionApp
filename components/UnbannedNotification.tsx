@@ -6,40 +6,31 @@ import { useSession } from "next-auth/react";
 export default function UnbannedNotification() {
   const { data: session } = useSession();
   const [showNotification, setShowNotification] = useState(false);
+  const [previousIsBanned, setPreviousIsBanned] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!session?.user?.id) return;
-
-    const storageKey = `ban-status-${session.user.id}`;
 
     const checkUnbannedStatus = async () => {
       try {
         const res = await fetch("/api/messages/conversation");
 
-        // If 403 (Forbidden), user is NOT banned - can't access banned conversations
-        if (res.status === 403) {
-          const previousStatus = sessionStorage.getItem(storageKey);
+        // Determine current ban status from response
+        // 403 = NOT banned (can't access banned user conversations)
+        // 200 = IS banned (can access their conversation)
+        const currentIsBanned = res.ok && res.status === 200;
 
-          // ONLY show celebration if they were previously banned
-          if (previousStatus === "banned") {
-            setShowNotification(true);
-          } else {
-            setShowNotification(false);
-          }
-
-          // Update status to unbanned
-          sessionStorage.setItem(storageKey, "unbanned");
-          return;
-        }
-
-        // If 200 OK, user IS banned - can access their conversation
-        if (res.ok) {
-          sessionStorage.setItem(storageKey, "banned");
-          setShowNotification(false);
-        } else {
-          // Any other status, don't show
+        // If we have a previous state and it transitioned from banned to unbanned
+        if (previousIsBanned === true && currentIsBanned === false) {
+          // User just got unbanned - show celebration!
+          setShowNotification(true);
+        } else if (currentIsBanned === true || previousIsBanned === null) {
+          // User is banned or first time checking - hide celebration
           setShowNotification(false);
         }
+
+        // Update previous state
+        setPreviousIsBanned(currentIsBanned);
       } catch (err) {
         console.error("Error checking ban status:", err);
         setShowNotification(false);
