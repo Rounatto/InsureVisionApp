@@ -22,6 +22,19 @@ export async function PATCH(req: Request) {
     const rlError = requireRateLimit(req, `changepw:${session.user.id}`, RL_CHANGE_PW);
     if (rlError) return rlError;
 
+    // ── Check if user is banned ─────────────────────────────
+    const bannedCheck = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { banned: true },
+    });
+
+    if (bannedCheck?.banned) {
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Your account is banned and cannot perform this action." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { data: validated, error: valError } = validateBody(changePasswordSchema, body);
     if (valError) return valError;

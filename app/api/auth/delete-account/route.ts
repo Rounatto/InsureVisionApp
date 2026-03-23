@@ -29,13 +29,20 @@ export async function DELETE(req: Request) {
     const rlError = requireRateLimit(req, `delete-account:${userId}`, RL_DELETE_ACCOUNT);
     if (rlError) return rlError;
 
-    // ── Fetch user email for security token cleanup ───
-    const user = await db.user.findUnique({
+    // ── Check if user is banned and fetch email ─────────────────────────────
+    const bannedCheckUser = await db.user.findUnique({
       where: { id: userId },
-      select: { email: true },
+      select: { banned: true, email: true },
     });
 
-    if (!user) {
+    if (bannedCheckUser?.banned) {
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Your account is banned and cannot perform this action." },
+        { status: 403 }
+      );
+    }
+
+    if (!bannedCheckUser) {
       return NextResponse.json<ErrorResponse>(
         { success: false, message: "User not found" },
         { status: 404 },
@@ -44,7 +51,7 @@ export async function DELETE(req: Request) {
 
     // ── Atomic delete (cascades handle related rows) ───────
     await db.$transaction([
-      db.securityToken.deleteMany({ where: { identifier: user.email } }),
+      db.securityToken.deleteMany({ where: { identifier: bannedCheckUser.email } }),
       db.user.delete({ where: { id: userId } }),
     ]);
 

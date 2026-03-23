@@ -29,6 +29,19 @@ export async function POST(req: Request) {
     const { session, error: authError } = await requireAuth();
     if (authError) return authError;
 
+    // Check if user is banned
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { banned: true },
+    });
+
+    if (user?.banned) {
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Your account is banned and cannot perform this action." },
+        { status: 403 }
+      );
+    }
+
     const rlError = requireRateLimit(req, `estimate:${session.user.id}`, RL_ESTIMATE);
     if (rlError) return rlError;
 

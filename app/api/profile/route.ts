@@ -15,6 +15,19 @@ export async function PATCH(req: Request) {
     const { session, error: authError } = await requireAuth();
     if (authError) return authError;
 
+    // Check if user is banned
+    const bannedCheck = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { banned: true },
+    });
+
+    if (bannedCheck?.banned) {
+      return NextResponse.json<ErrorResponse>(
+        { success: false, message: "Your account is banned and cannot perform this action." },
+        { status: 403 }
+      );
+    }
+
     const rlError = requireRateLimit(req, `profile:${session.user.id}`, RL_PROFILE_UPDATE);
     if (rlError) return rlError;
 

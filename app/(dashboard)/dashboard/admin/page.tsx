@@ -21,6 +21,8 @@ interface AdminUser {
   image: string | null;
   createdAt: string;
   estimateCount: number;
+  isAdmin: boolean;
+  banned: boolean;
 }
 
 interface UsersResponse {
@@ -40,6 +42,8 @@ export default function AdminPage() {
   const [search, setSearch] = useState('');
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [banning, setBanning] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -82,6 +86,100 @@ export default function AdminPage() {
     e.preventDefault();
     setPage(1);
     fetchUsers();
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this user? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    setDeleting(userId);
+    try {
+      const res = await fetch(`/api/admin/users?id=${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setUsersData((prev) =>
+          prev
+            ? {
+                ...prev,
+                users: prev.users.filter((u) => u.id !== userId),
+              }
+            : null
+        );
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Failed to delete user');
+      }
+    } catch {
+      alert('Error deleting user');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleActionChange = async (userId: string, action: string, isBanned: boolean) => {
+    if (action === '-') return;
+
+    let confirmed = true;
+    let actionName = '';
+
+    if (action === 'ban') {
+      actionName = 'ban this user';
+      confirmed = window.confirm(`Are you sure you want to ${actionName}?`);
+    } else if (action === 'unban') {
+      actionName = 'unban this user';
+      confirmed = window.confirm(`Are you sure you want to ${actionName}?`);
+    } else if (action === 'delete') {
+      actionName = 'delete this user permanently';
+      confirmed = window.confirm(
+        `Are you sure you want to ${actionName}? This action cannot be undone.`
+      );
+    }
+
+    if (!confirmed) return;
+
+    if (action === 'ban' || action === 'unban') {
+      await handleBanUser(userId, isBanned);
+    } else if (action === 'delete') {
+      await handleDeleteUser(userId);
+    }
+  };
+
+  const handleBanUser = async (userId: string, currentlyBanned: boolean) => {
+    const action = currentlyBanned ? 'unban' : 'ban';
+
+    setBanning(userId);
+    try {
+      const res = await fetch(
+        `/api/admin/users?id=${userId}&action=${action}`,
+        {
+          method: 'PATCH',
+        }
+      );
+
+      if (res.ok) {
+        setUsersData((prev) =>
+          prev
+            ? {
+                ...prev,
+                users: prev.users.map((u) =>
+                  u.id === userId ? { ...u, banned: !currentlyBanned } : u
+                ),
+              }
+            : null
+        );
+      } else {
+        const data = await res.json();
+        alert(data.message || `Failed to ${action} user`);
+      }
+    } catch {
+      alert(`Error ${action}ing user`);
+    } finally {
+      setBanning(null);
+    }
   };
 
   const formatDate = (iso: string) =>
@@ -201,14 +299,16 @@ export default function AdminPage() {
                     <th className="px-3 py-2 font-medium">Auth Provider</th>
                     <th className="px-3 py-2 font-medium">Estimates</th>
                     <th className="px-3 py-2 font-medium">Email Verified</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 font-medium">Joined</th>
+                    <th className="px-3 py-2 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingUsers ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={8}
                         className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]"
                       >
                         Loading users…
@@ -217,7 +317,7 @@ export default function AdminPage() {
                   ) : !usersData?.users.length ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={8}
                         className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]"
                       >
                         No users found.
@@ -227,7 +327,11 @@ export default function AdminPage() {
                     usersData.users.map((user) => (
                       <tr
                         key={user.id}
-                        className="rounded-xl bg-[color:var(--background)] text-sm text-[color:var(--foreground)]"
+                        className={`rounded-xl text-sm ${
+                          user.banned
+                            ? 'bg-red-500/5 opacity-60'
+                            : 'bg-[color:var(--background)]'
+                        } text-[color:var(--foreground)]`}
                       >
                         <td className="px-3 py-3 font-medium">
                           {user.name || '—'}
@@ -235,7 +339,14 @@ export default function AdminPage() {
                         <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
                           {user.email}
                         </td>
-                        <td className="px-3 py-3">{user.authProvider}</td>
+                        <td className="px-3 py-3">
+                          {user.authProvider}
+                          {user.isAdmin && (
+                            <span className="ml-2 inline-block rounded-full bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-500">
+                              Admin
+                            </span>
+                          )}
+                        </td>
                         <td className="px-3 py-3">{user.estimateCount}</td>
                         <td className="px-3 py-3">
                           <span
@@ -248,8 +359,43 @@ export default function AdminPage() {
                             {user.emailVerified ? 'Verified' : 'Not Verified'}
                           </span>
                         </td>
+                        <td className="px-3 py-3">
+                          {user.banned && (
+                            <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-500">
+                              Banned
+                            </span>
+                          )}
+                          {!user.banned && (
+                            <span className="rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-500">
+                              Active
+                            </span>
+                          )}
+                        </td>
                         <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
                           {formatDate(user.createdAt)}
+                        </td>
+                        <td className="px-3 py-3 space-x-1 flex flex-wrap gap-1">
+                          {!user.isAdmin && (
+                            <select
+                              onChange={(e) => handleActionChange(user.id, e.target.value, user.banned)}
+                              disabled={banning === user.id || deleting === user.id}
+                              value="-"
+                              className="rounded-md border border-[color:var(--border)] bg-[color:var(--background)] px-2 py-1 text-xs font-medium text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--muted)] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <option value="-">Actions</option>
+                              {user.banned ? (
+                                <option value="unban">Unban</option>
+                              ) : (
+                                <option value="ban">Ban</option>
+                              )}
+                              <option value="delete">Delete</option>
+                            </select>
+                          )}
+                          {user.isAdmin && (
+                            <span className="text-xs text-[color:var(--muted-foreground)]">
+                              —
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))

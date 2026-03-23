@@ -13,7 +13,10 @@ export type AuditAction =
   | "FORGOT_PASSWORD_REQUESTED"
   | "LOGIN_SUCCESS"
   | "LOGIN_FAILED"
-  | "ADMIN_ACCESS";
+  | "ADMIN_ACCESS"
+  | "ADMIN_DELETE_USER"
+  | "ADMIN_BAN_USER"
+  | "ADMIN_UNBAN_USER";
 
 /**
  * Fire-and-forget audit logger.
