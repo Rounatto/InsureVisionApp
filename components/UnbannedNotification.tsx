@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 export default function UnbannedNotification() {
   const { data: session } = useSession();
   const [showNotification, setShowNotification] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -13,42 +14,37 @@ export default function UnbannedNotification() {
     const checkUnbannedStatus = async () => {
       try {
         const res = await fetch("/api/messages/conversation");
+        const storageKey = `ban-status-${session.user.id}`;
 
-        // If user gets 200, they are NOT banned
-        if (res.ok) {
-          // Check if they were marked as banned before
-          const wasBanned = sessionStorage.getItem(`was-banned-${session.user.id}`);
-          if (wasBanned) {
-            // They were banned before but now they're not - show notification
-            setShowNotification(true);
-            sessionStorage.removeItem(`was-banned-${session.user.id}`);
-          }
-        }
-        // If user gets 403, they are still banned
-        else if (res.status === 403) {
-          // Mark that they are banned
-          sessionStorage.setItem(`was-banned-${session.user.id}`, "true");
+        // Check current ban status
+        if (res.status === 403) {
+          // User is CURRENTLY BANNED
+          // Just mark them as banned, don't show any notification
+          sessionStorage.setItem(storageKey, "banned");
           setShowNotification(false);
+        } else if (res.ok) {
+          // User is NOT banned
+          const previousStatus = sessionStorage.getItem(storageKey);
+
+          if (previousStatus === "banned") {
+            // They were banned before but not anymore - SHOW NOTIFICATION
+            setShowNotification(true);
+          }
+
+          // Update status to unbanned
+          sessionStorage.setItem(storageKey, "unbanned");
         }
       } catch (err) {
         console.error("Error checking ban status:", err);
+      } finally {
+        setInitialized(true);
       }
     };
 
     checkUnbannedStatus();
   }, [session?.user?.id]);
 
-  // Also check for URL parameter (in case admin system notifies)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("unbanned") === "true") {
-      setShowNotification(true);
-      // Clean up URL without reload
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
-
-  if (!showNotification) return null;
+  if (!initialized || !showNotification) return null;
 
   return (
     <div className="mb-6 mx-auto max-w-4xl px-6">
