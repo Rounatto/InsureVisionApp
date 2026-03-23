@@ -42,84 +42,117 @@ export default function AdminMessagesPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationPreview | null>(null);
+  const [previousMessageCount, setPreviousMessageCount] = useState(0);
 
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [messageInput, setMessageInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [unbanning, setUnbanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const lastConversationsRef = useRef<string>("");
+  const lastMessagesRef = useRef<string>("");
 
-  // Auto-scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Check if user is at bottom AFTER rendering
+  const isAtBottom = useCallback(() => {
+    if (!messagesContainerRef.current) return false;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    // Consider "at bottom" if within 100px of bottom
+    return scrollHeight - (scrollTop + clientHeight) < 100;
+  }, []);
 
+  // Auto-scroll ONLY if new message arrived and user is at bottom
   useEffect(() => {
-    scrollToBottom();
-  }, [threadMessages]);
+    if (threadMessages.length > previousMessageCount && isAtBottom()) {
+      // New message arrived and user is at bottom - scroll
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 0);
+    }
+    setPreviousMessageCount(threadMessages.length);
+  }, [threadMessages, previousMessageCount, isAtBottom]);
 
-  // Fetch conversations list
-  const fetchConversations = useCallback(async () => {
+  // Fetch conversations list - silent, no visible loading
+  const fetchConversations = useCallback(async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setInitialLoading(true);
       setError(null);
 
       const res = await fetch("/api/admin/messages?page=1");
       if (!res.ok) throw new Error("Failed to fetch conversations");
 
       const data = await res.json();
-      setConversations(data.conversations || []);
+      const conversationsStr = JSON.stringify(data.conversations || []);
+
+      // Only update if data changed
+      if (conversationsStr !== lastConversationsRef.current) {
+        setConversations(data.conversations || []);
+        lastConversationsRef.current = conversationsStr;
+      }
     } catch (err) {
       console.error("Error fetching conversations:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch conversations");
     } finally {
-      setLoading(false);
+      if (showLoading) setInitialLoading(false);
     }
   }, []);
 
-  // Fetch specific conversation thread
-  const fetchConversationThread = useCallback(async (conversationId: string) => {
+  // Fetch specific conversation thread - silent, no visible loading
+  const fetchConversationThread = useCallback(async (conversationId: string, showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setInitialLoading(true);
       setError(null);
 
       const res = await fetch(`/api/admin/messages/${conversationId}?page=1`);
       if (!res.ok) throw new Error("Failed to fetch conversation");
 
       const data = await res.json();
+      const messagesStr = JSON.stringify(data.conversation.messages || []);
+
+      // Always update to ensure messages load properly
       setThreadMessages(data.conversation.messages || []);
+      lastMessagesRef.current = messagesStr;
       setSelectedConversation(data.conversation);
     } catch (err) {
       console.error("Error fetching conversation:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch conversation");
     } finally {
-      setLoading(false);
+      if (showLoading) setInitialLoading(false);
     }
   }, []);
 
-  // Fetch conversations on mount
+  // Initial fetch on mount
   useEffect(() => {
     if (status === "authenticated") {
-      fetchConversations();
-
-      // Poll for new conversations every 5 seconds
-      const interval = setInterval(fetchConversations, 5000);
-      return () => clearInterval(interval);
+      fetchConversations(true);
     }
   }, [status, fetchConversations]);
 
-  // Auto-fetch thread when selected
+  // Silent polling for conversations
   useEffect(() => {
-    if (selectedConversationId && viewMode === "thread") {
-      fetchConversationThread(selectedConversationId);
+    if (status !== "authenticated" || viewMode !== "list") return;
 
-      // Poll for new messages every 3 seconds
-      const interval = setInterval(
-        () => fetchConversationThread(selectedConversationId),
-        3000
-      );
-      return () => clearInterval(interval);
-    }
+    // Poll every 4 seconds silently
+    const interval = setInterval(() => fetchConversations(false), 4000);
+    return () => clearInterval(interval);
+  }, [status, viewMode, fetchConversations]);
+
+  // Ensure thread loads when selected
+  useEffect(() => {
+    if (!selectedConversationId || viewMode !== "thread") return;
+
+    // Fetch immediately when conversation is selected
+    fetchConversationThread(selectedConversationId, true);
+
+    // Then poll every 2 seconds
+    const interval = setInterval(() => {
+      fetchConversationThread(selectedConversationId, false);
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, [selectedConversationId, viewMode, fetchConversationThread]);
 
   // View conversation thread
@@ -135,50 +168,113 @@ export default function AdminMessagesPage() {
     setThreadMessages([]);
     setMessageInput("");
     setError(null);
+    setSuccessMsg(null);
   };
 
-  // Send reply
+  // Send reply with optimistic update
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!messageInput.trim() || !selectedConversationId || sending) return;
 
+    const messageText = messageInput;
+    setMessageInput("");
+
     try {
       setSending(true);
       setError(null);
+
+      // Optimistic update - show message immediately
+      const tempMessage: Message = {
+        id: "temp-" + Date.now(),
+        conversationId: selectedConversationId,
+        senderId: session?.user?.id || "",
+        senderEmail: session?.user?.email || "",
+        senderType: "ADMIN",
+        content: messageText,
+        createdAt: new Date().toISOString(),
+      };
+      setThreadMessages((prev) => [...prev, tempMessage]);
 
       const res = await fetch("/api/admin/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: selectedConversationId,
-          content: messageInput,
+          content: messageText,
         }),
       });
 
       if (!res.ok) {
+        // Remove optimistic message on error
+        setThreadMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
         const data = await res.json();
-        throw new Error(data.message || "Failed to send reply");
+        setError(data.message || "Failed to send reply");
+        setMessageInput(messageText);
+        return;
       }
 
       const data = await res.json();
 
-      // Add new message to thread
-      setThreadMessages((prev) => [...prev, data.message]);
-      setMessageInput("");
+      // Replace temp message with real one
+      setThreadMessages((prev) =>
+        prev.map((m) => (m.id === tempMessage.id ? data.message : m))
+      );
 
-      // Refresh conversations list
-      await fetchConversations();
+      // Silently refresh conversations list in background
+      await fetchConversations(false);
     } catch (err) {
       console.error("Error sending reply:", err);
-      setError(err instanceof Error ? err.message : "Failed to send reply");
+      setMessageInput(messageText);
+      setError("Failed to send reply. Please try again.");
     } finally {
       setSending(false);
     }
   };
 
+  // Unban user
+  const handleUnbanUser = async () => {
+    if (!selectedConversation?.user.id || unbanning) return;
+
+    const confirmed = window.confirm(
+      `Unban ${selectedConversation.user.name || selectedConversation.user.email}? All their messages will be deleted.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setUnbanning(true);
+      setError(null);
+
+      const res = await fetch(
+        `/api/admin/users?id=${selectedConversation.user.id}&action=unban`,
+        { method: "PATCH" }
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to unban user");
+      }
+
+      // Show success message
+      setSuccessMsg(
+        `✓ User ${selectedConversation.user.name || selectedConversation.user.email} has been unbanned. All messages deleted.`
+      );
+
+      // Redirect after 2.5 seconds
+      setTimeout(() => {
+        handleBackToList();
+        fetchConversations(true);
+      }, 2500);
+    } catch (err) {
+      console.error("Error unbanning user:", err);
+      setError(err instanceof Error ? err.message : "Failed to unban user");
+    } finally {
+      setUnbanning(false);
+    }
+  };
+
   // Loading state
-  if (status === "loading" || loading) {
+  if (status === "loading" || (initialLoading && viewMode === "list")) {
     return (
       <DashboardLayout>
         <div className="p-6">
@@ -188,7 +284,7 @@ export default function AdminMessagesPage() {
     );
   }
 
-  // Redirect if not authenticated or not admin
+  // Redirect if not authenticated
   if (status !== "authenticated") {
     return null;
   }
@@ -211,7 +307,7 @@ export default function AdminMessagesPage() {
 
             {/* Error message */}
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg m-4">
+              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg m-4 animate-slideDown">
                 {error}
               </div>
             )}
@@ -230,7 +326,7 @@ export default function AdminMessagesPage() {
                     <div
                       key={conv.id}
                       onClick={() => handleViewThread(conv.id)}
-                      className="p-4 hover:bg-[color:var(--muted)] cursor-pointer transition-colors"
+                      className="p-4 hover:bg-[color:var(--muted)] cursor-pointer transition-colors duration-200"
                     >
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1 min-w-0">
@@ -266,9 +362,9 @@ export default function AdminMessagesPage() {
               <div>
                 <button
                   onClick={handleBackToList}
-                  className="text-blue-500 hover:text-blue-600 font-medium text-sm mb-2"
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-2 transition-colors"
                 >
-                  ← Back to conversations
+                  ← Back
                 </button>
                 <h1 className="text-2xl font-bold text-[color:var(--foreground)]">
                   {selectedConversation.user.name || selectedConversation.user.email}
@@ -277,49 +373,85 @@ export default function AdminMessagesPage() {
                   {selectedConversation.user.email}
                 </p>
               </div>
-              <div className="text-right">
-                <span className="inline-block px-3 py-1 bg-red-500/10 text-red-600 text-xs font-medium rounded-full">
+              <div className="flex flex-col items-end gap-2">
+                <span className="inline-block px-3 py-1 bg-red-500/10 text-red-600 text-xs font-medium rounded-full border border-red-500/20">
                   Banned
                 </span>
+                <button
+                  onClick={handleUnbanUser}
+                  disabled={unbanning}
+                  className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  {unbanning ? (
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse"></span>
+                      Processing...
+                    </span>
+                  ) : (
+                    "Unban User"
+                  )}
+                </button>
               </div>
             </div>
 
+            {/* Success message */}
+            {successMsg && (
+              <div className="p-4 bg-green-500/10 border border-green-500/20 text-green-700 rounded-lg m-4 animate-slideDown flex items-start gap-3">
+                <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="font-medium text-green-900">{successMsg}</p>
+                  <p className="text-xs text-green-700 mt-1">Redirecting...</p>
+                </div>
+              </div>
+            )}
+
             {/* Error message */}
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg m-4">
+              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg m-4 animate-slideDown">
                 {error}
               </div>
             )}
 
             {/* Messages container */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto p-5 space-y-3 bg-[color:var(--background)]"
+            >
               {threadMessages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-center text-[color:var(--muted-foreground)]">
-                    No messages in this conversation yet
+                    No messages yet. Start the conversation!
                   </p>
                 </div>
               ) : (
                 threadMessages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex gap-3 ${
+                    className={`flex ${
                       msg.senderType === "ADMIN" ? "justify-end" : "justify-start"
-                    }`}
+                    } animate-fadeIn`}
                   >
                     <div
-                      className={`max-w-xs px-4 py-2 rounded-lg ${
+                      className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm font-normal break-words ${
                         msg.senderType === "ADMIN"
-                          ? "bg-blue-500 text-white"
-                          : "bg-[color:var(--muted)] text-[color:var(--foreground)]"
+                          ? "bg-blue-600 text-white"
+                          : "bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]"
                       }`}
                     >
-                      <p className="text-xs font-medium opacity-75 mb-1">
-                        {msg.senderType === "ADMIN" ? "You" : "User"}
-                      </p>
-                      <p className="text-sm break-words">{msg.content}</p>
-                      <p className="text-xs opacity-50 mt-1">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      <p>{msg.content}</p>
+                      <p
+                        className={`text-xs mt-1.5 ${
+                          msg.senderType === "ADMIN"
+                            ? "text-blue-100"
+                            : "text-[color:var(--muted-foreground)]"
+                        }`}
+                      >
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
                   </div>
@@ -329,31 +461,63 @@ export default function AdminMessagesPage() {
             </div>
 
             {/* Input form */}
-            <form
-              onSubmit={handleSendReply}
-              className="border-t border-[color:var(--border)] p-4"
-            >
-              <div className="flex gap-2">
+            <div className="border-t border-[color:var(--border)] px-5 py-4 bg-[color:var(--muted)]/30">
+              <form onSubmit={handleSendReply} className="flex gap-2">
                 <input
                   type="text"
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   placeholder="Type a message..."
                   disabled={sending}
-                  className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="flex-1 rounded-full border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2.5 text-sm text-[color:var(--foreground)] placeholder-[color:var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-all"
                 />
                 <button
                   type="submit"
                   disabled={!messageInput.trim() || sending}
-                  className="rounded-lg bg-blue-500 text-white px-6 py-2 text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                  {sending ? "Sending..." : "Send"}
+                  {sending ? (
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse"></span>
+                    </span>
+                  ) : (
+                    "Send"
+                  )}
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+      `}</style>
     </DashboardLayout>
   );
 }

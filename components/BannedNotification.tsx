@@ -21,17 +21,30 @@ export default function BannedNotification() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [previousLength, setPreviousLength] = useState(0);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const lastFetchRef = useRef<string>("");
 
-  // Auto-scroll to bottom smoothly
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Check if user is at bottom AFTER rendering
+  const isAtBottom = useCallback(() => {
+    if (!messagesContainerRef.current) return false;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    // Consider "at bottom" if within 100px of bottom
+    return scrollHeight - (scrollTop + clientHeight) < 100;
+  }, []);
 
+  // Auto-scroll ONLY if new message arrived and user is at bottom
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messages.length > previousLength && isAtBottom()) {
+      // New message arrived and user is at bottom - scroll
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 0);
+    }
+    setPreviousLength(messages.length);
+  }, [messages, previousLength, isAtBottom]);
 
   // Check if user is banned on mount
   useEffect(() => {
@@ -44,6 +57,7 @@ export default function BannedNotification() {
           setIsBanned(true);
           const data = await res.json();
           setMessages(data.messages || []);
+          setPreviousLength(data.messages?.length || 0);
           lastFetchRef.current = JSON.stringify(data.messages);
         }
       } catch (err) {
@@ -56,7 +70,7 @@ export default function BannedNotification() {
     }
   }, [session?.user?.id]);
 
-  // Silently poll for new admin messages in background (no visible refresh)
+  // Silently poll for new admin messages in background
   useEffect(() => {
     if (!showChat || !isBanned) return;
 
@@ -74,14 +88,11 @@ export default function BannedNotification() {
           }
         }
       } catch (err) {
-        // Silently fail - don't show errors for background polling
+        // Silently fail
       }
     };
 
-    // Fetch immediately when chat opens
     fetchNewMessages();
-
-    // Poll every 2 seconds for new messages
     const interval = setInterval(fetchNewMessages, 2000);
     return () => clearInterval(interval);
   }, [showChat, isBanned]);
@@ -97,7 +108,7 @@ export default function BannedNotification() {
     try {
       setSending(true);
 
-      // Optimistic update - show message immediately
+      // Optimistic update
       const tempMessage: Message = {
         id: "temp-" + Date.now(),
         conversationId: "",
@@ -116,7 +127,6 @@ export default function BannedNotification() {
       });
 
       if (!res.ok) {
-        // Remove optimistic message on error
         setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
         const data = await res.json();
         alert(data.message || "Failed to send message");
@@ -124,7 +134,6 @@ export default function BannedNotification() {
         return;
       }
 
-      // Replace temp message with real one from server
       const data = await res.json();
       setMessages((prev) =>
         prev.map((m) => (m.id === tempMessage.id ? data.message : m))
@@ -134,7 +143,6 @@ export default function BannedNotification() {
       );
     } catch (err) {
       console.error("Error sending message:", err);
-      // Remove optimistic message on error
       setMessages((prev) => prev.filter((m) => m.id !== ("temp-" + Date.now())));
       alert("Failed to send message. Please try again.");
       setMessageInput(userMessage);
@@ -148,7 +156,7 @@ export default function BannedNotification() {
   return (
     <div className="mb-6 mx-auto max-w-4xl px-6">
       {!showChat ? (
-        // Collapsed banned notification - Professional banner
+        // Collapsed banned notification
         <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 sm:p-6 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 pt-1">
@@ -173,7 +181,7 @@ export default function BannedNotification() {
                 Account Restricted
               </h3>
               <p className="text-sm text-[color:var(--muted-foreground)] mt-1.5">
-                Your account has been temporarily restricted. You can still message the admin to discuss and resolve this issue.
+                Your account has been temporarily restricted. Contact admin to discuss and resolve this.
               </p>
               <button
                 onClick={() => setShowChat(true)}
@@ -186,82 +194,51 @@ export default function BannedNotification() {
           </div>
         </div>
       ) : (
-        // Expanded chat - Professional messenger-style interface
+        // Expanded chat
         <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-lg overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--border)] bg-[color:var(--muted)]/30">
             <div>
               <h3 className="text-base font-bold text-[color:var(--foreground)]">
-                Admin Support Chat
+                Admin Support
               </h3>
               <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">
-                Chat with kmrzed59@gmail.com
+                kmrzed59@gmail.com
               </p>
             </div>
             <button
               onClick={() => setShowChat(false)}
-              className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[color:var(--muted)] transition-colors text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]"
-              aria-label="Close chat"
+              className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[color:var(--muted)] transition-colors text-[color:var(--muted-foreground)]"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto max-h-96 px-5 py-4 space-y-3 bg-[color:var(--background)]">
+          {/* Messages */}
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto max-h-96 px-5 py-4 space-y-3 bg-[color:var(--background)]">
             {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full py-8">
+              <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[color:var(--muted)] mb-3">
-                    <MessageIcon className="h-6 w-6 text-[color:var(--muted-foreground)]" />
-                  </div>
-                  <p className="text-sm text-[color:var(--muted-foreground)]">
-                    No messages yet
-                  </p>
-                  <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
-                    Send a message to start
-                  </p>
+                  <MessageIcon className="h-8 w-8 text-[color:var(--muted-foreground)] mx-auto mb-2" />
+                  <p className="text-sm text-[color:var(--muted-foreground)]">No messages yet</p>
+                  <p className="text-xs text-[color:var(--muted-foreground)] mt-1">Send a message to start</p>
                 </div>
               </div>
             ) : (
               messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.senderType === "ADMIN" ? "justify-start" : "justify-end"
-                  } animate-fadeIn`}
-                >
+                <div key={msg.id} className={`flex ${msg.senderType === "ADMIN" ? "justify-start" : "justify-end"} animate-fadeIn`}>
                   <div
-                    className={`max-w-xs px-4 py-2 rounded-2xl text-sm font-normal break-words ${
+                    className={`max-w-xs px-4 py-2 rounded-2xl text-sm break-words ${
                       msg.senderType === "ADMIN"
                         ? "bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]"
                         : "bg-blue-600 text-white"
                     }`}
                   >
                     <p>{msg.content}</p>
-                    <p
-                      className={`text-xs mt-1.5 ${
-                        msg.senderType === "ADMIN"
-                          ? "text-[color:var(--muted-foreground)]"
-                          : "text-blue-100"
-                      }`}
-                    >
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <p className={`text-xs mt-1.5 ${msg.senderType === "ADMIN" ? "text-[color:var(--muted-foreground)]" : "text-blue-100"}`}>
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                 </div>
@@ -270,7 +247,7 @@ export default function BannedNotification() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
+          {/* Input */}
           <div className="border-t border-[color:var(--border)] px-5 py-4 bg-[color:var(--muted)]/30">
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
@@ -279,20 +256,14 @@ export default function BannedNotification() {
                 onChange={(e) => setMessageInput(e.target.value)}
                 placeholder="Type a message..."
                 disabled={sending}
-                className="flex-1 rounded-full border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2.5 text-sm text-[color:var(--foreground)] placeholder-[color:var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-all"
+                className="flex-1 rounded-full border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2.5 text-sm text-[color:var(--foreground)] placeholder-[color:var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={!messageInput.trim() || sending}
-                className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 disabled:opacity-50"
               >
-                {sending ? (
-                  <span className="flex items-center gap-1">
-                    <span className="inline-block w-1 h-1 bg-white rounded-full animate-pulse"></span>
-                  </span>
-                ) : (
-                  "Send"
-                )}
+                {sending ? "..." : "Send"}
               </button>
             </form>
           </div>
@@ -301,18 +272,10 @@ export default function BannedNotification() {
 
       <style jsx>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
       `}</style>
     </div>
   );
