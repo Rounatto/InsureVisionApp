@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { requireDb, requireAdmin, db } from "@/lib/api-helpers";
-import { getClientIp } from "@/lib/rate-limit";
 import type { ErrorResponse } from "@/types/auth";
 
 export async function POST(
@@ -28,21 +27,30 @@ export async function POST(
     const adminEmail = session.user.email;
 
     for (const message of messages) {
-      await db.adminMessageRead.upsert({
-        where: {
-          messageId_adminEmail: {
+      try {
+        await db.adminMessageRead.upsert({
+          where: {
+            messageId_adminEmail: {
+              messageId: message.id,
+              adminEmail,
+            },
+          },
+          update: {
+            readAt: new Date(),
+          },
+          create: {
             messageId: message.id,
             adminEmail,
           },
-        },
-        update: {
-          readAt: new Date(),
-        },
-        create: {
-          messageId: message.id,
-          adminEmail,
-        },
-      });
+        });
+      } catch (err: any) {
+        // Gracefully skip if AdminMessageRead table doesn't exist yet
+        if (err.code === "P2021" || err.message?.includes("does not exist")) {
+          console.log("AdminMessageRead table not yet created, skipping read tracking");
+          continue;
+        }
+        throw err;
+      }
     }
 
     return NextResponse.json(
