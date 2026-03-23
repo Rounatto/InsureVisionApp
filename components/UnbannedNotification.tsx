@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 export default function UnbannedNotification() {
   const { data: session } = useSession();
   const [showNotification, setShowNotification] = useState(false);
-  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -16,35 +15,40 @@ export default function UnbannedNotification() {
         const res = await fetch("/api/messages/conversation");
         const storageKey = `ban-status-${session.user.id}`;
 
-        // Check current ban status
+        // If user is CURRENTLY BANNED, never show anything
         if (res.status === 403) {
-          // User is CURRENTLY BANNED
-          // Just mark them as banned, don't show any notification
           sessionStorage.setItem(storageKey, "banned");
           setShowNotification(false);
-        } else if (res.ok) {
-          // User is NOT banned
+          return; // IMPORTANT: Exit early, don't check previous status
+        }
+
+        // User is NOT banned
+        if (res.ok) {
           const previousStatus = sessionStorage.getItem(storageKey);
 
+          // ONLY show if they were previously banned and now they're not
           if (previousStatus === "banned") {
-            // They were banned before but not anymore - SHOW NOTIFICATION
             setShowNotification(true);
+          } else {
+            setShowNotification(false);
           }
 
           // Update status to unbanned
           sessionStorage.setItem(storageKey, "unbanned");
+        } else {
+          // Any other status, don't show
+          setShowNotification(false);
         }
       } catch (err) {
         console.error("Error checking ban status:", err);
-      } finally {
-        setInitialized(true);
+        setShowNotification(false);
       }
     };
 
     checkUnbannedStatus();
   }, [session?.user?.id]);
 
-  if (!initialized || !showNotification) return null;
+  if (!showNotification) return null;
 
   return (
     <div className="mb-6 mx-auto max-w-4xl px-6">
