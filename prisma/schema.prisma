@@ -170,8 +170,21 @@ model Message {
   senderType     String   // "USER" or "ADMIN"
   content        String   @db.Text
   createdAt      DateTime @default(now())
+  readByAdmins   AdminMessageRead[]
 
   @@index([conversationId])
   @@index([senderId])
   @@index([createdAt])
+}
+
+model AdminMessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  adminEmail String   // Which admin read it
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, adminEmail])
+  @@index([messageId])
+  @@index([adminEmail])
 }

@@ -25,7 +25,7 @@ export async function GET(
     const page = parseInt(url.searchParams.get("page") || "1", 10);
     const skip = Math.max(0, (page - 1) * PAGE_SIZE);
 
-    // Get conversation with messages
+    // Get conversation with messages and read status
     const conversation = await db.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -36,6 +36,11 @@ export async function GET(
           take: PAGE_SIZE,
           skip,
           orderBy: { createdAt: "asc" },
+          include: {
+            readByAdmins: {
+              select: { adminEmail: true, readAt: true },
+            },
+          },
         },
       },
     });

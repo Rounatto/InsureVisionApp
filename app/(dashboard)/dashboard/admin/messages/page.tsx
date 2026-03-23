@@ -13,6 +13,7 @@ interface Message {
   senderType: "USER" | "ADMIN";
   content: string;
   createdAt: string;
+  readByAdmins?: Array<{ adminEmail: string; readAt: string }>;
 }
 
 interface User {
@@ -29,6 +30,7 @@ interface ConversationPreview {
   lastMessage: Message | null;
   createdAt: string;
   updatedAt: string;
+  unreadCount: number;
 }
 
 type ViewMode = "list" | "thread";
@@ -42,6 +44,7 @@ export default function AdminMessagesPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationPreview | null>(null);
+  const [totalAdmins, setTotalAdmins] = useState(0);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [messageInput, setMessageInput] = useState("");
@@ -70,6 +73,7 @@ export default function AdminMessagesPage() {
       // Only update if data changed
       if (conversationsStr !== lastConversationsRef.current) {
         setConversations(data.conversations || []);
+        setTotalAdmins(data.totalAdmins || 0);
         lastConversationsRef.current = conversationsStr;
       }
     } catch (err) {
@@ -123,12 +127,25 @@ export default function AdminMessagesPage() {
     return () => clearInterval(interval);
   }, [status, viewMode, fetchConversations]);
 
-  // Ensure thread loads when selected
+  // Ensure thread loads when selected + mark messages as read
   useEffect(() => {
     if (!selectedConversationId || viewMode !== "thread") return;
 
     // Fetch immediately when conversation is selected
     fetchConversationThread(selectedConversationId, true);
+
+    // Mark all messages in this conversation as read by this admin
+    const markAsRead = async () => {
+      try {
+        await fetch(`/api/admin/messages/${selectedConversationId}/mark-read`, {
+          method: "POST",
+        });
+      } catch (err) {
+        console.error("Error marking messages as read:", err);
+      }
+    };
+
+    markAsRead();
 
     // Then poll every 2 seconds
     const interval = setInterval(() => {
@@ -313,9 +330,16 @@ export default function AdminMessagesPage() {
                     >
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-[color:var(--foreground)]">
-                            {conv.user.name || conv.user.email}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-[color:var(--foreground)]">
+                              {conv.user.name || conv.user.email}
+                            </p>
+                            {conv.unreadCount > 0 && (
+                              <span className="px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
+                                {conv.unreadCount}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-[color:var(--muted-foreground)] truncate">
                             {conv.user.email}
                           </p>
@@ -426,9 +450,16 @@ export default function AdminMessagesPage() {
                           }`}
                         >
                           <p>{msg.content}</p>
-                          <p className={`text-xs mt-1.5 ${msg.senderType === "ADMIN" ? "text-blue-100" : "text-[color:var(--muted-foreground)]"}`}>
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </p>
+                          <div className={`text-xs mt-1.5 flex items-center justify-between ${msg.senderType === "ADMIN" ? "text-blue-100" : "text-[color:var(--muted-foreground)]"}`}>
+                            <span>
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            {msg.senderType === "USER" && msg.readByAdmins && totalAdmins > 0 && (
+                              <span className="ml-2">
+                                ✓✓ {msg.readByAdmins.length}/{totalAdmins}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

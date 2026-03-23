@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireDb, requireAdmin, requireTrustedOrigin, validateBody, requireRateLimit, db } from "@/lib/api-helpers";
 import { logAudit } from "@/lib/audit";
+import { getAllAdminEmails } from "@/lib/admin";
 import { RL_ADMIN_MESSAGE } from "@/lib/constants";
 import { getClientIp } from "@/lib/rate-limit";
 import type { ErrorResponse } from "@/types/auth";
@@ -49,16 +50,38 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const total = await db.conversation.count();
 
-    return NextResponse.json(
-      {
-        success: true,
-        conversations: conversations.map((conv) => ({
+    // Get unread counts for this admin
+    const adminEmail = session.user.email;
+    const conversationsWithUnread = await Promise.all(
+      conversations.map(async (conv) => {
+        // Count messages this admin hasn't read
+        const unreadCount = await db.message.count({
+          where: {
+            conversationId: conv.id,
+            readByAdmins: {
+              none: {
+                adminEmail,
+              },
+            },
+          },
+        });
+
+        return {
           id: conv.id,
           user: conv.user,
           lastMessage: conv.messages[0] || null,
           createdAt: conv.createdAt,
           updatedAt: conv.updatedAt,
-        })),
+          unreadCount,
+        };
+      })
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        conversations: conversationsWithUnread,
+        totalAdmins: getAllAdminEmails().length,
         pagination: {
           page,
           pageSize: PAGE_SIZE,
