@@ -1,33 +1,33 @@
-import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
+import NextAuth from 'next-auth';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import Credentials from 'next-auth/providers/credentials';
+import bcrypt from 'bcrypt';
 
-import authConfig from "@/config/auth.config";
-import { db, isDatabaseConfigured } from "@/config/db";
-import { loginSchema } from "@/lib/validations/auth";
-import { TOKEN_VERSION_CHECK_INTERVAL_MS } from "@/lib/constants";
-import { isAdminEmail } from "@/lib/admin";
+import authConfig from '@/config/auth.config';
+import { db, isDatabaseConfigured } from '@/config/db';
+import { loginSchema } from '@/lib/validations/auth';
+import { TOKEN_VERSION_CHECK_INTERVAL_MS } from '@/lib/constants';
+import { isAdminEmail } from '@/lib/admin';
 
 export const { handlers, auth } = NextAuth({
   ...authConfig,
   adapter: db ? PrismaAdapter(db) : undefined,
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   // Session cookie (no persistent maxAge) so users must sign in again
   // after closing the browser.
   cookies: {
     sessionToken: {
       name:
-        process.env.NODE_ENV === "production"
-          ? "__Secure-authjs.session-token"
-          : "authjs.session-token",
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-authjs.session-token'
+          : 'authjs.session-token',
       options: {
         httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
       },
     },
   },
@@ -37,10 +37,10 @@ export const { handlers, auth } = NextAuth({
 
     // Email / Password (needs Prisma + bcrypt - not Edge-safe)
     Credentials({
-      name: "credentials",
+      name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!isDatabaseConfigured || !db) return null;
@@ -55,6 +55,7 @@ export const { handlers, auth } = NextAuth({
         });
 
         if (!user || !user.password) return null;
+        if (user.banned) return null;
 
         // Block unverified email users
         if (!user.emailVerified) return null;
@@ -75,7 +76,7 @@ export const { handlers, auth } = NextAuth({
     async linkAccount({ user, account }) {
       // Treat Google OAuth linking as verified ownership of the email.
       if (!isDatabaseConfigured || !db) return;
-      if (account?.provider !== "google") return;
+      if (account?.provider !== 'google') return;
       if (!user?.id) return;
 
       try {
@@ -84,12 +85,26 @@ export const { handlers, auth } = NextAuth({
           data: { emailVerified: new Date() },
         });
       } catch (error) {
-        console.warn("OAuth linkAccount emailVerified update skipped:", error);
+        console.warn('OAuth linkAccount emailVerified update skipped:', error);
       }
     },
   },
   callbacks: {
     ...authConfig.callbacks,
+
+    async signIn({ user }) {
+      if (!isDatabaseConfigured || !db) return true;
+
+      const userEmail = user.email?.trim();
+      if (!userEmail) return false;
+
+      const dbUser = await db.user.findUnique({
+        where: { email: userEmail },
+        select: { banned: true },
+      });
+
+      return !dbUser?.banned;
+    },
 
     /**
      * JWT callback runs on every request.
@@ -99,7 +114,7 @@ export const { handlers, auth } = NextAuth({
       // On Google sign-in, strip the Google profile image so the app
       // always uses its own letter avatar — also clear it in the DB for
       // existing users who already have a Google image stored.
-      if (account?.provider === "google" && user) {
+      if (account?.provider === 'google' && user) {
         token.image = null;
         if (user.id && db) {
           try {
@@ -114,9 +129,9 @@ export const { handlers, auth } = NextAuth({
       }
 
       // Client-driven session updates (e.g. useSession().update({ name }))
-      if (trigger === "update") {
-        if (typeof session?.name === "string") token.name = session.name;
-        if (typeof session?.image === "string") token.image = session.image;
+      if (trigger === 'update') {
+        if (typeof session?.name === 'string') token.name = session.name;
+        if (typeof session?.image === 'string') token.image = session.image;
         return token;
       }
 
@@ -129,7 +144,7 @@ export const { handlers, auth } = NextAuth({
           });
           token.tokenVersion = dbUser?.tokenVersion ?? 0;
         } catch (error) {
-          console.warn("JWT sign-in tokenVersion check skipped:", error);
+          console.warn('JWT sign-in tokenVersion check skipped:', error);
           token.tokenVersion = 0;
         }
         token.isAdmin = isAdminEmail(user.email);
@@ -152,7 +167,7 @@ export const { handlers, auth } = NextAuth({
               token.tokenVersion = undefined;
             }
           } catch (error) {
-            console.warn("JWT periodic tokenVersion check skipped:", error);
+            console.warn('JWT periodic tokenVersion check skipped:', error);
           }
 
           token.versionCheckedAt = Date.now();
@@ -167,7 +182,10 @@ export const { handlers, auth } = NextAuth({
         session.user.id = token.sub;
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
-        session.user.image = "image" in token ? (token.image as string | null) : session.user.image;
+        session.user.image =
+          'image' in token
+            ? (token.image as string | null)
+            : session.user.image;
         session.user.isAdmin = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;

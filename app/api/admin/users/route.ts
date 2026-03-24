@@ -142,22 +142,33 @@ export async function DELETE(req: Request) {
     }
 
     const ip = getClientIp(req);
+
+    // Full hard-delete workflow:
+    // 1) Remove auth/session/token artifacts
+    // 2) Remove app-owned records that can outlive the user (audit/security)
+    // 3) Delete the user row last
+    await db.$transaction(async (tx) => {
+      await tx.verificationToken.deleteMany({
+        where: { identifier: userToDelete.email },
+      });
+      await tx.securityToken.deleteMany({
+        where: { identifier: userToDelete.email },
+      });
+      await tx.account.deleteMany({ where: { userId } });
+      await tx.session.deleteMany({ where: { userId } });
+      await tx.estimate.deleteMany({ where: { userId } });
+      await tx.conversation.deleteMany({ where: { bannedUserId: userId } });
+      await tx.auditLog.deleteMany({ where: { userId } });
+
+      await tx.user.delete({ where: { id: userId } });
+    });
+
     logAudit({
       userId: session.user.id,
       action: 'ADMIN_DELETE_USER',
       ip,
-      metadata: { deletedUserId: userId },
+      metadata: { route: '/api/admin/users', mode: 'hard-delete' },
     });
-
-    // Delete all related data first
-    await Promise.all([
-      db.account.deleteMany({ where: { userId } }),
-      db.session.deleteMany({ where: { userId } }),
-      db.estimate.deleteMany({ where: { userId } }),
-    ]);
-
-    // Then delete the user
-    await db.user.delete({ where: { id: userId } });
 
     return NextResponse.json(
       { success: true, message: 'User deleted successfully' },
@@ -241,7 +252,8 @@ export async function PATCH(req: Request) {
     }
 
     const ip = getClientIp(req);
-    const auditAction = action === 'ban' ? 'ADMIN_BAN_USER' : 'ADMIN_UNBAN_USER';
+    const auditAction =
+      action === 'ban' ? 'ADMIN_BAN_USER' : 'ADMIN_UNBAN_USER';
 
     logAudit({
       userId: session.user.id,
