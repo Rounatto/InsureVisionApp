@@ -1,17 +1,25 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useRef } from "react";
-import { useSession } from "next-auth/react";
-import { MessageIcon } from "@/lib/icons";
+import { useEffect, useState, useRef } from 'react';
+import { useSession } from 'next-auth/react';
+import { MessageIcon } from '@/lib/icons';
 
 interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   senderEmail: string;
-  senderType: "USER" | "ADMIN";
+  senderType: 'USER' | 'ADMIN';
   content: string;
   createdAt: string;
+}
+
+function emitBanStatusChange(isBanned: boolean) {
+  window.dispatchEvent(
+    new CustomEvent('ban-status-change', {
+      detail: { isBanned },
+    })
+  );
 }
 
 export default function BannedNotification() {
@@ -19,34 +27,45 @@ export default function BannedNotification() {
   const [isBanned, setIsBanned] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [messageInput, setMessageInput] = useState("");
+  const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const lastFetchRef = useRef<string>("");
+  const lastFetchRef = useRef<string>('');
+  const BAN_STATUS_POLL_MS = 5000;
+
+  const getBanStatus = async () => {
+    const res = await fetch('/api/messages/ban-status');
+    if (!res.ok) throw new Error('Failed to fetch ban status');
+    const data = (await res.json()) as { isBanned?: boolean };
+    return Boolean(data.isBanned);
+  };
 
   // Check if user is banned on mount
   useEffect(() => {
     const checkBannedStatus = async () => {
       try {
-        const res = await fetch("/api/messages/conversation");
         const storageKey = `ban-status-${session?.user?.id}`;
+        const currentIsBanned = await getBanStatus();
 
-        if (res.status === 403) {
-          // 403 = User is NOT banned
+        if (!currentIsBanned) {
           setIsBanned(false);
-          sessionStorage.setItem(storageKey, "unbanned");
-        } else if (res.ok) {
-          // 200 = User IS banned
+          sessionStorage.setItem(storageKey, 'unbanned');
+          emitBanStatusChange(false);
+        } else {
           setIsBanned(true);
-          sessionStorage.setItem(storageKey, "banned");
-          const data = await res.json();
-          setMessages(data.messages || []);
-          lastFetchRef.current = JSON.stringify(data.messages);
+          sessionStorage.setItem(storageKey, 'banned');
+          emitBanStatusChange(true);
+          const convoRes = await fetch('/api/messages/conversation');
+          if (convoRes.ok) {
+            const data = await convoRes.json();
+            setMessages(data.messages || []);
+            lastFetchRef.current = JSON.stringify(data.messages);
+          }
         }
       } catch (err) {
-        console.error("Error checking ban status:", err);
+        console.error('Error checking ban status:', err);
       }
     };
 
@@ -57,30 +76,31 @@ export default function BannedNotification() {
 
   // Silently poll ban status every 2 seconds - close notification if unbanned
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !isBanned) return;
 
     const storageKey = `ban-status-${session?.user?.id}`;
 
     const checkBanStatusInRealTime = async () => {
       try {
-        const res = await fetch("/api/messages/conversation");
-        // If user gets 403, they're no longer banned - close this notification
-        if (res.status === 403) {
+        const currentIsBanned = await getBanStatus();
+        if (!currentIsBanned) {
           setIsBanned(false);
-          sessionStorage.setItem(storageKey, "unbanned");
-        } else if (res.ok) {
+          sessionStorage.setItem(storageKey, 'unbanned');
+          emitBanStatusChange(false);
+        } else {
           setIsBanned(true);
-          sessionStorage.setItem(storageKey, "banned");
+          sessionStorage.setItem(storageKey, 'banned');
+          emitBanStatusChange(true);
         }
-      } catch (err) {
+      } catch {
         // Silently fail
       }
     };
 
-    // Poll every 2 seconds to detect unbanning in real time
-    const interval = setInterval(checkBanStatusInRealTime, 2000);
+    // Poll only while banned to detect unban events in near real-time.
+    const interval = setInterval(checkBanStatusInRealTime, BAN_STATUS_POLL_MS);
     return () => clearInterval(interval);
-  }, [session?.user?.id]);
+  }, [session?.user?.id, isBanned]);
 
   // Silently poll for new admin messages in background
   useEffect(() => {
@@ -88,7 +108,7 @@ export default function BannedNotification() {
 
     const fetchNewMessages = async () => {
       try {
-        const res = await fetch("/api/messages/conversation");
+        const res = await fetch('/api/messages/conversation');
         if (res.ok) {
           const data = await res.json();
           const newMessagesStr = JSON.stringify(data.messages);
@@ -99,7 +119,7 @@ export default function BannedNotification() {
             lastFetchRef.current = newMessagesStr;
           }
         }
-      } catch (err) {
+      } catch {
         // Silently fail
       }
     };
@@ -115,33 +135,33 @@ export default function BannedNotification() {
     if (!messageInput.trim() || sending) return;
 
     const userMessage = messageInput.trim();
-    setMessageInput("");
+    setMessageInput('');
 
     try {
       setSending(true);
 
       // Optimistic update
       const tempMessage: Message = {
-        id: "temp-" + Date.now(),
-        conversationId: "",
-        senderId: session?.user?.id || "",
-        senderEmail: session?.user?.email || "",
-        senderType: "USER",
+        id: 'temp-' + Date.now(),
+        conversationId: '',
+        senderId: session?.user?.id || '',
+        senderEmail: session?.user?.email || '',
+        senderType: 'USER',
         content: userMessage,
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, tempMessage]);
 
-      const res = await fetch("/api/messages/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: userMessage }),
       });
 
       if (!res.ok) {
         setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
         const data = await res.json();
-        alert(data.message || "Failed to send message");
+        alert(data.message || 'Failed to send message');
         setMessageInput(userMessage);
         return;
       }
@@ -154,9 +174,9 @@ export default function BannedNotification() {
         messages.map((m) => (m.id === tempMessage.id ? data.message : m))
       );
     } catch (err) {
-      console.error("Error sending message:", err);
-      setMessages((prev) => prev.filter((m) => m.id !== ("temp-" + Date.now())));
-      alert("Failed to send message. Please try again.");
+      console.error('Error sending message:', err);
+      setMessages((prev) => prev.filter((m) => m.id !== 'temp-' + Date.now()));
+      alert('Failed to send message. Please try again.');
       setMessageInput(userMessage);
     } finally {
       setSending(false);
@@ -193,7 +213,8 @@ export default function BannedNotification() {
                 Account Restricted
               </h3>
               <p className="text-sm text-[color:var(--muted-foreground)] mt-1.5">
-                Your account has been temporarily restricted. Contact admin to discuss and resolve this.
+                Your account has been temporarily restricted. Contact admin to
+                discuss and resolve this.
               </p>
               <button
                 onClick={() => setShowChat(true)}
@@ -222,35 +243,60 @@ export default function BannedNotification() {
               onClick={() => setShowChat(false)}
               className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[color:var(--muted)] transition-colors text-[color:var(--muted-foreground)]"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
 
           {/* Messages */}
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto max-h-96 px-5 py-4 space-y-3 bg-[color:var(--background)]">
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto max-h-96 px-5 py-4 space-y-3 bg-[color:var(--background)]"
+          >
             {messages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <MessageIcon className="h-8 w-8 text-[color:var(--muted-foreground)] mx-auto mb-2" />
-                  <p className="text-sm text-[color:var(--muted-foreground)]">No messages yet</p>
-                  <p className="text-xs text-[color:var(--muted-foreground)] mt-1">Send a message to start</p>
+                  <p className="text-sm text-[color:var(--muted-foreground)]">
+                    No messages yet
+                  </p>
+                  <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
+                    Send a message to start
+                  </p>
                 </div>
               </div>
             ) : (
               messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.senderType === "ADMIN" ? "justify-start" : "justify-end"} animate-fadeIn`}>
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.senderType === 'ADMIN' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
+                >
                   <div
                     className={`max-w-xs px-4 py-2 rounded-2xl text-sm break-words ${
-                      msg.senderType === "ADMIN"
-                        ? "bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]"
-                        : "bg-blue-600 text-white"
+                      msg.senderType === 'ADMIN'
+                        ? 'bg-[color:var(--muted)] text-[color:var(--foreground)] border border-[color:var(--border)]'
+                        : 'bg-blue-600 text-white'
                     }`}
                   >
                     <p>{msg.content}</p>
-                    <p className={`text-xs mt-1.5 ${msg.senderType === "ADMIN" ? "text-[color:var(--muted-foreground)]" : "text-blue-100"}`}>
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    <p
+                      className={`text-xs mt-1.5 ${msg.senderType === 'ADMIN' ? 'text-[color:var(--muted-foreground)]' : 'text-blue-100'}`}
+                    >
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </p>
                   </div>
                 </div>
@@ -275,7 +321,7 @@ export default function BannedNotification() {
                 disabled={!messageInput.trim() || sending}
                 className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 disabled:opacity-50"
               >
-                {sending ? "..." : "Send"}
+                {sending ? '...' : 'Send'}
               </button>
             </form>
           </div>
@@ -284,10 +330,18 @@ export default function BannedNotification() {
 
       <style jsx>{`
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
       `}</style>
     </div>
   );

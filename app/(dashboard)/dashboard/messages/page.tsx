@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import DashboardLayout from "@/components/DashboardLayout";
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import DashboardLayout from '@/components/DashboardLayout';
 
 interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   senderEmail: string;
-  senderType: "USER" | "ADMIN";
+  senderType: 'USER' | 'ADMIN';
   content: string;
   createdAt: string;
 }
@@ -27,17 +27,20 @@ export default function MessagesPage() {
   const router = useRouter();
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversation, setConversation] = useState<ConversationData | null>(null);
+  const [conversation, setConversation] = useState<ConversationData | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
-  const [messageInput, setMessageInput] = useState("");
+  const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
+  const [canPollConversation, setCanPollConversation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -50,24 +53,26 @@ export default function MessagesPage() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch("/api/messages/conversation?page=1");
+      const res = await fetch('/api/messages/conversation?page=1');
       if (!res.ok) {
         if (res.status === 403) {
           setIsBanned(false);
-          setError("You must be banned to access this page");
-          setTimeout(() => router.push("/dashboard"), 2000);
+          setCanPollConversation(false);
+          setError('You must be banned to access this page');
+          setTimeout(() => router.push('/dashboard'), 2000);
           return;
         }
-        throw new Error("Failed to fetch messages");
+        throw new Error('Failed to fetch messages');
       }
 
       const data = await res.json();
       setConversation(data.conversation);
       setMessages(data.messages || []);
       setIsBanned(true);
+      setCanPollConversation(true);
     } catch (err) {
-      console.error("Error fetching messages:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch messages");
+      console.error('Error fetching messages:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch messages');
     } finally {
       setLoading(false);
     }
@@ -75,14 +80,18 @@ export default function MessagesPage() {
 
   // Fetch messages on mount and set up polling
   useEffect(() => {
-    if (status === "authenticated") {
-      fetchMessages();
+    if (status !== 'authenticated') return;
 
-      // Poll for new messages every 3 seconds
-      const interval = setInterval(fetchMessages, 3000);
-      return () => clearInterval(interval);
-    }
+    fetchMessages();
   }, [status, fetchMessages]);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !canPollConversation) return;
+
+    // Poll for new messages every 3 seconds only for banned users.
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, [status, canPollConversation, fetchMessages]);
 
   // Send message
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -94,46 +103,48 @@ export default function MessagesPage() {
       setSending(true);
       setError(null);
 
-      const res = await fetch("/api/messages/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: messageInput }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Failed to send message");
+        throw new Error(data.message || 'Failed to send message');
       }
 
       const data = await res.json();
 
       // Add new message to list
       setMessages((prev) => [...prev, data.message]);
-      setMessageInput("");
+      setMessageInput('');
 
       // Fetch updated conversation
       await fetchMessages();
     } catch (err) {
-      console.error("Error sending message:", err);
-      setError(err instanceof Error ? err.message : "Failed to send message");
+      console.error('Error sending message:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send message');
     } finally {
       setSending(false);
     }
   };
 
   // Loading state
-  if (status === "loading" || loading) {
+  if (status === 'loading' || loading) {
     return (
       <DashboardLayout>
         <div className="p-6">
-          <p className="text-center text-[color:var(--muted-foreground)]">Loading messages...</p>
+          <p className="text-center text-[color:var(--muted-foreground)]">
+            Loading messages...
+          </p>
         </div>
       </DashboardLayout>
     );
   }
 
   // Redirect if not authenticated
-  if (status !== "authenticated") {
+  if (status !== 'authenticated') {
     return null;
   }
 
@@ -162,7 +173,8 @@ export default function MessagesPage() {
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-center text-[color:var(--muted-foreground)]">
-                No messages yet. Send a message to start communicating with the admin team.
+                No messages yet. Send a message to start communicating with the
+                admin team.
               </p>
             </div>
           ) : (
@@ -170,18 +182,18 @@ export default function MessagesPage() {
               <div
                 key={msg.id}
                 className={`flex gap-3 ${
-                  msg.senderType === "ADMIN" ? "justify-start" : "justify-end"
+                  msg.senderType === 'ADMIN' ? 'justify-start' : 'justify-end'
                 }`}
               >
                 <div
                   className={`max-w-xs px-4 py-2 rounded-lg ${
-                    msg.senderType === "ADMIN"
-                      ? "bg-[color:var(--muted)] text-[color:var(--foreground)]"
-                      : "bg-blue-500 text-white"
+                    msg.senderType === 'ADMIN'
+                      ? 'bg-[color:var(--muted)] text-[color:var(--foreground)]'
+                      : 'bg-blue-500 text-white'
                   }`}
                 >
                   <p className="text-xs font-medium opacity-75 mb-1">
-                    {msg.senderType === "ADMIN" ? "Admin" : "You"}
+                    {msg.senderType === 'ADMIN' ? 'Admin' : 'You'}
                   </p>
                   <p className="text-sm break-words">{msg.content}</p>
                   <p className="text-xs opacity-50 mt-1">
@@ -213,7 +225,7 @@ export default function MessagesPage() {
               disabled={!messageInput.trim() || sending}
               className="rounded-lg bg-blue-500 text-white px-6 py-2 text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {sending ? "Sending..." : "Send"}
+              {sending ? 'Sending...' : 'Send'}
             </button>
           </div>
         </form>

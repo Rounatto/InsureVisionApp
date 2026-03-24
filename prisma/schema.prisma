@@ -27,8 +27,16 @@ model User {
   accounts      Account[]
   sessions      Session[]
   estimates     Estimate[]
+  estimateJobs  EstimateJob[]
   conversation  Conversation?
   tokenVersion  Int           @default(0)
+}
+
+enum EstimateJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 model Account {
@@ -146,6 +154,24 @@ model EstimatePart {
   severity   String // "High" | "Medium" | "Low"
 
   estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+}
+
+model EstimateJob {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoUrls  String[]
+  photoCount Int
+  status     EstimateJobStatus @default(QUEUED)
+  result     Json?
+  error      String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([userId, status])
+  @@index([createdAt])
 }
 
 // ─── Messaging System ─────────────────────────────────────────────────────

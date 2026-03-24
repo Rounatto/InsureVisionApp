@@ -1,49 +1,68 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useEffect, useState } from 'react';
+import { useRef } from 'react';
+import { useSession } from 'next-auth/react';
 
 export default function UnbannedNotification() {
   const { data: session } = useSession();
   const [showNotification, setShowNotification] = useState(false);
-  const [previousIsBanned, setPreviousIsBanned] = useState<boolean | null>(null);
+  const previousIsBannedRef = useRef(false);
 
   useEffect(() => {
     if (!session?.user?.id) return;
 
-    const checkUnbannedStatus = async () => {
+    const storageKey = `ban-status-${session.user.id}`;
+    const initialWasBanned = sessionStorage.getItem(storageKey) === 'banned';
+    previousIsBannedRef.current = initialWasBanned;
+
+    const checkInitialStatus = async () => {
       try {
-        const res = await fetch("/api/messages/conversation");
-
-        // Determine current ban status from response
-        // 403 = NOT banned (can't access banned user conversations)
-        // 200 = IS banned (can access their conversation)
-        const currentIsBanned = res.ok && res.status === 200;
-
-        // If we have a previous state and it transitioned from banned to unbanned
-        if (previousIsBanned === true && currentIsBanned === false) {
-          // User just got unbanned - show celebration!
-          setShowNotification(true);
-        } else if (currentIsBanned === true || previousIsBanned === null) {
-          // User is banned or first time checking - hide celebration
-          setShowNotification(false);
-        }
-
-        // Update previous state
-        setPreviousIsBanned(currentIsBanned);
-      } catch (err) {
-        console.error("Error checking ban status:", err);
-        setShowNotification(false);
+        const res = await fetch('/api/messages/ban-status');
+        if (!res.ok) return;
+        const data = (await res.json()) as { isBanned?: boolean };
+        const currentIsBanned = Boolean(data.isBanned);
+        sessionStorage.setItem(
+          storageKey,
+          currentIsBanned ? 'banned' : 'unbanned'
+        );
+        previousIsBannedRef.current = currentIsBanned;
+      } catch {
+        // silent fail
       }
     };
 
-    // Check immediately on mount
-    checkUnbannedStatus();
+    const onBanStatusChange = (event: Event) => {
+      const custom = event as CustomEvent<{ isBanned?: boolean }>;
+      const currentIsBanned = Boolean(custom.detail?.isBanned);
 
-    // Then poll silently every 2 seconds
-    const interval = setInterval(checkUnbannedStatus, 2000);
+      if (previousIsBannedRef.current && !currentIsBanned) {
+        setShowNotification(true);
+      }
 
-    return () => clearInterval(interval);
+      if (currentIsBanned) {
+        setShowNotification(false);
+      }
+
+      sessionStorage.setItem(
+        storageKey,
+        currentIsBanned ? 'banned' : 'unbanned'
+      );
+      previousIsBannedRef.current = currentIsBanned;
+    };
+
+    checkInitialStatus();
+    window.addEventListener(
+      'ban-status-change',
+      onBanStatusChange as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'ban-status-change',
+        onBanStatusChange as EventListener
+      );
+    };
   }, [session?.user?.id]);
 
   if (!showNotification) return null;
@@ -72,7 +91,9 @@ export default function UnbannedNotification() {
               Account Restriction Lifted! 🎉
             </h3>
             <p className="text-sm text-green-800 mt-1.5">
-              Your account has been unbanned and restored to full access. You can now upload estimates, modify your profile, and use all features without any restrictions. Welcome back!
+              Your account has been unbanned and restored to full access. You
+              can now upload estimates, modify your profile, and use all
+              features without any restrictions. Welcome back!
             </p>
             <button
               onClick={() => setShowNotification(false)}
