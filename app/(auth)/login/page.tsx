@@ -11,6 +11,10 @@ import { signIn } from 'next-auth/react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import InsureVisionLogo from '@/components/InsureVisionLogo';
 import LightRays from '@/components/LightRays';
+import {
+  getEmbeddedOAuthMessage,
+  isEmbeddedBrowser,
+} from '@/lib/embedded-browser';
 import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
 
 export default function LoginPage() {
@@ -39,6 +43,9 @@ function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [embeddedBrowser, setEmbeddedBrowser] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
+  const [currentUrl, setCurrentUrl] = useState('');
 
   // ─── Query-param driven messages (email verification, etc.) ──
   useEffect(() => {
@@ -50,6 +57,11 @@ function Login() {
       setError('Verification link expired. Please register again.');
     if (err === 'invalid-token') setError('Invalid verification link.');
   }, [searchParams]);
+
+  useEffect(() => {
+    setEmbeddedBrowser(isEmbeddedBrowser());
+    setCurrentUrl(window.location.href);
+  }, []);
 
   // ─── Submit Handler ───────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,13 +94,35 @@ function Login() {
 
   // ─── Google Sign-In Handler ───────────────────────────────
   const handleGoogleSignIn = async () => {
+    if (embeddedBrowser) {
+      setError(getEmbeddedOAuthMessage());
+      return;
+    }
+
     setGoogleLoading(true);
     setError('');
+
     try {
       await signIn('google', { callbackUrl: '/dashboard' });
     } catch {
       setError('Google sign-in failed. Please try again.');
       setGoogleLoading(false);
+    }
+  };
+
+  const handleOpenInBrowser = () => {
+    const url = currentUrl || window.location.href;
+    setCopyStatus('');
+    window.open(url, '_blank');
+  };
+
+  const handleCopyLink = async () => {
+    const url = currentUrl || window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyStatus('Link copied. Paste it in Chrome or Safari.');
+    } catch {
+      setCopyStatus('Copy failed. Please copy the URL manually.');
     }
   };
 
@@ -250,6 +284,42 @@ function Login() {
                 </div>
               )}
 
+              {embeddedBrowser && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                  <p className="text-xs font-semibold text-center">
+                    Google Sign-In does not work in this browser.
+                  </p>
+                  <p className="mt-1 text-[11px] text-center text-amber-800">
+                    Open this page in Chrome or Safari to continue.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenInBrowser}
+                    className="mt-3 w-full rounded-full bg-amber-900 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                  >
+                    Open in Browser
+                  </button>
+
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-white/80 p-3">
+                    <p className="text-[11px] text-amber-900 break-all">
+                      {currentUrl}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="mt-2 w-full rounded-full border border-amber-300 bg-white py-2 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100"
+                    >
+                      Copy Link
+                    </button>
+                    {copyStatus && (
+                      <p className="mt-2 text-[11px] text-center text-amber-800">
+                        {copyStatus}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Email */}
               <div>
                 <input
@@ -373,32 +443,34 @@ function Login() {
                   Bouton social Google.
                   Le SVG est le logo officiel stylisé en 4 couleurs.
                 */}
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={googleLoading || loading}
-                  className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-4 font-semibold text-gray-900 hover:bg-gray-50 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg viewBox="0 0 48 48" className="h-5 w-5">
-                    <path
-                      fill="#FFC107"
-                      d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"
-                    />
-                    <path
-                      fill="#FF3D00"
-                      d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"
-                    />
-                    <path
-                      fill="#4CAF50"
-                      d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"
-                    />
-                    <path
-                      fill="#1976D2"
-                      d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"
-                    />
-                  </svg>
-                  {googleLoading ? 'Connecting...' : 'Sign In with Google'}
-                </button>
+                {!embeddedBrowser && (
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={googleLoading || loading}
+                    className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-4 font-semibold text-gray-900 hover:bg-gray-50 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg viewBox="0 0 48 48" className="h-5 w-5">
+                      <path
+                        fill="#FFC107"
+                        d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12S17.4 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"
+                      />
+                      <path
+                        fill="#FF3D00"
+                        d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3 0 5.7 1.1 7.8 3l5.7-5.7C34.1 6.1 29.3 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"
+                      />
+                      <path
+                        fill="#4CAF50"
+                        d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2c-2.1 1.6-4.7 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-8l-6.6 5.1C9.6 39.6 16.2 44 24 44z"
+                      />
+                      <path
+                        fill="#1976D2"
+                        d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.3 5.6-6.3 7.3l6.3 5.2C39 37.2 44 31.2 44 24c0-1.3-.1-2.4-.4-3.5z"
+                      />
+                    </svg>
+                    {googleLoading ? 'Connecting...' : 'Sign In with Google'}
+                  </button>
+                )}
               </div>
             </div>
           </form>
