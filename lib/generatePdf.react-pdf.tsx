@@ -345,13 +345,7 @@ function EstimateDocument({
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            {logoSrc && (
-              <Image
-                src={logoSrc}
-                alt="InsureVision logo"
-                style={styles.logo}
-              />
-            )}
+            {logoSrc && <Image src={logoSrc} style={styles.logo} />}
             <View style={styles.brandTextWrap}>
               <Text style={styles.brand}>InsureVision</Text>
               <Text style={styles.subtitle}>
@@ -448,11 +442,7 @@ function EstimateDocument({
                 <View key={`row-${rowIndex}`} style={styles.photoRow}>
                   {row.map((photo) => (
                     <View key={photo.label} style={styles.photoCell}>
-                      <Image
-                        src={photo.src}
-                        alt={photo.label}
-                        style={styles.photoImage}
-                      />
+                      <Image src={photo.src} style={styles.photoImage} />
                       <Text style={styles.photoLabel}>{photo.label}</Text>
                     </View>
                   ))}
