@@ -1,9 +1,15 @@
-import { NextResponse } from "next/server";
-import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, db } from "@/lib/api-helpers";
-import { logAudit } from "@/lib/audit";
-import { getClientIp } from "@/lib/rate-limit";
-import { RL_DELETE_ACCOUNT } from "@/lib/constants";
-import type { ErrorResponse } from "@/types/auth";
+import { NextResponse } from 'next/server';
+import {
+  requireDb,
+  requireAuth,
+  requireTrustedOrigin,
+  requireRateLimit,
+  db,
+} from '@/lib/api-helpers';
+import { logAudit } from '@/lib/audit';
+import { getClientIp } from '@/lib/rate-limit';
+import { RL_DELETE_ACCOUNT } from '@/lib/constants';
+import type { ErrorResponse } from '@/types/auth';
 
 /**
  * DELETE /api/auth/delete-account
@@ -11,8 +17,8 @@ import type { ErrorResponse } from "@/types/auth";
  * Deletes the authenticated user's account.
  * Requires only a valid session — no password needed.
  *
- * Wraps the deletion in a transaction. Cascading relations
- * (Account, Session, Estimate → EstimatePart) are handled by the DB.
+ * Wraps deletion in a transaction with explicit cleanup of auth/token rows
+ * before deleting the user record.
  */
 export async function DELETE(req: Request) {
   try {
@@ -26,7 +32,11 @@ export async function DELETE(req: Request) {
     if (authError) return authError;
 
     const userId = session.user.id;
-    const rlError = requireRateLimit(req, `delete-account:${userId}`, RL_DELETE_ACCOUNT);
+    const rlError = requireRateLimit(
+      req,
+      `delete-account:${userId}`,
+      RL_DELETE_ACCOUNT
+    );
     if (rlError) return rlError;
 
     // ── Check if user is banned and fetch email ─────────────────────────────
@@ -37,34 +47,50 @@ export async function DELETE(req: Request) {
 
     if (bannedCheckUser?.banned) {
       return NextResponse.json<ErrorResponse>(
-        { success: false, message: "Your account is banned and cannot perform this action." },
+        {
+          success: false,
+          message: 'Your account is banned and cannot perform this action.',
+        },
         { status: 403 }
       );
     }
 
     if (!bannedCheckUser) {
       return NextResponse.json<ErrorResponse>(
-        { success: false, message: "User not found" },
-        { status: 404 },
+        { success: false, message: 'User not found' },
+        { status: 404 }
       );
     }
 
-    // ── Atomic delete (cascades handle related rows) ───────
-    await db.$transaction([
-      db.securityToken.deleteMany({ where: { identifier: bannedCheckUser.email } }),
-      db.user.delete({ where: { id: userId } }),
-    ]);
+    // ── Atomic hard delete with full cleanup ───────────────
+    await db.$transaction(async (tx) => {
+      await tx.verificationToken.deleteMany({
+        where: { identifier: bannedCheckUser.email },
+      });
+      await tx.securityToken.deleteMany({
+        where: { identifier: bannedCheckUser.email },
+      });
+      await tx.account.deleteMany({ where: { userId } });
+      await tx.session.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
 
     // ── Audit (userId will no longer exist, but we log it for records) ───
     const ip = getClientIp(req);
-    logAudit({ userId, action: "ACCOUNT_DELETED", ip });
+    logAudit({ userId, action: 'ACCOUNT_DELETED', ip });
 
-    return NextResponse.json({ success: true, message: "Account deleted successfully." });
+    return NextResponse.json({
+      success: true,
+      message: 'Account deleted successfully.',
+    });
   } catch (error) {
-    console.error("Delete account error:", error);
+    console.error('Delete account error:', error);
     return NextResponse.json<ErrorResponse>(
-      { success: false, message: "Failed to delete account. Please try again." },
-      { status: 500 },
+      {
+        success: false,
+        message: 'Failed to delete account. Please try again.',
+      },
+      { status: 500 }
     );
   }
 }
