@@ -9,6 +9,7 @@ interface EstimateJobResult {
   parts: { name: string; cost: number; severity: string }[];
   photos: string[];
   summary: string;
+  model?: unknown;
 }
 
 /**
@@ -79,6 +80,7 @@ export async function processEstimateJob(jobId: string): Promise<void> {
       parts: modelOutput.parts,
       photos: job.photoUrls,
       summary: modelOutput.summary,
+      model: modelOutput.model,
     };
 
     await db.$transaction(async (tx) => {

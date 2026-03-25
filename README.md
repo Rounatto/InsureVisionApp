@@ -74,18 +74,31 @@ DATABASE_URL="postgresql://user:password@host:5432/insurevision"
 AUTH_SECRET="your-random-secret"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
-AI_PROVIDER="mock"
+AI_PROVIDER="http"
 AI_ENDPOINT="https://your-ai-provider.example.com/estimate"
 AI_API_KEY="your-ai-provider-api-key"
 AI_TIMEOUT_MS="15000"
+MODEL_SERVER_URL="https://insurevision-model-server.onrender.com"
+MODEL_API_KEY="your-model-server-secret"
 ```
 
 AI variables:
 
-- `AI_PROVIDER`: `mock` (default) or `http`
+- `AI_PROVIDER`: `http` to enable generic HTTP provider mode
 - `AI_ENDPOINT`: Required when `AI_PROVIDER=http`
 - `AI_API_KEY`: Optional bearer token used for `Authorization: Bearer <token>`
 - `AI_TIMEOUT_MS`: Request timeout in milliseconds (default: `15000`)
+
+Model server variables:
+
+- `MODEL_SERVER_URL`: Base URL of the deployed model server. When set, estimate jobs call `POST {MODEL_SERVER_URL}/predict` for each uploaded photo.
+- `MODEL_API_KEY`: Optional secret passed as `x-api-secret` header to the model server.
+
+Priority order in production:
+
+1. `MODEL_SERVER_URL` set -> model server provider is used.
+2. Else if `AI_PROVIDER=http` -> HTTP provider is used.
+3. Else -> request fails (no mock fallback).
 
 ### Install & Run
 
