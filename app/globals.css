@@ -63,8 +63,8 @@
   /* Variables de base */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-
+  --font-sans: var(--font-geist-sans);
+  
   /* COULEUR DYNAMIQUE : Utilisée pour les boutons, titres et liens */
   --color-primary: hsl(var(--primary));
   
@@ -136,14 +136,6 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-}
-
-/* Force controls to use the same family instead of browser defaults */
-input,
-button,
-textarea,
-select {
-  font: inherit;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
 

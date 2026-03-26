@@ -1,17 +1,7 @@
-'use client';
+"use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react';
-import {
-  translations,
-  type Language,
-  type TranslationKey,
-} from '@/lib/i18n/translations';
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { translations, type Language, type TranslationKey } from "@/lib/i18n/translations";
 
 interface LanguageContextType {
   language: Language;
@@ -19,28 +9,25 @@ interface LanguageContextType {
   t: (key: TranslationKey) => string;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(
-  undefined
-);
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window === 'undefined') return 'en';
-    const savedLanguage = localStorage.getItem(
-      'insurevision-language'
-    ) as Language | null;
-    return savedLanguage && translations[savedLanguage] ? savedLanguage : 'en';
-  });
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const [language, setLanguageState] = useState<Language>("en");
+  const [mounted, setMounted] = useState(false);
+
+  // Load language from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("insurevision-language") as Language | null;
+    if (savedLanguage && translations[savedLanguage]) {
+      setLanguageState(savedLanguage);
+    }
+    setMounted(true);
+  }, []);
 
   // Save language to localStorage when it changes
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('insurevision-language', lang);
+    localStorage.setItem("insurevision-language", lang);
   };
 
   // Translation function
@@ -63,7 +50,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    throw new Error("useLanguage must be used within a LanguageProvider");
   }
   return context;
 }

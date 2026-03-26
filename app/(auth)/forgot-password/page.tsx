@@ -31,7 +31,7 @@ export default function ForgotPassword() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Something went wrong");
+        setError(data.error || "Something went wrong");
         return;
       }
 

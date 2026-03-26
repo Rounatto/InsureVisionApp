@@ -4,13 +4,6 @@ import './LightRays.css';
 
 const DEFAULT_COLOR = '#ffffff';
 
-const getAdaptiveDpr = () => {
-  if (typeof window === 'undefined') return 1;
-  const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
-  const maxDpr = isMobileViewport ? 1.5 : 2;
-  return Math.min(window.devicePixelRatio || 1, maxDpr);
-};
-
 const hexToRgb = hex => {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return m ? [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255] : [1, 1, 1];
@@ -101,7 +94,7 @@ const LightRays = ({
       if (!containerRef.current) return;
 
       const renderer = new Renderer({
-        dpr: getAdaptiveDpr(),
+        dpr: Math.min(window.devicePixelRatio, 2),
         alpha: true
       });
       rendererRef.current = renderer;
@@ -250,7 +243,7 @@ void main() {
       const updatePlacement = () => {
         if (!containerRef.current || !renderer) return;
 
-        renderer.dpr = getAdaptiveDpr();
+        renderer.dpr = Math.min(window.devicePixelRatio, 2);
 
         const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
         renderer.setSize(wCSS, hCSS);
@@ -386,30 +379,17 @@ void main() {
   ]);
 
   useEffect(() => {
-    const updateMousePosition = (clientX, clientY) => {
+    const handleMouseMove = e => {
       if (!containerRef.current || !rendererRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const x = (clientX - rect.left) / rect.width;
-      const y = (clientY - rect.top) / rect.height;
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
       mouseRef.current = { x, y };
-    };
-
-    const handleMouseMove = e => updateMousePosition(e.clientX, e.clientY);
-    const handleTouchMove = e => {
-      const touch = e.touches[0];
-      if (!touch) return;
-      updateMousePosition(touch.clientX, touch.clientY);
     };
 
     if (followMouse) {
       window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('touchstart', handleTouchMove, { passive: true });
-      window.addEventListener('touchmove', handleTouchMove, { passive: true });
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('touchstart', handleTouchMove);
-        window.removeEventListener('touchmove', handleTouchMove);
-      };
+      return () => window.removeEventListener('mousemove', handleMouseMove);
     }
   }, [followMouse]);
 

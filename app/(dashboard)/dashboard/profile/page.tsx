@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import UserAvatar from "@/components/UserAvatar";
 import SectionHeading from "@/components/SectionHeading";
 import PrimaryButton from "@/components/PrimaryButton";
@@ -33,6 +33,10 @@ export default function ProfilePage() {
   const [canChangePassword, setCanChangePassword] = useState<boolean | null>(null);
 
   const [stats, setStats] = useState<{ estimates: number; photos: number } | null>(null);
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
@@ -72,7 +76,7 @@ export default function ProfilePage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        setSaveMsg(data.message || "Failed to save.");
+        setSaveMsg(data.error || "Failed to save.");
       } else {
         await updateSession({ name: resolvedName });
         setNameTouched(false);
@@ -102,11 +106,11 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.errors) {
-          const msgs = data.errors.map((e: { message: string }) => e.message).join(". ");
+        if (data.details) {
+          const msgs = Object.values(data.details).flat().join(". ");
           setPwdError(msgs);
         } else {
-          setPwdError(data.message || "Failed to change password.");
+          setPwdError(data.error || "Failed to change password.");
         }
       } else {
         setPwdSuccess("Password changed successfully!");
@@ -143,7 +147,7 @@ export default function ProfilePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setAvatarMsg(data.message || "Failed to upload avatar.");
+        setAvatarMsg(data.error || "Failed to upload avatar.");
       } else {
         await updateSession({ image: data.user.image });
         setAvatarFile(null);
@@ -155,23 +159,35 @@ export default function ProfilePage() {
     setUploadingAvatar(false);
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      const res = await fetch("/api/auth/delete-account", { method: "DELETE" });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.error || "Failed to delete account");
+        setDeleting(false);
+        return;
+      }
+
+      await signOut({ callbackUrl: "/login" });
+    } catch {
+      setDeleteError(NETWORK_ERROR_MESSAGE);
+      setDeleting(false);
+    }
+  };
+
   return (
     <>
       <main className="mx-auto max-w-xl px-6 py-12">
         <div className="flex items-center gap-5 mb-12">
           <UserAvatar name={session?.user?.name} image={session?.user?.image} loading={status === "loading"} size="h-16 w-16" textSize="text-2xl" />
           <div className="min-w-0 flex-1">
-            {status === "loading" ? (
-              <>
-                <div className="h-7 w-40 rounded bg-[color:var(--muted)] animate-pulse mb-1" />
-                <div className="h-4 w-28 rounded bg-[color:var(--muted)] animate-pulse" />
-              </>
-            ) : (
-              <>
-                <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{session?.user?.name || "User"}</h1>
-                <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Member since February 2026</p>
-              </>
-            )}
+            <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{session?.user?.name || "User"}</h1>
+            <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Member since February 2026</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label className="rounded-full border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium text-[color:var(--foreground)] cursor-pointer hover:bg-[color:var(--muted)] transition-colors">
                 Choose Photo
@@ -341,9 +357,62 @@ export default function ProfilePage() {
           <p className="text-xs text-[color:var(--muted-foreground)]">No activity yet - your estimation history will appear here.</p>
         )}
 
+        <div className="border-b border-[color:var(--border)] my-10" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-red-500">Delete Account</p>
+            <p className="text-xs text-[color:var(--muted-foreground)] mt-1">Permanently remove your account and all data.</p>
+            {deleteError && (
+              <p className="text-[11px] text-red-500 mt-2">{deleteError}</p>
+            )}
+          </div>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={deleting}
+            className="shrink-0 self-start rounded-full border border-red-500 px-5 py-2 text-sm font-medium text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+
         <div className="h-16" />
       </main>
 
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-[color:var(--card)] border border-[color:var(--border)] p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-[color:var(--foreground)] mb-2">
+              Delete Account?
+            </h3>
+            <p className="text-sm text-[color:var(--muted-foreground)] mb-6">
+              This will permanently delete your account, all your data, and cannot be undone. Are you sure?
+            </p>
+            {deleteError && (
+              <p className="text-[11px] text-red-500 mb-4">{deleteError}</p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError("");
+                }}
+                disabled={deleting}
+                className="rounded-full px-5 py-2.5 text-sm font-medium text-[color:var(--foreground)] border border-[color:var(--border)] hover:bg-[color:var(--muted)] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

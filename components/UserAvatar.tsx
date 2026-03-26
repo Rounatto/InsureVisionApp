@@ -22,9 +22,8 @@ export default function UserAvatar({
   className = "",
   loading = false,
 }: UserAvatarProps) {
-  const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
-
-  const showImage = !loading && Boolean(image) && failedImageSrc !== image;
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = !loading && Boolean(image) && !imageFailed;
   const showLetter = !loading && !showImage && name !== undefined;
 
   return (
@@ -36,7 +35,7 @@ export default function UserAvatar({
           src={image || ""}
           alt={name ? `${name} avatar` : "User avatar"}
           className="h-full w-full rounded-full object-cover"
-          onError={() => setFailedImageSrc(image || null)}
+          onError={() => setImageFailed(true)}
         />
       )}
       {showLetter ? (name || "U").charAt(0).toUpperCase() : ""}
