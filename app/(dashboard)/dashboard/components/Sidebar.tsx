@@ -8,8 +8,7 @@ import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
-import { HomeIcon, ClockIcon, UserIcon, SettingsIcon, ShieldIcon } from "@/lib/icons";
-import { isAdminEmail } from "@/lib/admin";
+import { HomeIcon, ClockIcon, UserIcon, SettingsIcon } from "@/lib/icons";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Sidebar() {
@@ -19,12 +18,10 @@ export default function Sidebar() {
   const { data: session, status } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const canAccessAdmin = isAdminEmail(session?.user?.email);
 
   const navItems = [
     { href: "/dashboard", label: t("home"), icon: HomeIcon },
     { href: "/dashboard/history", label: t("history"), icon: ClockIcon },
-    ...(canAccessAdmin ? [{ href: "/dashboard/admin", label: t("admin"), icon: ShieldIcon }] : []),
     { href: "/dashboard/profile", label: t("profile"), icon: UserIcon },
     { href: "/dashboard/settings", label: t("settings"), icon: SettingsIcon },
   ];

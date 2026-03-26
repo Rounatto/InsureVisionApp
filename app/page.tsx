@@ -18,12 +18,14 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="px-4 py-2 rounded-lg text-[color:var(--background)] hover:opacity-80 transition text-sm font-medium">
+              className="px-4 py-2 rounded-lg text-[color:var(--background)] hover:opacity-80 transition text-sm font-medium"
+            >
               Login
             </Link>
             <Link
               href="/register"
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-sm font-semibold">
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-sm font-semibold"
+            >
               Sign Up
             </Link>
             <div className="text-[color:var(--background)]">
@@ -49,12 +51,14 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/register"
-                className="px-8 py-4 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-center">
+                className="px-8 py-4 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-center"
+              >
                 Get Started
               </Link>
               <a
                 href="#how-it-works"
-                className="px-8 py-4 rounded-lg border-2 border-[color:var(--border)] font-semibold hover:bg-[color:var(--muted)] transition text-center">
+                className="px-8 py-4 rounded-lg border-2 border-[color:var(--border)] font-semibold hover:bg-[color:var(--muted)] transition text-center"
+              >
                 Learn More
               </a>
             </div>
@@ -65,6 +69,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
       {/* ─── How it Works ─────────────────────────────────────── */}
       <section id="how-it-works" className="bg-[color:var(--muted)] py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -72,6 +77,7 @@ export default function LandingPage() {
           <p className="text-center text-[color:var(--muted-foreground)] mb-16 max-w-2xl mx-auto">
             Three simple steps to get a reliable estimate in less than a minute.
           </p>
+
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { icon: "📸", title: "Take a Photo", desc: "Photograph the damage to your vehicle from different angles for a complete analysis." },
