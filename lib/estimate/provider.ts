@@ -40,6 +40,20 @@ const modelServerUrl = (process.env.MODEL_SERVER_URL || '').replace(/\/$/, '');
 const modelApiKey = process.env.MODEL_API_KEY || '';
 const modelRetries = Math.max(1, Number(process.env.MODEL_RETRIES || 3));
 
+class ModelServerError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ModelServerError';
+    this.status = status;
+  }
+
+  get retryable(): boolean {
+    return this.status === 429 || this.status >= 500;
+  }
+}
+
 function normalizeModelOutput(data: unknown): EstimateModelOutput | null {
   if (!data || typeof data !== 'object') return null;
 
@@ -168,7 +182,8 @@ async function callModelServerOnce(params: {
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      throw new Error(
+      throw new ModelServerError(
+        res.status,
         `Model server returned ${res.status}${body ? `: ${body.slice(0, 180)}` : ''}`
       );
     }
@@ -195,9 +210,17 @@ async function callModelServerWithRetry(params: {
       return await callModelServerOnce(params);
     } catch (error) {
       lastError = error;
+
+      const retryable =
+        error instanceof ModelServerError ? error.retryable : true;
+
+      if (!retryable) {
+        break;
+      }
+
       if (attempt >= modelRetries) break;
 
-      const backoffMs = attempt * 600;
+      const backoffMs = Math.min(5000, 1000 * 2 ** (attempt - 1));
       await new Promise((resolve) => setTimeout(resolve, backoffMs));
     }
   }

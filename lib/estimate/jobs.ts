@@ -25,6 +25,19 @@ async function runEstimateModel(params: {
   return generateEstimate(params);
 }
 
+function toJobErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'Failed to process estimation job.';
+  }
+
+  // Hide transient upstream details from users while preserving meaning.
+  if (/Model server returned (502|503|504)/.test(error.message)) {
+    return 'Estimation service is temporarily unavailable. Please try again.';
+  }
+
+  return error.message;
+}
+
 export async function queueEstimateJob(params: {
   userId: string;
   photoUrls: string[];
@@ -111,10 +124,7 @@ export async function processEstimateJob(jobId: string): Promise<void> {
       });
     });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Failed to process estimation job.';
+    const message = toJobErrorMessage(error);
 
     await db.estimateJob.update({
       where: { id: job.id },
