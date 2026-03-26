@@ -24,7 +24,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Blocking script: apply saved theme before first paint to prevent flash */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){

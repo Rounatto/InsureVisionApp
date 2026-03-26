@@ -1,3 +1,62 @@
+/* =====================================================
+   INSURE VISION AI - SYSTÈME DE THÈME DYNAMIQUE
+   ===================================================== 
+
+   ARCHITECTURE GLOBALE :
+   ----------------------
+   Ce fichier contient les styles CSS personnalisés pour gérer
+   le thème dynamique (light/dark) de la page d'accueil.
+
+   COMPOSANTS CLÉS :
+   -----------------
+   1. HomeThemeSwitcher (components/home-theme-switcher.tsx)
+      → Bouton qui bascule entre light et dark mode
+      → Applique/supprime la classe "dark" sur #home-container
+      → Sauvegarde le choix dans localStorage
+
+   2. #home-container (app/page.tsx)
+      → Conteneur principal de la page d'accueil
+      → Reçoit la classe "dark" du HomeThemeSwitcher
+      → Tous les styles dynamiques en dépendent
+
+   3. #home-nav (app/page.tsx)
+      → Barre de navigation
+      → Styles définis dans ce fichier (voir section NAVIGATION)
+
+   FONCTIONNEMENT DU DARK MODE :
+   -----------------------------
+   ❌ APPROCHE STANDARD TAILWIND (ne fonctionne pas ici) :
+      - Tailwind dark: classes → nécessite "dark" sur <html>
+      - Notre switcher applique "dark" sur #home-container
+
+   ✅ NOTRE SOLUTION :
+      - Sélecteurs CSS directs : #home-container.dark #element
+      - Permet un thème localisé (seulement sur la page d'accueil)
+      - Les autres pages (login, register, dashboard) ont leur propre thème
+
+   CHANGEMENTS VISUELS :
+   --------------------
+   LIGHT MODE (par défaut) :
+   - Background : Gradient blanc-gris
+   - Navigation : Fond NOIR
+   - Logo/Textes nav : BLANCS
+   - Boutons hover : Fond noir + texte blanc
+
+   DARK MODE (#home-container.dark) :
+   - Background : Gradient noir-gris foncé
+   - Navigation : Fond BLANC
+   - Logo/Textes nav : NOIRS
+   - Boutons hover : Fond noir + texte blanc
+
+   FICHIERS MODIFIÉS :
+   -------------------
+   ✓ app/page.tsx → Structure et classes CSS
+   ✓ app/globals.css → Styles dynamiques (ce fichier)
+   ✓ components/InsureVisionLogo.tsx → Logo avec couleur dynamique
+   ✓ components/home-theme-switcher.tsx → Bouton de changement de thème
+
+   ===================================================== */
+
 @import "tailwindcss";
 
 @theme inline {
