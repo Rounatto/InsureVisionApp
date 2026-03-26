@@ -1,16 +1,21 @@
-"use client";
+'use client';
 
-import { useState, useRef, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
-import Link from "next/link";
-import InsureVisionLogo from "@/components/InsureVisionLogo";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
-import UserAvatar from "@/components/UserAvatar";
-import { useClickOutside } from "@/hooks/useClickOutside";
-import { HomeIcon, ClockIcon, UserIcon, SettingsIcon, ShieldIcon } from "@/lib/icons";
-import { isAdminEmail } from "@/lib/admin";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useState, useRef, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { signOut, useSession } from 'next-auth/react';
+import Link from 'next/link';
+import InsureVisionLogo from '@/components/InsureVisionLogo';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
+import UserAvatar from '@/components/UserAvatar';
+import { useClickOutside } from '@/hooks/useClickOutside';
+import {
+  HomeIcon,
+  ClockIcon,
+  UserIcon,
+  SettingsIcon,
+  ShieldIcon,
+} from '@/lib/icons';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Sidebar() {
   const { t } = useLanguage();
@@ -19,21 +24,26 @@ export default function Sidebar() {
   const { data: session, status } = useSession();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const canAccessAdmin = isAdminEmail(session?.user?.email);
+  const canAccessAdmin = Boolean(session?.user?.isAdmin);
 
   const navItems = [
-    { href: "/dashboard", label: t("home"), icon: HomeIcon },
-    { href: "/dashboard/history", label: t("history"), icon: ClockIcon },
-    ...(canAccessAdmin ? [{ href: "/dashboard/admin", label: t("admin"), icon: ShieldIcon }] : []),
-    { href: "/dashboard/profile", label: t("profile"), icon: UserIcon },
-    { href: "/dashboard/settings", label: t("settings"), icon: SettingsIcon },
+    { href: '/dashboard', label: t('home'), icon: HomeIcon },
+    { href: '/dashboard/history', label: t('history'), icon: ClockIcon },
+    ...(canAccessAdmin
+      ? [{ href: '/dashboard/admin', label: t('admin'), icon: ShieldIcon }]
+      : []),
+    { href: '/dashboard/profile', label: t('profile'), icon: UserIcon },
+    { href: '/dashboard/settings', label: t('settings'), icon: SettingsIcon },
   ];
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/login" });
+    await signOut({ callbackUrl: '/login' });
   };
 
-  useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
+  useClickOutside(
+    profileRef,
+    useCallback(() => setProfileOpen(false), [])
+  );
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-[color:var(--border)] bg-[color:var(--card)]/50">
@@ -55,8 +65,8 @@ export default function Sidebar() {
                 href={item.href}
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[color:var(--foreground)] text-[color:var(--background)]"
-                    : "text-[color:var(--foreground)] hover:bg-[color:var(--muted)]"
+                    ? 'bg-[color:var(--foreground)] text-[color:var(--background)]'
+                    : 'text-[color:var(--foreground)] hover:bg-[color:var(--muted)]'
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -80,16 +90,16 @@ export default function Sidebar() {
           >
             <UserAvatar
               name={session?.user?.name}
-              loading={status === "loading"}
+              loading={status === 'loading'}
               size="h-9 w-9"
               textSize="text-xs"
             />
             <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-semibold text-[color:var(--foreground)] truncate">
-                {session?.user?.name || "User"}
+                {session?.user?.name || 'User'}
               </p>
               <p className="text-xs text-[color:var(--muted-foreground)] truncate">
-                {session?.user?.email || ""}
+                {session?.user?.email || ''}
               </p>
             </div>
             <svg
@@ -99,10 +109,14 @@ export default function Sidebar() {
               strokeWidth={2}
               stroke="currentColor"
               className={`h-4 w-4 text-[color:var(--muted-foreground)] transition-transform ${
-                profileOpen ? "rotate-180" : ""
+                profileOpen ? 'rotate-180' : ''
               }`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+              />
             </svg>
           </button>
 
@@ -129,7 +143,7 @@ export default function Sidebar() {
                     d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
                   />
                 </svg>
-                {t("signOut")}
+                {t('signOut')}
               </button>
             </div>
           )}
