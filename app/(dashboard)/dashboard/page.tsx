@@ -512,60 +512,107 @@ export default function Home() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
+    <main className="relative mx-auto max-w-5xl px-6 py-14 sm:py-16">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(ellipse_at_top,rgba(120,120,120,0.15),transparent_65%)]"
+      />
       <UnbannedNotification />
       <BannedNotification />
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-[color:var(--foreground)] mb-3">
+      <div className="mb-12 text-center">
+        <span className="mb-4 inline-flex rounded-full border border-[color:var(--border)] bg-[color:var(--card)] px-3 py-1 text-[11px] font-medium tracking-wide text-[color:var(--muted-foreground)]">
+          AI Vehicle Estimation
+        </span>
+        <h1 className="mb-3 text-4xl font-bold text-[color:var(--foreground)] sm:text-5xl">
           Damage Estimation
         </h1>
-        <p className="text-sm text-[color:var(--muted-foreground)] max-w-md mx-auto">
+        <p className="mx-auto max-w-lg text-sm text-[color:var(--muted-foreground)]">
           Upload photos of the damaged vehicle and our AI will generate an
           accurate repair cost estimate.
         </p>
       </div>
 
       {files.length === 0 ? (
-        <div
-          onDragEnter={handleDrag}
-          onDragOver={handleDrag}
-          onDragLeave={handleDrag}
-          onDrop={handleDrop}
-          className={`mx-auto max-w-xl rounded-3xl border-2 border-dashed p-12 text-center transition-colors cursor-pointer ${
-            dragActive
-              ? 'border-[color:var(--foreground)] bg-[color:var(--muted)]'
-              : 'border-[color:var(--border)] bg-[color:var(--muted)] hover:border-[color:var(--foreground)]/40'
-          }`}
-          onClick={() => document.getElementById('file-input')?.click()}
-        >
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[color:var(--background)] border border-[color:var(--border)]">
-            <Upload className="h-7 w-7 text-[color:var(--foreground)]" />
+        <>
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            className={`mx-auto max-w-xl rounded-3xl border-2 border-dashed p-12 text-center transition-colors cursor-pointer ${
+              dragActive
+                ? 'border-[color:var(--foreground)] bg-[color:var(--muted)]'
+                : 'border-[color:var(--border)] bg-[color:var(--muted)] hover:border-[color:var(--foreground)]/40'
+            }`}
+            onClick={() => document.getElementById('file-input')?.click()}
+          >
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[color:var(--background)] border border-[color:var(--border)]">
+              <Upload className="h-7 w-7 text-[color:var(--foreground)]" />
+            </div>
+
+            <p className="text-sm font-medium text-[color:var(--foreground)] mb-1">
+              Drag & drop car photos here
+            </p>
+            <p className="text-xs text-[color:var(--muted-foreground)] mb-5">
+              or click to browse - PNG, JPG up to {MAX_SIZE_MB}MB each (max{' '}
+              {MAX_FILES} photos)
+            </p>
+
+            <button
+              type="button"
+              className="rounded-full bg-[color:var(--foreground)] px-8 py-3 text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+            >
+              Upload Photos
+            </button>
+
+            <input
+              id="file-input"
+              type="file"
+              accept="image/png,image/jpeg"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </div>
 
-          <p className="text-sm font-medium text-[color:var(--foreground)] mb-1">
-            Drag & drop car photos here
-          </p>
-          <p className="text-xs text-[color:var(--muted-foreground)] mb-5">
-            or click to browse - PNG, JPG up to {MAX_SIZE_MB}MB each (max{' '}
-            {MAX_FILES} photos)
-          </p>
+          <div className="mx-auto mt-10 grid max-w-3xl gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-4 text-left">
+              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)]">
+                File Limits
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
+                Up to {MAX_FILES} images
+              </p>
+              <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
+                PNG/JPG up to {MAX_SIZE_MB}MB each.
+              </p>
+            </div>
 
-          <button
-            type="button"
-            className="rounded-full bg-[color:var(--foreground)] px-8 py-3 text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-          >
-            Upload Photos
-          </button>
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-4 text-left">
+              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)]">
+                Analysis
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
+                AI-assisted estimate
+              </p>
+              <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
+                Damage parts, severity, and total cost.
+              </p>
+            </div>
 
-          <input
-            id="file-input"
-            type="file"
-            accept="image/png,image/jpeg"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-        </div>
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-4 text-left">
+              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)]">
+                Report
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
+                Downloadable PDF
+              </p>
+              <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
+                Save and share your estimate instantly.
+              </p>
+            </div>
+          </div>
+        </>
       ) : (
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center justify-between mb-4">

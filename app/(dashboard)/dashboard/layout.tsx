@@ -8,6 +8,8 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
  */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
+    // LanguageProvider wraps the entire dashboard area so every nested route
+    // (home, history, profile, settings, sidebar, etc.) can read/update language.
     <LanguageProvider>
       <div className="flex min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
         <Sidebar />

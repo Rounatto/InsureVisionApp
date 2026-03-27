@@ -1,3 +1,8 @@
+// Translation catalog used by `LanguageContext.t(key)`.
+// Important rules for maintainability:
+// 1) Keep the same keys in every language block.
+// 2) English (`en`) is the fallback language.
+// 3) Prefer short semantic keys (e.g. `settingsTitle`) over raw sentence keys.
 export const translations = {
   en: {
     // Sidebar
@@ -404,5 +409,9 @@ export const translations = {
   },
 } as const;
 
+// Union of supported locales, inferred from object keys: "en" | "fr" | "es" | "de".
 export type Language = keyof typeof translations;
+
+// Union of valid translation keys, inferred from English dictionary.
+// Any `t("...")` call must use one of these keys.
 export type TranslationKey = keyof typeof translations.en;

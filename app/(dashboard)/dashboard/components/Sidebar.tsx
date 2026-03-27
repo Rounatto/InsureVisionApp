@@ -18,6 +18,8 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Sidebar() {
+  // `t` is read from LanguageContext.
+  // Any language change in Settings triggers re-render with updated labels.
   const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
@@ -26,6 +28,8 @@ export default function Sidebar() {
   const profileRef = useRef<HTMLDivElement>(null);
   const canAccessAdmin = Boolean(session?.user?.isAdmin);
 
+  // Navigation labels are translated at render time via `t("key")`.
+  // The href values stay stable; only visible text changes with locale.
   const navItems = [
     { href: '/dashboard', label: t('home'), icon: HomeIcon },
     { href: '/dashboard/history', label: t('history'), icon: ClockIcon },
