@@ -233,41 +233,41 @@ async function callModelServerWithRetry(params: {
 async function callModelServerProvider(
   input: EstimateModelInput
 ): Promise<EstimateModelOutput> {
-  const settled = await Promise.allSettled(
-    input.photoUrls.map((photoUrl) =>
-      callModelServerWithRetry({
+  const successfulPredictions: Array<{
+    photoUrl: string;
+    topLabel: string;
+    confidence: number;
+    isDamaged: boolean;
+    scores: unknown;
+  }> = [];
+  let firstError: unknown = null;
+
+  // Process photos sequentially to avoid overloading small model-server instances.
+  for (const photoUrl of input.photoUrls) {
+    try {
+      const result = await callModelServerWithRetry({
         photoUrl,
         jobId: input.estimateId,
-      })
-    )
-  );
+      });
 
-  const successfulPredictions = settled
-    .map((result, index) => {
-      if (result.status !== 'fulfilled') return null;
-      return {
-        photoUrl: input.photoUrls[index],
-        topLabel: result.value.top_label || 'detected_damage',
+      successfulPredictions.push({
+        photoUrl,
+        topLabel: result.top_label || 'detected_damage',
         confidence:
-          typeof result.value.confidence === 'number'
-            ? result.value.confidence
-            : 0.5,
+          typeof result.confidence === 'number' ? result.confidence : 0.5,
         isDamaged:
-          typeof result.value.is_damaged === 'boolean'
-            ? result.value.is_damaged
-            : true,
-        scores: result.value.scores,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
+          typeof result.is_damaged === 'boolean' ? result.is_damaged : true,
+        scores: result.scores,
+      });
+    } catch (error) {
+      if (!firstError) firstError = error;
+    }
+  }
 
   if (successfulPredictions.length === 0) {
-    const firstError = settled.find((r) => r.status === 'rejected') as
-      | PromiseRejectedResult
-      | undefined;
     throw new Error(
-      firstError?.reason instanceof Error
-        ? firstError.reason.message
+      firstError instanceof Error
+        ? firstError.message
         : 'Model server failed for all photos.'
     );
   }
