@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
+  const { t } = useLanguage();
   const canAccessAdmin = Boolean(session?.user?.isAdmin);
   const [expandedActionsUserEmail, setExpandedActionsUserEmail] = useState<string | null>(null);
   const [expandedEstimationsUserEmail, setExpandedEstimationsUserEmail] = useState<string | null>(null);
@@ -94,27 +96,49 @@ export default function AdminPage() {
     },
   ];
 
+  const roleLabel = (role: string) => {
+    if (role === 'Admin') return t('admin');
+    if (role === 'Manager') return t('roleManager');
+    if (role === 'Agent') return t('roleAgent');
+    return role;
+  };
+
+  const statusLabel = (userStatus: string) => {
+    if (userStatus === 'Active') return t('statusActive');
+    if (userStatus === 'Pending') return t('statusPending');
+    if (userStatus === 'Suspended') return t('statusSuspended');
+    return userStatus;
+  };
+
+  const estimationStatusLabel = (estimationStatus: string) => {
+    if (estimationStatus === 'Approved') return t('statusApproved');
+    if (estimationStatus === 'Pending') return t('statusPending');
+    if (estimationStatus === 'Review') return t('statusReview');
+    if (estimationStatus === 'Rejected') return t('statusRejected');
+    return estimationStatus;
+  };
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
       {status === 'loading' && (
         <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 text-sm text-[color:var(--muted-foreground)]">
-          Checking access...
+          {t('checkingAccess')}
         </div>
       )}
 
       {status !== 'loading' && !canAccessAdmin && (
         <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
           <h1 className="mb-2 text-2xl font-bold text-[color:var(--foreground)]">
-            Access denied
+            {t('accessDeniedTitle')}
           </h1>
           <p className="mb-4 text-sm text-[color:var(--muted-foreground)]">
-            Your account is not allowlisted for the admin page.
+            {t('adminAccessAllowlisted')}
           </p>
           <Link
             href="/dashboard"
             className="inline-flex rounded-xl border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
           >
-            Back to dashboard
+            {t('backToDashboard')}
           </Link>
         </div>
       )}
@@ -123,17 +147,17 @@ export default function AdminPage() {
         <>
           <div className="mb-12">
             <h1 className="mb-3 text-4xl font-bold text-[color:var(--foreground)]">
-              Admin Panel
+              {t('adminPanel')}
             </h1>
             <p className="text-sm text-[color:var(--muted-foreground)]">
-              Frontend preview for admin dashboard controls and monitoring.
+              {t('adminPanelDesc')}
             </p>
           </div>
 
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                Total Users
+                {t('totalUsers')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
                 1,284
@@ -141,7 +165,7 @@ export default function AdminPage() {
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                Active Sessions
+                {t('activeSessions')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
                 312
@@ -149,7 +173,7 @@ export default function AdminPage() {
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                Open Reports
+                {t('openReports')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
                 27
@@ -157,7 +181,7 @@ export default function AdminPage() {
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                System Health
+                {t('systemHealth')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
                 98%
@@ -168,10 +192,10 @@ export default function AdminPage() {
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[color:var(--foreground)]">
-                Recent User Activity
+                {t('recentUserActivity')}
               </h2>
               <button className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors">
-                Export
+                {t('export')}
               </button>
             </div>
 
@@ -179,12 +203,12 @@ export default function AdminPage() {
               <table className="w-full min-w-[840px] border-separate border-spacing-y-2">
                 <thead>
                   <tr className="text-left text-xs text-[color:var(--muted-foreground)]">
-                    <th className="px-3 py-2 font-medium">Name</th>
-                    <th className="px-3 py-2 font-medium">Email</th>
-                    <th className="px-3 py-2 font-medium">Role</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="px-3 py-2 font-medium">Estimations</th>
-                    <th className="px-3 py-2 font-medium">Actions</th>
+                    <th className="px-3 py-2 font-medium">{t('name')}</th>
+                    <th className="px-3 py-2 font-medium">{t('email')}</th>
+                    <th className="px-3 py-2 font-medium">{t('roleLabel')}</th>
+                    <th className="px-3 py-2 font-medium">{t('statusLabel')}</th>
+                    <th className="px-3 py-2 font-medium">{t('estimations')}</th>
+                    <th className="px-3 py-2 font-medium">{t('actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,7 +221,7 @@ export default function AdminPage() {
                       <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
                         {user.email}
                       </td>
-                      <td className="px-3 py-3">{user.role}</td>
+                      <td className="px-3 py-3">{roleLabel(user.role)}</td>
                       <td className="px-3 py-3">
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -208,7 +232,7 @@ export default function AdminPage() {
                                 : 'bg-red-500/10 text-red-500'
                           }`}
                         >
-                          {user.status}
+                          {statusLabel(user.status)}
                         </span>
                       </td>
                       <td className="px-3 py-3">
@@ -222,13 +246,13 @@ export default function AdminPage() {
                             }
                             className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors"
                           >
-                            {user.estimations.length} estimations
+                            {user.estimations.length} {t('estimations')}
                           </button>
 
                           {expandedEstimationsUserEmail === user.email && (
                             <div className="absolute right-0 z-20 mt-2 w-[320px] rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-3 shadow-xl">
                               <p className="mb-2 text-xs font-semibold text-[color:var(--foreground)]">
-                                Estimation details
+                                {t('estimationDetails')}
                               </p>
 
                               <div className="space-y-2">
@@ -253,7 +277,7 @@ export default function AdminPage() {
                                         {estimation.amount}
                                       </span>
                                       <span className="rounded-full bg-[color:var(--muted)] px-2 py-0.5 text-[10px] font-medium text-[color:var(--muted-foreground)]">
-                                        {estimation.status}
+                                        {estimationStatusLabel(estimation.status)}
                                       </span>
                                     </div>
                                   </div>
@@ -274,7 +298,7 @@ export default function AdminPage() {
                             }
                             className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors"
                           >
-                            View
+                            {t('view')}
                           </button>
 
                           {expandedActionsUserEmail === user.email && (
@@ -283,13 +307,13 @@ export default function AdminPage() {
                                 type="button"
                                 className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-amber-500 hover:bg-amber-500/10 transition-colors"
                               >
-                                Ban
+                                {t('ban')}
                               </button>
                               <button
                                 type="button"
                                 className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
                               >
-                                Delete
+                                {t('delete')}
                               </button>
                             </div>
                           )}

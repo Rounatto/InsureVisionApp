@@ -61,7 +61,7 @@ export default function Sidebar() {
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)]/95 px-3 py-2 text-[color:var(--foreground)] shadow-lg backdrop-blur-sm"
-          aria-label="Go to dashboard home"
+          aria-label={t('goToDashboardHome')}
         >
           <InsureVisionLogo className="h-5 w-5" />
           <span className="text-xs font-bold tracking-wide">InsureVision</span>
@@ -71,7 +71,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => setMobileMenuOpen((prev) => !prev)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--foreground)] shadow-lg transition-colors hover:bg-[color:var(--muted)]"
-          aria-label="Toggle sidebar menu"
+          aria-label={t('toggleSidebarMenu')}
           aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? (
@@ -105,7 +105,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => setMobileMenuOpen(false)}
           className="fixed inset-0 z-40 bg-black/45 lg:hidden"
-          aria-label="Close sidebar backdrop"
+          aria-label={t('closeSidebarBackdrop')}
         />
       )}
 
