@@ -2,6 +2,7 @@ import Link from "next/link";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { Camera, Zap as ZapIcon, DollarSign, Lightbulb, Lock, Smartphone, Target, Trophy, Sparkles } from "lucide-react";
+import { AICarScanner } from "@/components/AICarScanner";
 
 export default function LandingPage() {
   return (
@@ -85,10 +86,10 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative hidden md:block">
+          <div className="relative block">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-3xl blur-3xl"></div>
-            <div className="relative bg-gradient-to-br from-[color:var(--card)] to-[color:var(--muted)] rounded-3xl h-96 flex items-center justify-center border border-[color:var(--border)]/50 shadow-2xl overflow-hidden">
-              <div className="text-9xl animate-pulse">📱</div>
+            <div className="relative bg-gradient-to-br from-[color:var(--card)] to-[color:var(--muted)] rounded-3xl h-64 sm:h-80 md:h-96 flex items-center justify-center border border-[color:var(--border)]/50 shadow-2xl overflow-hidden">
+              <AICarScanner />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none"></div>
             </div>
           </div>
