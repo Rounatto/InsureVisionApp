@@ -11,6 +11,7 @@ export const translations = {
     admin: "Admin",
     profile: "Profile",
     settings: "Settings",
+    support: "Support",
     signOut: "Sign Out",
 
     // Dashboard/Home Page
@@ -112,6 +113,7 @@ export const translations = {
     admin: "Admin",
     profile: "Profil",
     settings: "Paramètres",
+    support: "Support",
     signOut: "Déconnexion",
 
     // Dashboard/Home Page
@@ -213,6 +215,7 @@ export const translations = {
     admin: "Admin",
     profile: "Perfil",
     settings: "Configuración",
+    support: "Soporte",
     signOut: "Cerrar Sesión",
 
     // Dashboard/Home Page
@@ -314,6 +317,7 @@ export const translations = {
     admin: "Admin",
     profile: "Profil",
     settings: "Einstellungen",
+    support: "Support",
     signOut: "Abmelden",
 
     // Dashboard/Home Page

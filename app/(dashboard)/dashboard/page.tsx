@@ -3,11 +3,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
-import { Upload, Loader2, CircleCheck, CircleX } from 'lucide-react';
+import { Upload, Loader2, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
 import { downloadEstimatePdf } from '@/lib/generatePdf';
 import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
 import BannedNotification from '@/components/BannedNotification';
 import UnbannedNotification from '@/components/UnbannedNotification';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const MAX_FILES = 8;
 const MAX_SIZE_MB = 10;
@@ -546,8 +547,8 @@ export default function Home() {
             }`}
             onClick={() => document.getElementById('file-input')?.click()}
           >
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[color:var(--background)] border border-[color:var(--border)]">
-              <Upload className="h-7 w-7 text-[color:var(--foreground)]" />
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 shadow-lg shadow-primary/10">
+              <Upload className="h-9 w-9 text-primary animate-bounce" style={{ animationDuration: '2s' }} />
             </div>
 
             <p className="text-sm font-medium text-[color:var(--foreground)] mb-1">
@@ -576,39 +577,48 @@ export default function Home() {
           </div>
 
           <div className="mx-auto mt-10 grid max-w-3xl gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-4 text-left">
-              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)]">
+            <div className="group rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-4 text-left hover:border-primary/40 hover:from-primary/20 transition-all shadow-sm hover:shadow-md hover:shadow-primary/20 cursor-pointer">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 text-primary group-hover:bg-primary/30 transition-colors">
+                <Images className="h-5 w-5" />
+              </div>
+              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)] font-semibold">
                 File Limits
               </p>
-              <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
+              <p className="mt-1 text-sm font-bold text-[color:var(--foreground)]">
                 Up to {MAX_FILES} images
               </p>
               <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
-                PNG/JPG up to {MAX_SIZE_MB}MB each.
+                PNG/JPG up to {MAX_SIZE_MB}MB each
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-4 text-left">
-              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)]">
+            <div className="group rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-4 text-left hover:border-primary/40 hover:from-primary/20 transition-all shadow-sm hover:shadow-md hover:shadow-primary/20 cursor-pointer">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 text-primary group-hover:bg-primary/30 transition-colors">
+                <Zap className="h-5 w-5" />
+              </div>
+              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)] font-semibold">
                 Analysis
               </p>
-              <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
+              <p className="mt-1 text-sm font-bold text-[color:var(--foreground)]">
                 AI-assisted estimate
               </p>
               <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
-                Damage parts, severity, and total cost.
+                Damage parts, severity & cost
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-4 text-left">
-              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)]">
+            <div className="group rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-4 text-left hover:border-primary/40 hover:from-primary/20 transition-all shadow-sm hover:shadow-md hover:shadow-primary/20 cursor-pointer">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 text-primary group-hover:bg-primary/30 transition-colors">
+                <FileText className="h-5 w-5" />
+              </div>
+              <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)] font-semibold">
                 Report
               </p>
-              <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
+              <p className="mt-1 text-sm font-bold text-[color:var(--foreground)]">
                 Downloadable PDF
               </p>
               <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
-                Save and share your estimate instantly.
+                Save and share instantly
               </p>
             </div>
           </div>
@@ -694,44 +704,11 @@ export default function Home() {
                 </div>
 
                 {photoUploads[f.id]?.status === 'uploading' && (
-                  <div className="absolute inset-0 bg-black/25 flex flex-col items-center justify-center text-white">
-                    <svg
-                      viewBox="0 0 48 48"
-                      className="h-10 w-10 -rotate-90"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="18"
-                        fill="none"
-                        stroke="rgba(255,255,255,0.25)"
-                        strokeWidth="4"
-                      />
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="18"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        strokeDasharray={2 * Math.PI * 18}
-                        strokeDashoffset={
-                          2 *
-                          Math.PI *
-                          18 *
-                          (1 -
-                            Math.min(
-                              100,
-                              Math.max(0, photoUploads[f.id]?.progress ?? 0)
-                            ) /
-                              100)
-                        }
-                        className="transition-[stroke-dashoffset] duration-150"
-                      />
-                    </svg>
-                    <p className="mt-2 text-xs font-semibold">
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <div className="scale-75">
+                      <LoadingSpinner size="md" label="" />
+                    </div>
+                    <p className="mt-6 text-sm font-semibold text-white">
                       {Math.min(
                         100,
                         Math.max(0, photoUploads[f.id]?.progress ?? 0)
@@ -742,8 +719,8 @@ export default function Home() {
                 )}
 
                 {photoUploads[f.id]?.status === 'uploaded' && (
-                  <div className="absolute top-2 left-2 rounded-full bg-green-500/90 p-1 text-white shadow">
-                    <CircleCheck className="h-4 w-4" />
+                  <div className="absolute top-2 left-2 rounded-full bg-gradient-to-br from-green-500 to-green-600 p-1.5 text-white shadow-lg shadow-green-500/50 animate-pulse">
+                    <CircleCheck className="h-5 w-5" />
                   </div>
                 )}
 
@@ -752,9 +729,9 @@ export default function Home() {
                     type="button"
                     onClick={() => retryPhotoUpload(f, i + 1)}
                     disabled={submitting}
-                    className="absolute inset-0 bg-red-900/50 text-white flex flex-col items-center justify-center px-2 text-center"
+                    className="absolute inset-0 bg-gradient-to-br from-red-500/60 to-red-700/60 text-white flex flex-col items-center justify-center px-2 text-center hover:from-red-500/80 hover:to-red-700/80 transition-all"
                   >
-                    <CircleX className="h-6 w-6" />
+                    <CircleX className="h-7 w-7" />
                     <p className="mt-2 text-[11px] font-semibold">
                       Failed - tap to retry
                     </p>

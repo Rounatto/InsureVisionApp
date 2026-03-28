@@ -13,6 +13,7 @@ import {
   ClockIcon,
   UserIcon,
   SettingsIcon,
+  MessageIcon,
   ShieldIcon,
 } from '@/lib/icons';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -80,6 +81,20 @@ export default function Sidebar() {
           })}
         </div>
       </nav>
+
+      <div className="px-4 pb-3">
+        <Link
+          href="/dashboard/support"
+          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+            pathname === '/dashboard/support'
+              ? 'bg-[color:var(--foreground)] text-[color:var(--background)]'
+              : 'text-[color:var(--foreground)] hover:bg-[color:var(--muted)]'
+          }`}
+        >
+          <MessageIcon className="h-5 w-5" />
+          {t('support')}
+        </Link>
+      </div>
 
       {/* User Profile Section */}
       <div className="border-t border-[color:var(--border)] p-4">
