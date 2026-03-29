@@ -89,7 +89,8 @@ export async function POST(req: Request) {
 
     // Use waitUntil to fire dispatchEstimateJob safely in the background
     const url = new URL(req.url);
-    const appBaseUrl = `${url.protocol}//${url.host}`;
+    const appBaseUrl =
+      process.env.WEBHOOK_BASE_URL || `${url.protocol}//${url.host}`;
     waitUntil(dispatchEstimateJob(job.id, appBaseUrl));
 
     return NextResponse.json(
