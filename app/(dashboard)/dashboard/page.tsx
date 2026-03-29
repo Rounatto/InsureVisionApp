@@ -11,7 +11,7 @@ import UnbannedNotification from '@/components/UnbannedNotification';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 const MAX_FILES = 8;
-const MAX_SIZE_MB = 4;
+const MAX_SIZE_MB = 10;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg'];
 const JOB_POLL_INTERVAL_MS = 2500;
