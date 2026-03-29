@@ -7,7 +7,7 @@ import {
   requireRateLimit,
   requireTrustedOrigin,
 } from '@/lib/api-helpers';
-import { queueEstimateJob, processEstimateJob } from '@/lib/estimate/jobs';
+import { queueEstimateJob, dispatchEstimateJob } from '@/lib/estimate/jobs';
 import { RL_ESTIMATE } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
 
@@ -87,8 +87,10 @@ export async function POST(req: Request) {
       photoCount: photoUrls.length,
     });
 
-    // Use waitUntil to fire processEstimateJob safely in the background
-    waitUntil(processEstimateJob(job.id));
+    // Use waitUntil to fire dispatchEstimateJob safely in the background
+    const url = new URL(req.url);
+    const appBaseUrl = `${url.protocol}//${url.host}`;
+    waitUntil(dispatchEstimateJob(job.id, appBaseUrl));
 
     return NextResponse.json(
       {

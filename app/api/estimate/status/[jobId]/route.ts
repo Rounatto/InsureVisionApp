@@ -1,6 +1,6 @@
 import { after, NextResponse } from 'next/server';
 import { db, requireAuth, requireDb } from '@/lib/api-helpers';
-import { processEstimateJob } from '@/lib/estimate/jobs';
+// Import removed
 import type { ErrorResponse } from '@/types/auth';
 
 export const runtime = 'nodejs';
