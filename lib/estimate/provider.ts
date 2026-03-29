@@ -20,8 +20,8 @@ export interface EstimateModelOutput {
     provider: 'model-server' | 'http';
     perPhoto?: Array<{
       photoUrl: string;
-      topLabel: string;
-      confidence: number;
+      topLabel: string | null;
+      confidence: number | null;
       isDamaged: boolean;
       scores?: unknown;
     }>;
@@ -139,19 +139,21 @@ function titleCaseLabel(label: string): string {
 
 function mapPredictionToPart(prediction: {
   photoIndex: number;
-  topLabel: string;
-  confidence: number;
-  isDamaged: boolean;
+  topLabel: string | null;
+  confidence: number | null;
+  isDamaged: boolean | null;
 }): EstimatePart {
   let severity: 'High' | 'Medium' | 'Low' = 'Low';
-  if (prediction.confidence >= 0.82) severity = 'High';
-  else if (prediction.confidence >= 0.55) severity = 'Medium';
+  const conf = prediction.confidence ?? 0;
+  if (conf >= 0.82) severity = 'High';
+  else if (conf >= 0.55) severity = 'Medium';
 
-  const confidencePct = Math.round(prediction.confidence * 100);
+  const confidencePct = Math.round(conf * 100);
+  const isDamaged = prediction.isDamaged ?? false;
   return {
     name: `Photo ${prediction.photoIndex}: ${titleCaseLabel(prediction.topLabel || 'Unknown')}`,
-    severity: prediction.isDamaged ? severity : 'Low',
-    cost: prediction.isDamaged ? Math.max(1, confidencePct) : 0,
+    severity: isDamaged ? severity : 'Low',
+    cost: isDamaged ? Math.max(1, confidencePct) : 0,
   };
 }
 
@@ -189,9 +191,6 @@ async function callModelServerOnce(params: {
     }
 
     const data = (await res.json()) as ModelServerPredictResponse;
-    if (typeof data?.top_label !== 'string') {
-      throw new Error('Model server response missing top_label.');
-    }
 
     return data;
   } finally {
@@ -235,8 +234,8 @@ async function callModelServerProvider(
 ): Promise<EstimateModelOutput> {
   const successfulPredictions: Array<{
     photoUrl: string;
-    topLabel: string;
-    confidence: number;
+    topLabel: string | null;
+    confidence: number | null;
     isDamaged: boolean;
     scores: unknown;
   }> = [];
@@ -252,12 +251,10 @@ async function callModelServerProvider(
 
       successfulPredictions.push({
         photoUrl,
-        topLabel: result.top_label || 'detected_damage',
-        confidence:
-          typeof result.confidence === 'number' ? result.confidence : 0.5,
-        isDamaged:
-          typeof result.is_damaged === 'boolean' ? result.is_damaged : true,
-        scores: result.scores,
+        topLabel: result.top_label ?? null,
+        confidence: result.confidence ?? null,
+        isDamaged: result.is_damaged ?? false,
+        scores: result.scores ?? null,
       });
     } catch (error) {
       if (!firstError) firstError = error;
@@ -285,7 +282,7 @@ async function callModelServerProvider(
   const labelsSummary = successfulPredictions
     .map(
       (p, i) =>
-        `photo ${i + 1}: ${titleCaseLabel(p.topLabel)} (${Math.round(p.confidence * 100)}%)`
+        `photo ${i + 1}: ${titleCaseLabel(p.topLabel || 'Unknown')} (${Math.round((p.confidence ?? 0) * 100)}%)`
     )
     .join('; ');
 

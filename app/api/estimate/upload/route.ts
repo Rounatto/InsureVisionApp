@@ -13,7 +13,7 @@ import type { ErrorResponse } from '@/types/auth';
 
 const BUCKET = 'damage-photos';
 const ALLOWED_TYPES = ['image/png', 'image/jpeg'];
-const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
-          message: `File too large: ${file.name}. Maximum size is 10MB.`,
+          message: `File too large: ${file.name}. Maximum size is 4MB.`,
         },
         { status: 400 }
       );
