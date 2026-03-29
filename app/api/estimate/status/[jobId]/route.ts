@@ -76,12 +76,7 @@ export async function GET(
       });
     }
 
-    // Recovery trigger: if a queued job was missed, kick it again in background.
-    if (resolvedJob.status === 'QUEUED') {
-      after(async () => {
-        await processEstimateJob(resolvedJob.id);
-      });
-    }
+    // (Removed unstable background recovery block that was duplicating processEstimateJob runs)
 
     return NextResponse.json({
       success: true,

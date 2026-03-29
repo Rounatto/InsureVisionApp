@@ -241,25 +241,27 @@ async function callModelServerProvider(
   }> = [];
   let firstError: unknown = null;
 
-  // Process photos sequentially to avoid overloading small model-server instances.
-  for (const photoUrl of input.photoUrls) {
-    try {
-      const result = await callModelServerWithRetry({
-        photoUrl,
-        jobId: input.estimateId,
-      });
+  // Process photos in parallel as requested
+  await Promise.all(
+    input.photoUrls.map(async (photoUrl) => {
+      try {
+        const result = await callModelServerWithRetry({
+          photoUrl,
+          jobId: input.estimateId,
+        });
 
-      successfulPredictions.push({
-        photoUrl,
-        topLabel: result.top_label ?? null,
-        confidence: result.confidence ?? null,
-        isDamaged: result.is_damaged ?? false,
-        scores: result.scores ?? null,
-      });
-    } catch (error) {
-      if (!firstError) firstError = error;
-    }
-  }
+        successfulPredictions.push({
+          photoUrl,
+          topLabel: result.top_label ?? null,
+          confidence: result.confidence ?? null,
+          isDamaged: result.is_damaged ?? false,
+          scores: result.scores ?? null,
+        });
+      } catch (error) {
+        if (!firstError) firstError = error;
+      }
+    })
+  );
 
   if (successfulPredictions.length === 0) {
     throw new Error(

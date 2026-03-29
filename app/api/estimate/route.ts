@@ -1,4 +1,5 @@
-import { after, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 import {
   db,
   requireAuth,
@@ -6,7 +7,7 @@ import {
   requireRateLimit,
   requireTrustedOrigin,
 } from '@/lib/api-helpers';
-import { queueEstimateJob } from '@/lib/estimate/jobs';
+import { queueEstimateJob, processEstimateJob } from '@/lib/estimate/jobs';
 import { RL_ESTIMATE } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
 
@@ -86,20 +87,8 @@ export async function POST(req: Request) {
       photoCount: photoUrls.length,
     });
 
-    const modelServerUrl = (process.env.MODEL_SERVER_URL || '').replace(/\/$/, '');
-    const modelApiKey = process.env.MODEL_API_KEY || '';
-
-    // Fire and forget each photo independently so they run in parallel
-    photoUrls.forEach(url => {
-      fetch(`${modelServerUrl}/predict`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(modelApiKey ? { 'x-api-secret': modelApiKey } : {}),
-        },
-        body: JSON.stringify({ photo_url: url, job_id: job.id })
-      }).catch(err => console.error('[estimate] Model server call failed:', err));
-    });
+    // Use waitUntil to fire processEstimateJob safely in the background
+    waitUntil(processEstimateJob(job.id));
 
     return NextResponse.json(
       {
