@@ -22,16 +22,14 @@ const languageOptions: { value: Language; label: string }[] = [
 
 // Pure helper for toggle track color based on enabled state.
 function getToggleTrackClass(enabled: boolean) {
-  return `${TOGGLE_CLASS_BASE} ${
-    enabled ? "bg-[color:var(--foreground)]" : "bg-[color:var(--muted)]"
-  }`;
+  return `${TOGGLE_CLASS_BASE} ${enabled ? "bg-[color:var(--foreground)]" : "bg-[color:var(--muted)]"
+    }`;
 }
 
 // Pure helper for toggle thumb position based on enabled state.
 function getToggleThumbClass(enabled: boolean) {
-  return `inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-    enabled ? "translate-x-6" : "translate-x-1"
-  }`;
+  return `inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"
+    }`;
 }
 
 export default function SettingsPage() {
@@ -64,17 +62,17 @@ export default function SettingsPage() {
         {/* Notifications Section */}
         <div className={CARD_CLASS}>
           <h2 className={SECTION_TITLE_CLASS}>
-            {t("Notifications Section")}
+            {t("notificationsSection")}
           </h2>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-[color:var(--foreground)]">
-                  {t("Push Notifications")}
+                  {t("pushNotifications")}
                 </p>
                 <p className="text-xs text-[color:var(--muted-foreground)]">
-                  {t("Push Notifications Desc")}
+                  {t("pushNotificationsDesc")}
                 </p>
               </div>
               <button
@@ -88,10 +86,10 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-[color:var(--foreground)]">
-                  {t("Email Updates")}
+                  {t("emailUpdates")}
                 </p>
                 <p className="text-xs text-[color:var(--muted-foreground)]">
-                  {t("Email Updates Desc")}
+                  {t("emailUpdatesDesc")}
                 </p>
               </div>
               <button
@@ -109,7 +107,7 @@ export default function SettingsPage() {
           <h2 className={SECTION_TITLE_CLASS}>
             {t("languageRegion")}
           </h2>
-          
+
           <div className="space-y-3">
             <label className="block">
               <span className="text-sm font-medium text-[color:var(--foreground)] mb-2 block">
@@ -136,7 +134,7 @@ export default function SettingsPage() {
           <h2 className={SECTION_TITLE_CLASS}>
             {t("dataPrivacy")}
           </h2>
-          
+
           <div className="space-y-3">
             <button className="w-full rounded-xl border border-[color:var(--border)] px-4 py-3 text-left text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors">
               <div className="flex items-center justify-between">
@@ -146,10 +144,10 @@ export default function SettingsPage() {
                 </svg>
               </div>
             </button>
-            
+
             <button className="w-full rounded-xl border border-red-500/20 px-4 py-3 text-left text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors">
               <div className="flex items-center justify-between">
-                <span>{t("Delete All Data")}</span>
+                <span>{t("deleteAllData")}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                 </svg>
