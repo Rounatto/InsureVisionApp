@@ -5,12 +5,10 @@ import { db } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 
-// Use same secret validation method
 const modelApiKey = process.env.MODEL_API_KEY || '';
 
 export async function POST(req: Request) {
   try {
-    // Basic webhook secret validation if key is configured
     if (modelApiKey) {
       const secretHeader = req.headers.get('x-api-secret');
       if (secretHeader !== modelApiKey) {
@@ -30,7 +28,6 @@ export async function POST(req: Request) {
         photo_url: string;
         top_label: string | null;
         confidence: number | null;
-        is_damaged: boolean;
         scores?: unknown;
       }>;
     };
@@ -43,7 +40,10 @@ export async function POST(req: Request) {
     }
 
     if (status === 'error') {
-      await failEstimateJob(job_id, new Error(error || 'Model server returned an error.'));
+      await failEstimateJob(
+        job_id,
+        new Error(error || 'Model server returned an error.')
+      );
       return NextResponse.json({ success: true, message: 'Error logged.' });
     }
 
@@ -54,7 +54,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Load job from DB to get original ordered photoUrls
     const job = await db.estimateJob.findUnique({
       where: { id: job_id },
       select: { photoUrls: true, status: true },
@@ -70,14 +69,17 @@ export async function POST(req: Request) {
     if (job.status !== 'PROCESSING') {
       return NextResponse.json(
         { success: false, message: 'Job is not in PROCESSING state.' },
-        { status: 400 } // Or 200, to prevent retries.
+        { status: 400 }
       );
     }
 
     const output = processWebhookToOutput(job.photoUrls, predictions);
     await completeEstimateJob(job_id, output);
 
-    return NextResponse.json({ success: true, message: 'Callback processed successfully.' });
+    return NextResponse.json({
+      success: true,
+      message: 'Callback processed successfully.',
+    });
   } catch (err) {
     console.error('Webhook processing error:', err);
     return NextResponse.json(

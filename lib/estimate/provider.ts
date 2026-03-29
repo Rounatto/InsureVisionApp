@@ -22,7 +22,6 @@ export interface EstimateModelOutput {
       photoUrl: string;
       topLabel: string | null;
       confidence: number | null;
-      isDamaged: boolean;
       scores?: unknown;
     }>;
   };
@@ -132,19 +131,18 @@ function mapPredictionToPart(prediction: {
   photoIndex: number;
   topLabel: string | null;
   confidence: number | null;
-  isDamaged: boolean | null;
 }): EstimatePart {
-  let severity: 'High' | 'Medium' | 'Low' = 'Low';
   const conf = prediction.confidence ?? 0;
+  const confidencePct = Math.round(conf * 100);
+
+  let severity: 'High' | 'Medium' | 'Low' = 'Low';
   if (conf >= 0.82) severity = 'High';
   else if (conf >= 0.55) severity = 'Medium';
 
-  const confidencePct = Math.round(conf * 100);
-  const isDamaged = prediction.isDamaged ?? false;
   return {
     name: `Photo ${prediction.photoIndex}: ${titleCaseLabel(prediction.topLabel || 'Unknown')}`,
-    severity: isDamaged ? severity : 'Low',
-    cost: isDamaged ? Math.max(1, confidencePct) : 0,
+    severity,
+    cost: Math.max(1, confidencePct),
   };
 }
 
@@ -154,7 +152,6 @@ export function processWebhookToOutput(
     photo_url: string;
     top_label: string | null;
     confidence: number | null;
-    is_damaged: boolean;
     scores?: unknown;
   }>
 ): EstimateModelOutput {
@@ -162,32 +159,30 @@ export function processWebhookToOutput(
     photoUrl: string;
     topLabel: string | null;
     confidence: number | null;
-    isDamaged: boolean;
     scores: unknown;
   }> = [];
 
   const parts: EstimatePart[] = [];
-  
+
   photoUrls.forEach((url, i) => {
-    const prediction = predictions.find(p => p.photo_url === url);
+    const prediction = predictions.find((p) => p.photo_url === url);
     if (prediction) {
       successfulPredictions.push({
         photoUrl: prediction.photo_url,
         topLabel: prediction.top_label,
         confidence: prediction.confidence,
-        isDamaged: prediction.is_damaged,
         scores: prediction.scores,
       });
-      parts.push(mapPredictionToPart({
-        photoIndex: i + 1,
-        topLabel: prediction.top_label,
-        confidence: prediction.confidence,
-        isDamaged: prediction.is_damaged,
-      }));
+      parts.push(
+        mapPredictionToPart({
+          photoIndex: i + 1,
+          topLabel: prediction.top_label,
+          confidence: prediction.confidence,
+        })
+      );
     }
   });
 
-  const damagedCount = successfulPredictions.filter((p) => p.isDamaged).length;
   const failedCount = photoUrls.length - successfulPredictions.length;
   const labelsSummary = successfulPredictions
     .map(
@@ -196,7 +191,7 @@ export function processWebhookToOutput(
     )
     .join('; ');
 
-  const summary = `Model analysis completed for ${successfulPredictions.length}/${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''}. Detected damage indications in ${damagedCount} photo${damagedCount !== 1 ? 's' : ''}. Predictions: ${labelsSummary}${failedCount > 0 ? `. ${failedCount} photo${failedCount > 1 ? 's were' : ' was'} retried or unavailable` : ''}.`;
+  const summary = `Model analysis completed for ${successfulPredictions.length}/${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''}. Predictions: ${labelsSummary}${failedCount > 0 ? `. ${failedCount} photo${failedCount > 1 ? 's were' : ' was'} retried or unavailable` : ''}.`;
 
   return {
     parts,
