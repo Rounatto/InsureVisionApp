@@ -6,7 +6,7 @@ import {
   requireRateLimit,
   requireTrustedOrigin,
 } from '@/lib/api-helpers';
-import { queueEstimateJob, processEstimateJob } from '@/lib/estimate/jobs';
+import { queueEstimateJob } from '@/lib/estimate/jobs';
 import { RL_ESTIMATE } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
 
@@ -86,9 +86,19 @@ export async function POST(req: Request) {
       photoCount: photoUrls.length,
     });
 
-    // Fire processing after returning the response to keep request latency short.
-    after(async () => {
-      await processEstimateJob(job.id);
+    const modelServerUrl = (process.env.MODEL_SERVER_URL || '').replace(/\/$/, '');
+    const modelApiKey = process.env.MODEL_API_KEY || '';
+
+    // Fire and forget each photo independently so they run in parallel
+    photoUrls.forEach(url => {
+      fetch(`${modelServerUrl}/predict`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(modelApiKey ? { 'x-api-secret': modelApiKey } : {}),
+        },
+        body: JSON.stringify({ photo_url: url, job_id: job.id })
+      }).catch(err => console.error('[estimate] Model server call failed:', err));
     });
 
     return NextResponse.json(
