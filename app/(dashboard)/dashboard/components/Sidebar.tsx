@@ -110,7 +110,7 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-[color:var(--border)] bg-[color:var(--card)]/95 backdrop-blur-sm transition-transform duration-300 lg:static lg:h-screen lg:w-64 lg:max-w-none lg:translate-x-0 lg:bg-[color:var(--card)]/50 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-[color:var(--border)] bg-[color:var(--card)]/95 backdrop-blur-sm transition-transform duration-300 lg:h-screen lg:w-64 lg:max-w-none lg:translate-x-0 lg:bg-[color:var(--card)]/50 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
