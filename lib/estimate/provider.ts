@@ -7,7 +7,7 @@ export interface EstimatePart {
 }
 
 export interface EstimateModelInput {
-  estimateId: string;
+  jobId: string;
   userId: string;
   photoUrls: string[];
   photoCount: number;
@@ -20,25 +20,15 @@ export interface EstimateModelOutput {
     provider: 'model-server' | 'http';
     perPhoto?: Array<{
       photoUrl: string;
-      topLabel: string;
-      confidence: number;
-      isDamaged: boolean;
+      topLabel: string | null;
+      confidence: number | null;
       scores?: unknown;
     }>;
   };
 }
 
-interface ModelServerPredictResponse {
-  job_id?: string;
-  top_label?: string;
-  confidence?: number;
-  scores?: unknown;
-  is_damaged?: boolean;
-}
-
 const modelServerUrl = (process.env.MODEL_SERVER_URL || '').replace(/\/$/, '');
 const modelApiKey = process.env.MODEL_API_KEY || '';
-const modelRetries = Math.max(1, Number(process.env.MODEL_RETRIES || 3));
 
 class ModelServerError extends Error {
   readonly status: number;
@@ -86,7 +76,7 @@ function normalizeModelOutput(data: unknown): EstimateModelOutput | null {
   };
 }
 
-async function callHttpProvider(
+export async function generateHttpEstimate(
   input: EstimateModelInput
 ): Promise<EstimateModelOutput> {
   if (!aiEndpoint) {
@@ -139,26 +129,84 @@ function titleCaseLabel(label: string): string {
 
 function mapPredictionToPart(prediction: {
   photoIndex: number;
-  topLabel: string;
-  confidence: number;
-  isDamaged: boolean;
+  topLabel: string | null;
+  confidence: number | null;
 }): EstimatePart {
-  let severity: 'High' | 'Medium' | 'Low' = 'Low';
-  if (prediction.confidence >= 0.82) severity = 'High';
-  else if (prediction.confidence >= 0.55) severity = 'Medium';
+  const conf = prediction.confidence ?? 0;
+  const confidencePct = Math.round(conf * 100);
 
-  const confidencePct = Math.round(prediction.confidence * 100);
+  let severity: 'High' | 'Medium' | 'Low' = 'Low';
+  if (conf >= 0.82) severity = 'High';
+  else if (conf >= 0.55) severity = 'Medium';
+
   return {
     name: `Photo ${prediction.photoIndex}: ${titleCaseLabel(prediction.topLabel || 'Unknown')}`,
-    severity: prediction.isDamaged ? severity : 'Low',
-    cost: prediction.isDamaged ? Math.max(1, confidencePct) : 0,
+    severity,
+    cost: Math.max(1, confidencePct),
   };
 }
 
-async function callModelServerOnce(params: {
-  photoUrl: string;
-  jobId: string;
-}): Promise<ModelServerPredictResponse> {
+export function processWebhookToOutput(
+  photoUrls: string[],
+  predictions: Array<{
+    photo_url: string;
+    top_label: string | null;
+    confidence: number | null;
+    scores?: unknown;
+  }>
+): EstimateModelOutput {
+  const successfulPredictions: Array<{
+    photoUrl: string;
+    topLabel: string | null;
+    confidence: number | null;
+    scores: unknown;
+  }> = [];
+
+  const parts: EstimatePart[] = [];
+
+  photoUrls.forEach((url, i) => {
+    const prediction = predictions.find((p) => p.photo_url === url);
+    if (prediction) {
+      successfulPredictions.push({
+        photoUrl: prediction.photo_url,
+        topLabel: prediction.top_label,
+        confidence: prediction.confidence,
+        scores: prediction.scores,
+      });
+      parts.push(
+        mapPredictionToPart({
+          photoIndex: i + 1,
+          topLabel: prediction.top_label,
+          confidence: prediction.confidence,
+        })
+      );
+    }
+  });
+
+  const failedCount = photoUrls.length - successfulPredictions.length;
+  const labelsSummary = successfulPredictions
+    .map(
+      (p, i) =>
+        `photo ${i + 1}: ${titleCaseLabel(p.topLabel || 'Unknown')} (${Math.round((p.confidence ?? 0) * 100)}%)`
+    )
+    .join('; ');
+
+  const summary = `Model analysis completed for ${successfulPredictions.length}/${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''}. Predictions: ${labelsSummary}${failedCount > 0 ? `. ${failedCount} photo${failedCount > 1 ? 's were' : ' was'} retried or unavailable` : ''}.`;
+
+  return {
+    parts,
+    summary,
+    model: {
+      provider: 'model-server',
+      perPhoto: successfulPredictions,
+    },
+  };
+}
+
+async function dispatchModelServerProvider(
+  input: EstimateModelInput,
+  webhookUrl: string
+): Promise<void> {
   if (!modelServerUrl) {
     throw new Error('MODEL_SERVER_URL is missing.');
   }
@@ -174,8 +222,9 @@ async function callModelServerOnce(params: {
         ...(modelApiKey ? { 'x-api-secret': modelApiKey } : {}),
       },
       body: JSON.stringify({
-        photo_url: params.photoUrl,
-        job_id: params.jobId,
+        job_id: input.jobId,
+        photo_urls: input.photoUrls,
+        webhook_url: webhookUrl,
       }),
       signal: controller.signal,
     });
@@ -187,129 +236,22 @@ async function callModelServerOnce(params: {
         `Model server returned ${res.status}${body ? `: ${body.slice(0, 180)}` : ''}`
       );
     }
-
-    const data = (await res.json()) as ModelServerPredictResponse;
-    if (typeof data?.top_label !== 'string') {
-      throw new Error('Model server response missing top_label.');
-    }
-
-    return data;
   } finally {
     clearTimeout(timeout);
   }
 }
 
-async function callModelServerWithRetry(params: {
-  photoUrl: string;
-  jobId: string;
-}): Promise<ModelServerPredictResponse> {
-  let lastError: unknown = null;
-
-  for (let attempt = 1; attempt <= modelRetries; attempt++) {
-    try {
-      return await callModelServerOnce(params);
-    } catch (error) {
-      lastError = error;
-
-      const retryable =
-        error instanceof ModelServerError ? error.retryable : true;
-
-      if (!retryable) {
-        break;
-      }
-
-      if (attempt >= modelRetries) break;
-
-      const backoffMs = Math.min(5000, 1000 * 2 ** (attempt - 1));
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Model server call failed.');
-}
-
-async function callModelServerProvider(
-  input: EstimateModelInput
-): Promise<EstimateModelOutput> {
-  const settled = await Promise.allSettled(
-    input.photoUrls.map((photoUrl) =>
-      callModelServerWithRetry({
-        photoUrl,
-        jobId: input.estimateId,
-      })
-    )
-  );
-
-  const successfulPredictions = settled
-    .map((result, index) => {
-      if (result.status !== 'fulfilled') return null;
-      return {
-        photoUrl: input.photoUrls[index],
-        topLabel: result.value.top_label || 'detected_damage',
-        confidence:
-          typeof result.value.confidence === 'number'
-            ? result.value.confidence
-            : 0.5,
-        isDamaged:
-          typeof result.value.is_damaged === 'boolean'
-            ? result.value.is_damaged
-            : true,
-        scores: result.value.scores,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
-
-  if (successfulPredictions.length === 0) {
-    const firstError = settled.find((r) => r.status === 'rejected') as
-      | PromiseRejectedResult
-      | undefined;
-    throw new Error(
-      firstError?.reason instanceof Error
-        ? firstError.reason.message
-        : 'Model server failed for all photos.'
-    );
-  }
-
-  const parts = successfulPredictions.map((prediction, index) =>
-    mapPredictionToPart({
-      photoIndex: index + 1,
-      topLabel: prediction.topLabel,
-      confidence: prediction.confidence,
-      isDamaged: prediction.isDamaged,
-    })
-  );
-  const damagedCount = successfulPredictions.filter((p) => p.isDamaged).length;
-  const failedCount = input.photoUrls.length - successfulPredictions.length;
-  const labelsSummary = successfulPredictions
-    .map(
-      (p, i) =>
-        `photo ${i + 1}: ${titleCaseLabel(p.topLabel)} (${Math.round(p.confidence * 100)}%)`
-    )
-    .join('; ');
-
-  const summary = `Model analysis completed for ${successfulPredictions.length}/${input.photoUrls.length} photo${input.photoUrls.length > 1 ? 's' : ''}. Detected damage indications in ${damagedCount} photo${damagedCount !== 1 ? 's' : ''}. Predictions: ${labelsSummary}${failedCount > 0 ? `. ${failedCount} photo${failedCount > 1 ? 's were' : ' was'} retried or unavailable` : ''}.`;
-
-  return {
-    parts,
-    summary,
-    model: {
-      provider: 'model-server',
-      perPhoto: successfulPredictions,
-    },
-  };
-}
-
-export async function generateEstimate(
-  input: EstimateModelInput
-): Promise<EstimateModelOutput> {
+export async function dispatchEstimate(
+  input: EstimateModelInput,
+  webhookUrl: string
+): Promise<boolean> {
   if (modelServerUrl) {
-    return callModelServerProvider(input);
+    await dispatchModelServerProvider(input, webhookUrl);
+    return true; // async dispatched
   }
 
   if (aiProvider === 'http') {
-    return callHttpProvider(input);
+    return false; // not async dispatched, fallback to synchronous HTTP
   }
 
   throw new Error(

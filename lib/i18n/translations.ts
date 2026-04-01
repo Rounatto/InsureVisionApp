@@ -113,6 +113,12 @@ export const translations = {
     downloadDataDesc: "Export all your personal data and estimates as a JSON file",
     downloading: "Downloading…",
     displayLanguage: "Display Language",
+    notificationsSection: "Notifications",
+    pushNotifications: "Push Notifications",
+    pushNotificationsDesc: "Receive push notifications for estimation updates",
+    emailUpdates: "Email Updates",
+    emailUpdatesDesc: "Receive email summaries of your activity",
+    deleteAllData: "Delete All Data",
 
     // Auth Pages
     loginTitle: "Sign in to your account",
@@ -121,13 +127,13 @@ export const translations = {
     loginWithGoogle: "Sign in with Google",
     noAccount: "Don't have an account?",
     signUp: "Sign up",
-    
+
     registerTitle: "Create your account",
     registerSubtitle: "Get started with your free account",
     registerButton: "Create account",
     registerWithGoogle: "Sign up with Google",
     haveAccount: "Already have an account?",
-    
+
     forgotPassword: "Forgot password?",
     resetPassword: "Reset Password",
     backToLogin: "Back to login",
@@ -138,7 +144,7 @@ export const translations = {
     success: "Success",
     close: "Close",
   },
-  
+
   fr: {
     // Sidebar
     home: "Accueil",
@@ -248,6 +254,12 @@ export const translations = {
     downloading: "Téléchargement…",
     languageRegion: "Langue et Région",
     displayLanguage: "Langue d'Affichage",
+    notificationsSection: "Notifications",
+    pushNotifications: "Notifications Push",
+    pushNotificationsDesc: "Recevoir des notifications push pour les mises à jour d'estimation",
+    emailUpdates: "Mises à Jour par Email",
+    emailUpdatesDesc: "Recevoir des résumés par email de votre activité",
+    deleteAllData: "Supprimer Toutes les Données",
 
     // Auth Pages
     loginTitle: "Connectez-vous à votre compte",
@@ -256,13 +268,13 @@ export const translations = {
     loginWithGoogle: "Se connecter avec Google",
     noAccount: "Pas de compte ?",
     signUp: "S'inscrire",
-    
+
     registerTitle: "Créez votre compte",
     registerSubtitle: "Commencez avec votre compte gratuit",
     registerButton: "Créer un compte",
     registerWithGoogle: "S'inscrire avec Google",
     haveAccount: "Vous avez déjà un compte ?",
-    
+
     forgotPassword: "Mot de passe oublié ?",
     resetPassword: "Réinitialiser le Mot de Passe",
     backToLogin: "Retour à la connexion",
@@ -383,6 +395,12 @@ export const translations = {
     managePreferences: "Administra tus preferencias de aplicación y notificaciones",
     languageRegion: "Idioma y Región",
     displayLanguage: "Idioma de Visualización",
+    notificationsSection: "Notificaciones",
+    pushNotifications: "Notificaciones Push",
+    pushNotificationsDesc: "Recibir notificaciones push para actualizaciones de estimaciones",
+    emailUpdates: "Actualizaciones por Email",
+    emailUpdatesDesc: "Recibir resúmenes por correo de tu actividad",
+    deleteAllData: "Eliminar Todos los Datos",
 
     // Auth Pages
     loginTitle: "Inicia sesión en tu cuenta",
@@ -391,13 +409,13 @@ export const translations = {
     loginWithGoogle: "Iniciar sesión con Google",
     noAccount: "¿No tienes cuenta?",
     signUp: "Regístrate",
-    
+
     registerTitle: "Crea tu cuenta",
     registerSubtitle: "Comienza con tu cuenta gratuita",
     registerButton: "Crear cuenta",
     registerWithGoogle: "Registrarse con Google",
     haveAccount: "¿Ya tienes una cuenta?",
-    
+
     forgotPassword: "¿Olvidaste tu contraseña?",
     resetPassword: "Restablecer Contraseña",
     backToLogin: "Volver al inicio de sesión",
@@ -518,6 +536,12 @@ export const translations = {
     downloading: "Herunterladen…",
     languageRegion: "Sprache & Region",
     displayLanguage: "Anzeigesprache",
+    notificationsSection: "Benachrichtigungen",
+    pushNotifications: "Push-Benachrichtigungen",
+    pushNotificationsDesc: "Push-Benachrichtigungen für Schätzungsaktualisierungen erhalten",
+    emailUpdates: "E-Mail-Updates",
+    emailUpdatesDesc: "E-Mail-Zusammenfassungen Ihrer Aktivitäten erhalten",
+    deleteAllData: "Alle Daten Löschen",
 
     // Auth Pages
     loginTitle: "Melden Sie sich bei Ihrem Konto an",
@@ -526,13 +550,13 @@ export const translations = {
     loginWithGoogle: "Mit Google anmelden",
     noAccount: "Noch kein Konto?",
     signUp: "Registrieren",
-    
+
     registerTitle: "Erstellen Sie Ihr Konto",
     registerSubtitle: "Beginnen Sie mit Ihrem kostenlosen Konto",
     registerButton: "Konto erstellen",
     registerWithGoogle: "Mit Google registrieren",
     haveAccount: "Haben Sie bereits ein Konto?",
-    
+
     forgotPassword: "Passwort vergessen?",
     resetPassword: "Passwort Zurücksetzen",
     backToLogin: "Zurück zur Anmeldung",
