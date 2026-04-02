@@ -1,9 +1,3 @@
-import { db } from "@/config/db";
-
-/**
- * Audit actions — must match the `AuditAction` Prisma enum
- * (generated after migration).
- */
 export type AuditAction =
   | "REGISTER"
   | "EMAIL_VERIFIED"
@@ -20,29 +14,10 @@ export type AuditAction =
   | "BANNED_USER_MESSAGE_SENT"
   | "ADMIN_MESSAGE_SENT";
 
-/**
- * Fire-and-forget audit logger.
- *
- * Failures are swallowed so they never break the main request flow.
- */
-export async function logAudit(params: {
+/** No-op stub — audit logging disabled for presentation. */
+export async function logAudit(_params: {
   userId?: string | null;
   action: AuditAction;
   ip?: string | null;
   metadata?: Record<string, unknown>;
-}): Promise<void> {
-  try {
-    await db.auditLog.create({
-      data: {
-        userId: params.userId ?? null,
-        action: params.action,
-        ip: params.ip ?? null,
-        metadata: params.metadata
-          ? (params.metadata as unknown as Parameters<typeof db.auditLog.create>[0]["data"]["metadata"])
-          : undefined,
-      },
-    });
-  } catch (err) {
-    console.error("[AUDIT_LOG_ERROR]", err);
-  }
-}
+}): Promise<void> {}

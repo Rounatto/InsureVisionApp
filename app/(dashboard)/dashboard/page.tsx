@@ -6,8 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Upload, Loader2, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
 import { downloadEstimatePdf } from '@/lib/generatePdf';
 import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
-import BannedNotification from '@/components/BannedNotification';
-import UnbannedNotification from '@/components/UnbannedNotification';
+
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 const MAX_FILES = 8;
@@ -518,8 +517,7 @@ export default function Home() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(ellipse_at_top,rgba(120,120,120,0.15),transparent_65%)]"
       />
-      <UnbannedNotification />
-      <BannedNotification />
+
       <div className="mb-12 text-center">
         <span className="mb-4 inline-flex rounded-full border border-[color:var(--border)] bg-[color:var(--card)] px-3 py-1 text-[11px] font-medium tracking-wide text-[color:var(--muted-foreground)]">
           AI Vehicle Estimation

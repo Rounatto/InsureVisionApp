@@ -1,24 +1,13 @@
-import crypto from "crypto";
-
 /**
- * Generate a cryptographically secure token pair.
- *
- * - `raw`    → sent to the user (email link).
- * - `hashed` → stored in the database (SHA-256).
- *
- * Even if an attacker obtains a full DB dump, the raw token
- * cannot be recovered from the hash.
+ * Simplified token generation for presentation.
+ * NOT cryptographically secure — demo use only.
  */
 export function generateSecureToken(): { raw: string; hashed: string } {
-  const raw = crypto.randomBytes(32).toString("hex");
-  const hashed = hashToken(raw);
-  return { raw, hashed };
+  const raw = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return { raw, hashed: raw };
 }
 
-/**
- * SHA-256 hash a token string.
- * Used before storing AND before looking up.
- */
+/** Identity pass-through — no hashing in demo mode. */
 export function hashToken(token: string): string {
-  return crypto.createHash("sha256").update(token, "utf8").digest("hex");
+  return token;
 }
