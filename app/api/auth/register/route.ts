@@ -1,21 +1,16 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, validateBody, db } from "@/lib/api-helpers";
 import { registerSchema } from "@/lib/validations/auth";
-import { RL_REGISTER, SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
+import { SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
 import { generateSecureToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
-import { getClientIp } from "@/lib/rate-limit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
   try {
-    // ── Rate limit (IP-based) ──────────────────────────────
-    const rlError = requireRateLimit(req, "register", RL_REGISTER);
-    if (rlError) return rlError;
-
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -45,14 +40,18 @@ export async function POST(req: Request) {
     // ── Hash password ──────────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // ── Generate hashed verification token ─────────────────
+    // ── Generate verification token ────────────────────────
     const { raw: rawToken, hashed: hashedToken } = generateSecureToken();
     const expires = new Date(Date.now() + VERIFY_TOKEN_TTL_MS);
 
-    // ── Atomic: create user + security token ───────────────
+    // ── Atomic: create user + verification token ───────────
     const user = await db.$transaction(async (tx) => {
       const newUser = await tx.user.create({
-        data: { name, email, password: hashedPassword },
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+        },
         select: { id: true, name: true, email: true },
       });
 
@@ -72,16 +71,31 @@ export async function POST(req: Request) {
       return newUser;
     });
 
-    // ── Send verification email (non-blocking on failure) ──
     try {
       await sendVerificationEmail(email, rawToken);
     } catch (emailError) {
       console.error("[REGISTER_EMAIL_ERROR]", emailError);
+
+      // Keep auth state consistent: if verification mail cannot be sent,
+      // remove the newly created account + token and surface an error.
+      await db.$transaction(async (tx) => {
+        await tx.securityToken.deleteMany({
+          where: { identifier: email, type: "EMAIL_VERIFICATION" },
+        });
+        await tx.user.delete({ where: { id: user.id } });
+      });
+
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message: "Unable to send verification email. Please check email configuration and try again.",
+        },
+        { status: 502 }
+      );
     }
 
     // ── Audit ──────────────────────────────────────────────
-    const ip = getClientIp(req);
-    logAudit({ userId: user.id, action: "REGISTER", ip });
+    logAudit({ userId: user.id, action: "REGISTER" });
 
     return NextResponse.json<RegisterResponse>(
       {

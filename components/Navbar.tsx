@@ -8,7 +8,6 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { UserIcon, ClockIcon } from "@/lib/icons";
-import { HelpCircle } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
@@ -72,13 +71,6 @@ export default function Navbar() {
                   >
                     <UserIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
                     My Profile
-                  </button>
-                  <button
-                    onClick={() => { setProfileOpen(false); router.push("/dashboard/support"); }}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
-                  >
-                    <HelpCircle className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
-                    Support
                   </button>
                 </div>
 

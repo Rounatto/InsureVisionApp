@@ -4,9 +4,6 @@ import type { z } from "zod";
 import { auth } from "@/config/auth";
 import { db, isDatabaseConfigured } from "@/config/db";
 import { isAdminEmail } from "@/lib/admin";
-import { ensureTrustedOrigin } from "@/lib/security";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { RL_WINDOW_MS } from "@/lib/constants";
 import type { ErrorResponse } from "@/types/auth";
 
 // ── Re-export db so callers can import { db } from helpers ──
@@ -98,27 +95,4 @@ export function validateBody<T extends z.ZodTypeAny>(
   }
 
   return { data: parsed.data, error: null };
-}
-
-/**
- * Guard: rate-limit check.
- * Returns a 429 NextResponse on failure, or `null` if OK.
- */
-export function requireRateLimit(
-  req: Request,
-  key: string,
-  limit: number,
-): NextResponse | null {
-  const ip = getClientIp(req);
-  const rl = checkRateLimit(`${key}:${ip}`, limit, RL_WINDOW_MS);
-  if (!rl.ok) return rateLimitResponse(rl);
-  return null;
-}
-
-/**
- * Guard: trusted origin check for state-changing endpoints.
- * Returns a 403 NextResponse on failure, or `null` if OK.
- */
-export function requireTrustedOrigin(req: Request): NextResponse | null {
-  return ensureTrustedOrigin(req);
 }

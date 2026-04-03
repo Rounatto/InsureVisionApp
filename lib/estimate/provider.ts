@@ -1,9 +1,10 @@
-import { aiApiKey, aiEndpoint, aiProvider, aiTimeoutMs } from '@/config/ai';
+import { inferDamageFromModelApi, getModelApiBaseUrl } from '@/lib/model-inference';
 
-export interface EstimatePart {
-  name: string;
-  cost: number;
-  severity: string;
+export interface EstimatePrediction {
+  photoUrl: string;
+  prediction: string;
+  confidence: number;
+  probabilities: Record<string, number>;
 }
 
 export interface EstimateModelInput {
@@ -14,10 +15,9 @@ export interface EstimateModelInput {
 }
 
 export interface EstimateModelOutput {
-  parts: EstimatePart[];
-  summary: string;
+  predictions: EstimatePrediction[];
   model?: {
-    provider: 'model-server' | 'http';
+    provider: 'local-model';
     perPhoto?: Array<{
       photoUrl: string;
       topLabel: string | null;
@@ -27,234 +27,85 @@ export interface EstimateModelOutput {
   };
 }
 
-const modelServerUrl = (process.env.MODEL_SERVER_URL || '').replace(/\/$/, '');
-const modelApiKey = process.env.MODEL_API_KEY || '';
-
-class ModelServerError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = 'ModelServerError';
-    this.status = status;
-  }
-
-  get retryable(): boolean {
-    return this.status === 429 || this.status >= 500;
-  }
+function hasLocalModelInferenceProvider(): boolean {
+  return Boolean(getModelApiBaseUrl());
 }
 
-function normalizeModelOutput(data: unknown): EstimateModelOutput | null {
-  if (!data || typeof data !== 'object') return null;
+async function fetchPhotoAsFile(photoUrl: string, photoIndex: number): Promise<File> {
+  const res = await fetch(photoUrl, { cache: 'no-store' });
 
-  const payload = data as { parts?: unknown; summary?: unknown };
-  if (!Array.isArray(payload.parts) || typeof payload.summary !== 'string')
-    return null;
-
-  const parts: EstimatePart[] = [];
-  for (const item of payload.parts) {
-    if (!item || typeof item !== 'object') return null;
-    const part = item as { name?: unknown; cost?: unknown; severity?: unknown };
-
-    if (typeof part.name !== 'string') return null;
-    if (typeof part.cost !== 'number' || !Number.isFinite(part.cost))
-      return null;
-    if (typeof part.severity !== 'string') return null;
-
-    parts.push({
-      name: part.name,
-      cost: part.cost,
-      severity: part.severity,
-    });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch uploaded photo ${photoIndex} (status ${res.status}).`);
   }
 
-  if (!parts.length) return null;
+  const blob = await res.blob();
+  const contentType = blob.type || 'image/jpeg';
+  const extension = contentType.includes('png') ? 'png' : 'jpg';
 
-  return {
-    parts,
-    summary: payload.summary,
-  };
+  return new File([blob], `estimate-photo-${photoIndex}.${extension}`, {
+    type: contentType,
+  });
 }
 
-export async function generateHttpEstimate(
+async function generateLocalModelEstimate(
   input: EstimateModelInput
 ): Promise<EstimateModelOutput> {
-  if (!aiEndpoint) {
-    throw new Error('AI_ENDPOINT is missing.');
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), aiTimeoutMs);
-
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (aiApiKey) {
-      headers.Authorization = `Bearer ${aiApiKey}`;
-    }
-
-    const res = await fetch(aiEndpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(input),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      throw new Error(`AI provider returned status ${res.status}`);
-    }
-
-    const raw = await res.json();
-    const normalized = normalizeModelOutput(raw);
-
-    if (!normalized) {
-      throw new Error('AI provider response format is invalid.');
-    }
-
-    return normalized;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function titleCaseLabel(label: string): string {
-  return label
-    .replace(/[_-]+/g, ' ')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function mapPredictionToPart(prediction: {
-  photoIndex: number;
-  topLabel: string | null;
-  confidence: number | null;
-}): EstimatePart {
-  const conf = prediction.confidence ?? 0;
-  const confidencePct = Math.round(conf * 100);
-
-  let severity: 'High' | 'Medium' | 'Low' = 'Low';
-  if (conf >= 0.82) severity = 'High';
-  else if (conf >= 0.55) severity = 'Medium';
-
-  return {
-    name: `Photo ${prediction.photoIndex}: ${titleCaseLabel(prediction.topLabel || 'Unknown')}`,
-    severity,
-    cost: Math.max(1, confidencePct),
-  };
-}
-
-export function processWebhookToOutput(
-  photoUrls: string[],
-  predictions: Array<{
-    photo_url: string;
-    top_label: string | null;
-    confidence: number | null;
-    scores?: unknown;
-  }>
-): EstimateModelOutput {
-  const successfulPredictions: Array<{
+  const perPhoto: Array<{
     photoUrl: string;
     topLabel: string | null;
     confidence: number | null;
-    scores: unknown;
+    scores?: unknown;
   }> = [];
 
-  const parts: EstimatePart[] = [];
+  const predictions: EstimatePrediction[] = [];
 
-  photoUrls.forEach((url, i) => {
-    const prediction = predictions.find((p) => p.photo_url === url);
-    if (prediction) {
-      successfulPredictions.push({
-        photoUrl: prediction.photo_url,
-        topLabel: prediction.top_label,
+  for (let i = 0; i < input.photoUrls.length; i++) {
+    const photoUrl = input.photoUrls[i];
+    const photoIndex = i + 1;
+
+    try {
+      const file = await fetchPhotoAsFile(photoUrl, photoIndex);
+      const prediction = await inferDamageFromModelApi(file);
+
+      perPhoto.push({
+        photoUrl,
+        topLabel: prediction.prediction,
         confidence: prediction.confidence,
-        scores: prediction.scores,
+        scores: prediction.probabilities,
       });
-      parts.push(
-        mapPredictionToPart({
-          photoIndex: i + 1,
-          topLabel: prediction.top_label,
-          confidence: prediction.confidence,
-        })
-      );
+
+      predictions.push({
+        photoUrl,
+        prediction: prediction.prediction,
+        confidence: prediction.confidence,
+        probabilities: prediction.probabilities,
+      });
+    } catch {
+      // Continue processing remaining photos.
     }
-  });
+  }
 
-  const failedCount = photoUrls.length - successfulPredictions.length;
-  const labelsSummary = successfulPredictions
-    .map(
-      (p, i) =>
-        `photo ${i + 1}: ${titleCaseLabel(p.topLabel || 'Unknown')} (${Math.round((p.confidence ?? 0) * 100)}%)`
-    )
-    .join('; ');
-
-  const summary = `Model analysis completed for ${successfulPredictions.length}/${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''}. Predictions: ${labelsSummary}${failedCount > 0 ? `. ${failedCount} photo${failedCount > 1 ? 's were' : ' was'} retried or unavailable` : ''}.`;
+  if (!predictions.length) {
+    throw new Error('Local model inference failed for all uploaded photos.');
+  }
 
   return {
-    parts,
-    summary,
+    predictions,
     model: {
-      provider: 'model-server',
-      perPhoto: successfulPredictions,
+      provider: 'local-model',
+      perPhoto,
     },
   };
 }
 
-async function dispatchModelServerProvider(
-  input: EstimateModelInput,
-  webhookUrl: string
-): Promise<void> {
-  if (!modelServerUrl) {
-    throw new Error('MODEL_SERVER_URL is missing.');
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), aiTimeoutMs);
-
-  try {
-    const res = await fetch(`${modelServerUrl}/predict`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(modelApiKey ? { 'x-api-secret': modelApiKey } : {}),
-      },
-      body: JSON.stringify({
-        job_id: input.jobId,
-        photo_urls: input.photoUrls,
-        webhook_url: webhookUrl,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new ModelServerError(
-        res.status,
-        `Model server returned ${res.status}${body ? `: ${body.slice(0, 180)}` : ''}`
-      );
-    }
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-export async function dispatchEstimate(
-  input: EstimateModelInput,
-  webhookUrl: string
-): Promise<boolean> {
-  if (modelServerUrl) {
-    await dispatchModelServerProvider(input, webhookUrl);
-    return true; // async dispatched
-  }
-
-  if (aiProvider === 'http') {
-    return false; // not async dispatched, fallback to synchronous HTTP
+export async function generateFallbackEstimate(
+  input: EstimateModelInput
+): Promise<EstimateModelOutput> {
+  if (hasLocalModelInferenceProvider()) {
+    return generateLocalModelEstimate(input);
   }
 
   throw new Error(
-    'No estimate inference provider configured. Set MODEL_SERVER_URL or AI_PROVIDER=http with AI_ENDPOINT.'
+    'MODEL_INFERENCE_API_URL is required for local estimation.'
   );
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireDb, requireAdmin, db } from "@/lib/api-helpers";
 import { logAudit } from "@/lib/audit";
-import { getClientIp } from "@/lib/rate-limit";
 import type { ErrorResponse } from "@/types/auth";
 
 /**
@@ -18,8 +17,7 @@ export async function GET(req: Request) {
     const { session, error: adminError } = await requireAdmin();
     if (adminError) return adminError;
 
-    const ip = getClientIp(req);
-    logAudit({ userId: session.user.id, action: "ADMIN_ACCESS", ip, metadata: { route: "/api/admin/stats" } });
+    logAudit({ userId: session.user.id, action: "ADMIN_ACCESS", metadata: { route: "/api/admin/stats" } });
 
     const now = new Date();
 

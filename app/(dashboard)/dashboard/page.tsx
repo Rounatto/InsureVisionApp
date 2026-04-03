@@ -2,10 +2,9 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
-import { Upload, Loader2, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
-import { downloadEstimatePdf } from '@/lib/generatePdf';
+import { Upload, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
 import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
+import { downloadEstimatePdf } from '@/lib/generatePdf';
 
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -32,10 +31,31 @@ interface PhotoUploadState {
 
 interface EstimateResult {
   id: string;
-  totalCost: number;
-  parts: { name: string; cost: number; severity: string }[];
+  predictions?: Array<{
+    photoUrl: string;
+    prediction: string;
+    confidence: number;
+    probabilities: Record<string, number>;
+  }>;
+  confidentPredictions?: Array<{
+    photoUrl: string;
+    prediction: string;
+    confidence: number;
+    probabilities: Record<string, number>;
+  }>;
+  confidenceThreshold?: number;
+  costEstimate?: {
+    model: string;
+    currency: string;
+    total: number;
+    note?: string;
+  };
   photos?: string[];
-  summary: string;
+  summary?: string;
+}
+
+function normalizeConfidence(confidence: number): number {
+  return confidence > 1 ? confidence / 100 : confidence;
 }
 
 interface EstimateJobCreateResponse {
@@ -60,7 +80,6 @@ type EstimationUiStatus =
   | 'FAILED';
 
 export default function Home() {
-  const { data: session } = useSession();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState('');
@@ -73,6 +92,8 @@ export default function Home() {
   const [photoUploads, setPhotoUploads] = useState<
     Record<string, PhotoUploadState>
   >({});
+
+  const displayedPredictions = result?.confidentPredictions ?? [];
 
   useEffect(() => {
     if (result) {
@@ -803,64 +824,84 @@ export default function Home() {
             </p>
           </div>
 
-          <p className="text-sm text-[color:var(--muted-foreground)] mb-6">
-            {result.summary}
-          </p>
-
           <div className="space-y-3 mb-6">
-            {result.parts.map((part, i) => (
-              <div key={i} className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-block h-2 w-2 rounded-full ${
-                      part.severity === 'High'
-                        ? 'bg-red-500'
-                        : part.severity === 'Medium'
-                          ? 'bg-yellow-500'
-                          : 'bg-green-500'
-                    }`}
-                  />
-                  <span className="text-sm text-[color:var(--foreground)]">
-                    {part.name}
-                  </span>
-                  <span className="text-xs text-[color:var(--muted-foreground)]">
-                    ({part.severity})
-                  </span>
-                </div>
-                <span className="text-sm font-medium text-[color:var(--foreground)]">
-                  ${part.cost.toLocaleString()}
-                </span>
+            {displayedPredictions.map((item, i) => (
+              <div
+                key={`${item.photoUrl}-${i}`}
+                className="rounded-xl border border-[color:var(--border)] px-3 py-3"
+              >
+                <p className="text-xs text-[color:var(--muted-foreground)]">
+                  Photo {i + 1}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
+                  {item.prediction}
+                </p>
+                <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
+                  Confidence: {Math.round(normalizeConfidence(item.confidence) * 100)}%
+                </p>
+
+                {Object.keys(item.probabilities).length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Object.entries(item.probabilities).map(([label, score]) => (
+                      <span
+                        key={`${item.photoUrl}-${label}`}
+                        className="rounded-full border border-[color:var(--border)] px-2 py-0.5 text-[10px] text-[color:var(--muted-foreground)]"
+                      >
+                        {label}: {String(score)}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
+
+            {displayedPredictions.length === 0 && (
+              <div className="rounded-xl border border-[color:var(--border)] px-3 py-3">
+                <p className="text-sm text-[color:var(--muted-foreground)]">
+                  No predictions met the confidence threshold
+                  {typeof result.confidenceThreshold === 'number'
+                    ? ` (${Math.round(result.confidenceThreshold * 100)}%)`
+                    : ''}
+                  .
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="border-t border-[color:var(--border)] pt-4 flex items-center justify-between">
-            <span className="text-sm font-bold text-[color:var(--foreground)]">
-              Estimated Total
-            </span>
-            <span className="text-2xl font-bold text-[color:var(--foreground)]">
-              ${result.totalCost.toLocaleString()}
-            </span>
-          </div>
+          {result.costEstimate && (
+            <div className="mb-6 rounded-xl border border-[color:var(--border)] px-3 py-3">
+              <p className="text-xs text-[color:var(--muted-foreground)]">
+                Cost Estimation Model
+              </p>
+              <p className="mt-1 text-lg font-semibold text-[color:var(--foreground)]">
+                {result.costEstimate.currency} {result.costEstimate.total.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
+                {result.costEstimate.note ?? 'Placeholder output'}
+              </p>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button
               onClick={() =>
                 downloadEstimatePdf({
-                  ...result,
+                  id: result.id,
+                  confidentPredictions: result.confidentPredictions,
+                  predictions: result.predictions,
+                  confidenceThreshold: result.confidenceThreshold,
+                  costEstimate: result.costEstimate,
                   photoUrls: result.photos ?? [],
-                  userName: session?.user?.name || undefined,
-                  userEmail: session?.user?.email || undefined,
                   photoCount: result.photos?.length ?? files.length,
                 })
               }
-              className="flex-1 rounded-full bg-[color:var(--foreground)] py-3 text-xs sm:text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-[0.98] transition-all"
+              className="w-full rounded-full bg-[color:var(--foreground)] py-3 text-xs sm:text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-[0.98] transition-all"
             >
               Download PDF
             </button>
             <button
               onClick={clearAll}
-              className="flex-1 rounded-full border border-[color:var(--border)] py-3 text-xs sm:text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
+              className="w-full rounded-full border border-[color:var(--border)] py-3 text-xs sm:text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
             >
               New Estimation
             </button>

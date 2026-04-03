@@ -8,17 +8,27 @@ import {
   pdf,
 } from '@react-pdf/renderer';
 
-interface EstimatePart {
-  name: string;
-  cost: number;
-  severity: string;
+interface EstimatePrediction {
+  photoUrl?: string;
+  prediction?: string;
+  confidence?: number;
+  probabilities?: Record<string, number>;
+}
+
+interface CostEstimate {
+  model?: string;
+  currency?: string;
+  total?: number;
+  note?: string;
 }
 
 interface EstimateData {
   id: string;
-  totalCost: number;
-  parts: EstimatePart[];
-  summary: string;
+  predictions?: EstimatePrediction[];
+  confidentPredictions?: EstimatePrediction[];
+  confidenceThreshold?: number;
+  costEstimate?: CostEstimate;
+  summary?: string;
   photoUrls?: string[];
   userName?: string;
   userEmail?: string;
@@ -30,188 +40,73 @@ interface PreparedPhoto {
   src: string;
 }
 
-const NAVY = '#1a2744';
-const TEXT = '#111111';
-const MUTED = '#666666';
-const LIGHT_ROW = '#f9f9f9';
-const DIVIDER = '#d0d0d0';
-
 const styles = StyleSheet.create({
   page: {
-    backgroundColor: '#ffffff',
-    color: TEXT,
+    backgroundColor: '#fff',
+    color: '#000',
     fontSize: 10,
     fontFamily: 'Helvetica',
-    paddingTop: 32,
-    paddingBottom: 36,
-    paddingHorizontal: 36,
-    lineHeight: 1.45,
+    padding: 32,
+    lineHeight: 1.4,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 30,
-    height: 30,
-    marginRight: 10,
-  },
-  brandTextWrap: {
-    justifyContent: 'center',
-  },
-  brand: {
-    fontSize: 20,
+  title: {
+    fontSize: 14,
     fontWeight: 700,
-    color: NAVY,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 9,
-    color: MUTED,
-  },
-  headerMeta: {
-    alignItems: 'flex-end',
-    gap: 3,
-  },
-  metaLine: {
-    fontSize: 9,
-    color: MUTED,
-  },
-  divider: {
-    borderBottomWidth: 1,
-    borderBottomColor: DIVIDER,
-    marginBottom: 14,
-  },
-  section: {
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: 700,
+    fontSize: 10,
     marginBottom: 8,
   },
-  customerGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 18,
-  },
-  customerCol: {
-    flex: 1,
-    gap: 5,
-  },
-  label: {
-    color: MUTED,
-    fontSize: 9,
-  },
-  value: {
-    color: TEXT,
-    fontSize: 10,
-  },
-  summaryText: {
-    fontSize: 10,
-    color: TEXT,
-    lineHeight: 1.5,
-  },
-  tableHeader: {
-    flexDirection: 'row',
+  hr: {
     borderBottomWidth: 1,
-    borderBottomColor: DIVIDER,
-    paddingVertical: 6,
+    borderBottomColor: '#000',
+    marginBottom: 10,
   },
-  headerCell: {
-    fontSize: 9,
-    color: MUTED,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  section: {
+    marginBottom: 10,
   },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 7,
-    paddingHorizontal: 6,
-  },
-  rowAlt: {
-    backgroundColor: LIGHT_ROW,
-  },
-  componentCell: {
-    flex: 1.7,
+  sectionHeader: {
     fontSize: 10,
+    fontWeight: 700,
+    marginBottom: 4,
   },
-  severityCell: {
-    flex: 0.8,
+  text: {
     fontSize: 10,
-    color: '#2f2f2f',
+    marginBottom: 2,
   },
-  severityHigh: {
-    fontWeight: 700,
-  },
-  costCell: {
-    flex: 0.8,
-    textAlign: 'right',
+  mono: {
     fontSize: 10,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: NAVY,
-    marginTop: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  totalLabel: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: 700,
-  },
-  totalValue: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: 700,
-  },
-  photoRows: {
-    gap: 10,
+    fontFamily: 'Courier',
+    marginBottom: 3,
   },
   photoRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
+    marginBottom: 8,
   },
   photoCell: {
     flex: 1,
+    borderWidth: 1,
+    borderColor: '#000',
+    padding: 4,
   },
   photoImage: {
     width: '100%',
-    height: 120,
+    height: 110,
     objectFit: 'cover',
   },
   photoLabel: {
     fontSize: 8,
-    color: MUTED,
-    marginTop: 4,
+    marginTop: 3,
     textAlign: 'center',
   },
   footer: {
-    marginTop: 10,
-    paddingTop: 9,
+    marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: DIVIDER,
-  },
-  disclaimer: {
-    color: MUTED,
-    fontSize: 8.5,
-    fontStyle: 'italic',
-    lineHeight: 1.35,
-    marginBottom: 8,
-  },
-  generated: {
-    color: MUTED,
-    fontSize: 8.5,
-    textAlign: 'center',
+    borderTopColor: '#000',
+    paddingTop: 6,
+    fontSize: 8,
   },
 });
 
@@ -223,8 +118,12 @@ function chunk<T>(items: T[], perRow: number): T[][] {
   return rows;
 }
 
-function formatCurrency(amount: number) {
-  return `$${amount.toLocaleString()}`;
+function formatCurrency(amount: number, currency = 'USD') {
+  return `${currency} ${amount.toLocaleString()}`;
+}
+
+function normalizeConfidence(confidence: number) {
+  return confidence > 1 ? confidence / 100 : confidence;
 }
 
 async function blobToDataUrl(blob: Blob): Promise<string> {
@@ -313,162 +212,98 @@ async function preparePhotos(photoUrls: string[]): Promise<PreparedPhoto[]> {
   return prepared.filter((item): item is PreparedPhoto => item !== null);
 }
 
-async function loadHeaderLogo(): Promise<string | null> {
-  try {
-    const response = await fetch('/logo.png');
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return await blobToDataUrl(blob);
-  } catch {
-    return null;
-  }
-}
-
 function EstimateDocument({
   data,
   generatedAt,
   photos,
-  logoSrc,
 }: {
   data: EstimateData;
   generatedAt: Date;
   photos: PreparedPhoto[];
-  logoSrc: string | null;
 }) {
   const photosPerRow = 3;
   const photoRows = chunk(photos, photosPerRow);
   const inferredPhotoCount =
     data.photoCount ?? data.photoUrls?.length ?? photos.length;
+  const predictionList =
+    data.confidentPredictions ?? data.predictions ?? [];
 
   return (
     <Document title={`InsureVision ${data.id}`}>
       <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            {logoSrc && <Image src={logoSrc} style={styles.logo} />}
-            <View style={styles.brandTextWrap}>
-              <Text style={styles.brand}>InsureVision</Text>
-              <Text style={styles.subtitle}>
-                Vehicle Damage Estimation Report
-              </Text>
-            </View>
-          </View>
-          <View style={styles.headerMeta}>
-            <Text style={styles.metaLine}>Estimate ID: {data.id}</Text>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
+        <Text style={styles.title}>InsureVision - Vehicle Damage Report</Text>
+        <Text style={styles.subtitle}>Estimate ID: {data.id}</Text>
+        <View style={styles.hr} />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Customer Details</Text>
-          <View style={styles.customerGrid}>
-            <View style={styles.customerCol}>
-              <Text>
-                <Text style={styles.label}>Name: </Text>
-                <Text style={styles.value}>{data.userName || 'N/A'}</Text>
-              </Text>
-              <Text>
-                <Text style={styles.label}>Email: </Text>
-                <Text style={styles.value}>{data.userEmail || 'N/A'}</Text>
-              </Text>
-            </View>
-            <View style={styles.customerCol}>
-              <Text>
-                <Text style={styles.label}>Photos Analyzed: </Text>
-                <Text style={styles.value}>{inferredPhotoCount}</Text>
-              </Text>
-              <Text>
-                <Text style={styles.label}>Date: </Text>
-                <Text style={styles.value}>{generatedAt.toLocaleString()}</Text>
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.sectionHeader}>Report Details</Text>
+          <Text style={styles.text}>Date: {generatedAt.toLocaleString()}</Text>
+          <Text style={styles.text}>Customer: {data.userName || 'N/A'}</Text>
+          <Text style={styles.text}>Email: {data.userEmail || 'N/A'}</Text>
+          <Text style={styles.text}>Photos analyzed: {inferredPhotoCount}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Summary</Text>
-          <Text style={styles.summaryText}>{data.summary}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Damage Breakdown</Text>
-
-          <View style={styles.tableHeader}>
-            <Text style={[styles.headerCell, { flex: 1.7 }]}>Component</Text>
-            <Text style={[styles.headerCell, { flex: 0.8 }]}>Severity</Text>
-            <Text
-              style={[styles.headerCell, { flex: 0.8, textAlign: 'right' }]}
-            >
-              Cost
+          <Text style={styles.sectionHeader}>Confident Predictions</Text>
+          {predictionList.length > 0 ? (
+            predictionList.map((item, index) => (
+              <Text key={`${item.photoUrl ?? index}-${index}`} style={styles.mono}>
+                {index + 1}. {item.prediction ?? 'Unknown'} - {Math.round(normalizeConfidence(item.confidence ?? 0) * 100)}%
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.text}>
+              No confident predictions available.
             </Text>
-          </View>
-
-          {data.parts.map((part, index) => (
-            <View
-              key={`${part.name}-${index}`}
-              style={
-                index % 2 === 1
-                  ? [styles.tableRow, styles.rowAlt]
-                  : styles.tableRow
-              }
-            >
-              <Text style={styles.componentCell}>{part.name}</Text>
-              <Text
-                style={[
-                  styles.severityCell,
-                  ...(part.severity === 'High' ? [styles.severityHigh] : []),
-                ]}
-              >
-                {part.severity}
-              </Text>
-              <Text style={styles.costCell}>{formatCurrency(part.cost)}</Text>
-            </View>
-          ))}
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Estimated Total</Text>
-            <Text style={styles.totalValue}>
-              {formatCurrency(data.totalCost)}
+          )}
+          {typeof data.confidenceThreshold === 'number' && (
+            <Text style={styles.text}>
+              Confidence threshold: {Math.round(data.confidenceThreshold * 100)}%
             </Text>
-          </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Cost Estimate</Text>
+          <Text style={styles.text}>
+            Model: {data.costEstimate?.model ?? 'cost-model-placeholder-v1'}
+          </Text>
+          <Text style={styles.text}>
+            Estimated Total: {formatCurrency(data.costEstimate?.total ?? 0, data.costEstimate?.currency ?? 'USD')}
+          </Text>
+          {data.costEstimate?.note && (
+            <Text style={styles.text}>{data.costEstimate.note}</Text>
+          )}
         </View>
 
         {photos.length > 0 && (
           <View style={styles.section} wrap>
-            <Text style={styles.sectionTitle}>Photos Analyzed</Text>
-            <View style={styles.photoRows}>
-              {photoRows.map((row, rowIndex) => (
-                <View key={`row-${rowIndex}`} style={styles.photoRow}>
-                  {row.map((photo) => (
-                    <View key={photo.label} style={styles.photoCell}>
-                      <Image src={photo.src} style={styles.photoImage} />
-                      <Text style={styles.photoLabel}>{photo.label}</Text>
-                    </View>
-                  ))}
-                  {row.length < photosPerRow &&
-                    Array.from({ length: photosPerRow - row.length }).map(
-                      (_, i) => (
-                        <View
-                          key={`empty-${rowIndex}-${i}`}
-                          style={styles.photoCell}
-                        />
-                      )
-                    )}
-                </View>
-              ))}
-            </View>
+            <Text style={styles.sectionHeader}>Attached Photos</Text>
+            {photoRows.map((row, rowIndex) => (
+              <View key={`row-${rowIndex}`} style={styles.photoRow}>
+                {row.map((photo) => (
+                  <View key={photo.label} style={styles.photoCell}>
+                    <Image src={photo.src} style={styles.photoImage} />
+                    <Text style={styles.photoLabel}>{photo.label}</Text>
+                  </View>
+                ))}
+                {row.length < photosPerRow &&
+                  Array.from({ length: photosPerRow - row.length }).map(
+                    (_, i) => (
+                      <View
+                        key={`empty-${rowIndex}-${i}`}
+                        style={styles.photoCell}
+                      />
+                    )
+                  )}
+              </View>
+            ))}
           </View>
         )}
 
         <View style={styles.footer} fixed>
-          <Text style={styles.disclaimer}>
-            This estimate is generated by AI analysis and is for reference only.
-            Final repair costs may vary after physical inspection, parts
-            pricing, and labor rates.
-          </Text>
-          <Text style={styles.generated}>
-            Generated by InsureVision | {generatedAt.toLocaleString()}
+          <Text>
+            This report is generated by automated model output and is for reference only.
           </Text>
         </View>
       </Page>
@@ -485,16 +320,12 @@ export async function downloadEstimatePdf(data: EstimateData): Promise<void> {
     ? data.photoUrls.filter((url) => typeof url === 'string' && url.length > 0)
     : [];
 
-  const [photos, logoSrc] = await Promise.all([
-    preparePhotos(sourcePhotoUrls),
-    loadHeaderLogo(),
-  ]);
+  const photos = await preparePhotos(sourcePhotoUrls);
   const blob = await pdf(
     <EstimateDocument
       data={data}
       generatedAt={generatedAt}
       photos={photos}
-      logoSrc={logoSrc}
     />
   ).toBlob();
 

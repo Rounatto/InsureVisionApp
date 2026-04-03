@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
-import { waitUntil } from '@vercel/functions';
 import {
   db,
   requireAuth,
   requireDb,
-  requireRateLimit,
-  requireTrustedOrigin,
 } from '@/lib/api-helpers';
 import { queueEstimateJob, dispatchEstimateJob } from '@/lib/estimate/jobs';
-import { RL_ESTIMATE } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
 
 export const runtime = 'nodejs';
@@ -22,9 +18,6 @@ export const maxDuration = 10;
  */
 export async function POST(req: Request) {
   try {
-    const originError = requireTrustedOrigin(req);
-    if (originError) return originError;
-
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -45,13 +38,6 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
-
-    const rlError = requireRateLimit(
-      req,
-      `estimate:${session.user.id}`,
-      RL_ESTIMATE
-    );
-    if (rlError) return rlError;
 
     const body = (await req.json()) as {
       photoUrls?: string[];
@@ -87,11 +73,10 @@ export async function POST(req: Request) {
       photoCount: photoUrls.length,
     });
 
-    // Use waitUntil to fire dispatchEstimateJob safely in the background
-    const url = new URL(req.url);
-    const appBaseUrl =
-      process.env.WEBHOOK_BASE_URL || `${url.protocol}//${url.host}`;
-    waitUntil(dispatchEstimateJob(job.id, appBaseUrl));
+    // Local-only execution: dispatch processing in background.
+    void dispatchEstimateJob(job.id).catch((err) => {
+      console.error('Estimate dispatch error:', err);
+    });
 
     return NextResponse.json(
       {

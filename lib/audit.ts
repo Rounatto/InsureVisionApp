@@ -10,9 +10,7 @@ export type AuditAction =
   | "ADMIN_ACCESS"
   | "ADMIN_DELETE_USER"
   | "ADMIN_BAN_USER"
-  | "ADMIN_UNBAN_USER"
-  | "BANNED_USER_MESSAGE_SENT"
-  | "ADMIN_MESSAGE_SENT";
+  | "ADMIN_UNBAN_USER";
 
 /** No-op stub — audit logging disabled for presentation. */
 export async function logAudit(_params: {

@@ -1,12 +1,35 @@
 import crypto from 'crypto';
 import type { Prisma } from '@/lib/generated/prisma/client';
 import { db } from '@/lib/api-helpers';
-import { dispatchEstimate, generateHttpEstimate } from '@/lib/estimate/provider';
+import {
+  generateFallbackEstimate,
+  type EstimatePrediction,
+} from '@/lib/estimate/provider';
+
+const CONFIDENCE_THRESHOLD = 0.6;
+const COST_MODEL_PLACEHOLDER_TOTAL_USD = 2500;
+
+function normalizeConfidence(confidence: number): number {
+  return confidence > 1 ? confidence / 100 : confidence;
+}
+
+function isConfidentPrediction(prediction: EstimatePrediction): boolean {
+  return normalizeConfidence(prediction.confidence) >= CONFIDENCE_THRESHOLD;
+}
+
+interface CostEstimatePlaceholder {
+  model: 'cost-model-placeholder-v1';
+  currency: 'USD';
+  total: number;
+  note: string;
+}
 
 export interface EstimateJobResult {
   id: string;
-  totalCost: number;
-  parts: { name: string; cost: number; severity: string }[];
+  predictions: EstimatePrediction[];
+  confidentPredictions: EstimatePrediction[];
+  confidenceThreshold: number;
+  costEstimate: CostEstimatePlaceholder;
   photos: string[];
   summary: string;
   model?: unknown;
@@ -56,8 +79,7 @@ export async function failEstimateJob(jobId: string, error: unknown) {
 export async function completeEstimateJob(
   jobId: string,
   modelOutput: {
-    parts: { name: string; cost: number; severity: string }[];
-    summary: string;
+    predictions: EstimatePrediction[];
     model?: unknown;
   }
 ) {
@@ -71,14 +93,31 @@ export async function completeEstimateJob(
   }
 
   const estimateId = `EST-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-  const totalCost = modelOutput.parts.reduce((sum, p) => sum + p.cost, 0);
+  const confidentPredictions = modelOutput.predictions.filter(
+    isConfidentPrediction
+  );
+
+  const costEstimate: CostEstimatePlaceholder = {
+    model: 'cost-model-placeholder-v1',
+    currency: 'USD',
+    total: COST_MODEL_PLACEHOLDER_TOTAL_USD,
+    note: 'Placeholder until cost-estimation model is integrated.',
+  };
+
+  const summary = JSON.stringify({
+    confidentPredictions,
+    confidenceThreshold: CONFIDENCE_THRESHOLD,
+    costEstimate,
+  });
 
   const result: EstimateJobResult = {
     id: estimateId,
-    totalCost,
-    parts: modelOutput.parts,
+    predictions: modelOutput.predictions,
+    confidentPredictions,
+    confidenceThreshold: CONFIDENCE_THRESHOLD,
+    costEstimate,
     photos: job.photoUrls,
-    summary: modelOutput.summary,
+    summary,
     model: modelOutput.model,
   };
 
@@ -89,15 +128,8 @@ export async function completeEstimateJob(
           id: estimateId,
           userId: job.userId,
           summary: result.summary,
-          totalCost: result.totalCost,
+          totalCost: costEstimate.total,
           photos: result.photos,
-          parts: {
-            create: result.parts.map((p) => ({
-              name: p.name,
-              cost: p.cost,
-              severity: p.severity,
-            })),
-          },
         },
       });
 
@@ -115,7 +147,7 @@ export async function completeEstimateJob(
   }
 }
 
-export async function dispatchEstimateJob(jobId: string, appBaseUrl: string): Promise<void> {
+export async function dispatchEstimateJob(jobId: string): Promise<void> {
   // Claim the job once to prevent duplicate processing from overlapping polls.
   const claimed = await db.estimateJob.updateMany({
     where: { id: jobId, status: 'QUEUED' },
@@ -137,26 +169,13 @@ export async function dispatchEstimateJob(jobId: string, appBaseUrl: string): Pr
   if (!job) return;
 
   try {
-    const webhookUrl = `${appBaseUrl}/api/estimate/callback`;
-
-    // Try to dispatch async to model server. If it returns false, it means we must process sync via HTTP provider.
-    const dispatched = await dispatchEstimate({
+    const output = await generateFallbackEstimate({
       jobId: job.id,
       userId: job.userId,
       photoUrls: job.photoUrls,
       photoCount: job.photoCount,
-    }, webhookUrl);
-
-    if (!dispatched) {
-      // Synchronous fallback
-      const output = await generateHttpEstimate({
-        jobId: job.id,
-        userId: job.userId,
-        photoUrls: job.photoUrls,
-        photoCount: job.photoCount,
-      });
-      await completeEstimateJob(job.id, output);
-    }
+    });
+    await completeEstimateJob(job.id, output);
   } catch (error) {
     await failEstimateJob(job.id, error);
   }

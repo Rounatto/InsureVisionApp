@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, validateBody, db } from "@/lib/api-helpers";
 import { updateProfileSchema } from "@/lib/validations/auth";
-import { RL_PROFILE_UPDATE } from "@/lib/constants";
 import type { ErrorResponse } from "@/types/auth";
 
 export async function PATCH(req: Request) {
   try {
-    const originError = requireTrustedOrigin(req);
-    if (originError) return originError;
-
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -27,9 +23,6 @@ export async function PATCH(req: Request) {
         { status: 403 }
       );
     }
-
-    const rlError = requireRateLimit(req, `profile:${session.user.id}`, RL_PROFILE_UPDATE);
-    if (rlError) return rlError;
 
     const body = await req.json();
     const { data: validated, error: valError } = validateBody(updateProfileSchema, body);

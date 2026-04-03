@@ -23,23 +23,23 @@ function splitCsv(value?: string) {
     .filter(Boolean);
 }
 
+function normalizeAppPassword(value: string) {
+  // Gmail app passwords are often copied with spaces every 4 chars.
+  return value.replace(/\s+/g, "");
+}
+
 function getAccounts() {
   if (_accounts) return _accounts;
 
   const users = splitCsv(process.env.GMAIL_USER);
-  const passes = splitCsv(process.env.GMAIL_APP_PASS);
+  const passes = splitCsv(process.env.GMAIL_APP_PASS).map(normalizeAppPassword);
 
   if (!users.length || !passes.length) {
     throw new Error("GMAIL_USER and GMAIL_APP_PASS env vars are required");
   }
 
-  if (passes.length === 1) {
-    _accounts = users.map((user) => ({ user, pass: passes[0] }));
-    return _accounts;
-  }
-
   if (passes.length !== users.length) {
-    throw new Error("When using multiple Gmail users, provide one app password per user (or a single shared one)");
+    throw new Error("GMAIL_USER and GMAIL_APP_PASS must have matching counts (one app password per Gmail account)");
   }
 
   _accounts = users.map((user, index) => ({ user, pass: passes[index] }));
@@ -97,18 +97,18 @@ export async function sendVerificationEmail(email: string, token: string) {
 
   await sendWithFallback({
     to: email,
-    subject: "Verify your email — InsureVision",
+    subject: "Verify your email - InsureVision",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff;border-radius:12px;border:1px solid #e5e7eb">
         <h2 style="margin:0 0 8px;color:#111">Verify your email</h2>
         <p style="color:#6b7280;font-size:14px;line-height:1.6">
-          Thanks for signing up for InsureVision! Click the button below to verify your email address.
+          Thanks for signing up for InsureVision. Click the button below to verify your email address.
         </p>
         <a href="${url}" style="display:inline-block;margin:24px 0;padding:12px 32px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">
           Verify Email
         </a>
         <p style="color:#9ca3af;font-size:12px">
-          This link expires in 24 hours. If you didn't create an account, you can ignore this email.
+          This link expires in 24 hours.
         </p>
       </div>
     `,
