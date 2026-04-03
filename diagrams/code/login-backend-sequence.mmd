@@ -1,22 +1,24 @@
 sequenceDiagram
     autonumber
     actor User
-    participant UI as Login Page
-    participant API as Auth API
+    participant UI as Auth Page
+    participant NextAuth as NextAuth Credentials
     participant DB as Database
-    participant JWT as JWT Session Service
+    participant OAuth as Google OAuth
 
     User->>UI: Enter email and password
-    UI->>API: Submit credentials
-    API->>DB: Check user and password
-    DB-->>API: User result
+    UI->>NextAuth: signIn("credentials")
+    NextAuth->>DB: Load user by email
+    DB-->>NextAuth: User record
 
     alt Invalid credentials
-        API-->>UI: 401 Unauthorized
+        NextAuth-->>UI: Reject sign-in
         UI-->>User: Show login error
     else Valid credentials
-        API->>JWT: Create session token
-        JWT-->>API: Token payload
-        API-->>UI: Success
+        NextAuth-->>UI: Create session
         UI-->>User: Redirect to dashboard
     end
+
+    User->>UI: Click Google sign-in
+    UI->>OAuth: signIn("google")
+    OAuth-->>UI: Return to callback URL

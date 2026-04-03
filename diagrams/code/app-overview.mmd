@@ -1,0 +1,79 @@
+graph TD
+
+    %% Actors
+    Guest((Guest/Visitor))
+    User((Authenticated User))
+    Admin((Administrator))
+    Auth[[NextAuth + Prisma]]
+    AI[[AI Vision Service]]
+
+    %% Public entry points
+    subgraph "Public Entry"
+        Landing[Landing Page / Hero Section]
+        Register[Register Page]
+        Login[Login Page]
+        Forgot[Forgot Password Page]
+        Reset[Reset Password Page]
+        Verify[Verify Email Redirect]
+    end
+
+    %% User area
+    subgraph "User Experience"
+        Scanner[AICarScanner: Upload Photos]
+        EstimateFlow[Queued / Processing / Completed Estimate]
+        History[Estimation History]
+        Profile[Profile + Avatar Upload]
+        Settings[Settings / Delete Account]
+        PDF[Export PDF Report]
+    end
+
+    %% Admin area
+    subgraph "Administration"
+        Stats[Platform Stats]
+        ManageUsers[Ban / Unban / Delete Users]
+    end
+
+    %% Backend services
+    subgraph "Backend Infrastructure"
+        DB[(Prisma / Database)]
+        Email[Email Service: Verification / Reset]
+        Jobs[Estimate Jobs API]
+    end
+
+    %% Public flows
+    Guest --> Landing
+    Landing --> Register
+    Landing --> Login
+    Login --> Forgot
+    Forgot --> Reset
+    Register --> Verify
+    Verify --> Login
+
+    %% Authenticated experience
+    Login --> User
+    User --> Scanner
+    User --> History
+    User --> Profile
+    User --> Settings
+
+    Scanner --> Jobs
+    Jobs -.-> AI
+    AI -.-> EstimateFlow
+    EstimateFlow --> PDF
+    History --> PDF
+
+    %% Admin experience
+    User --> Admin
+    Admin --> Stats
+    Admin --> ManageUsers
+
+    %% Data connections
+    Scanner & Profile & Settings & ManageUsers & Stats --> DB
+    Register & Login & Forgot & Reset & Verify --> Email
+
+    %% Styling
+    style Guest fill:#f4f4f4,stroke:#333
+    style User fill:#e1f5fe,stroke:#01579b
+    style Admin fill:#fff3e0,stroke:#e65100
+    style Auth fill:#ede7f6,stroke:#5e35b1
+    style AI fill:#f3e5f5,stroke:#7b1fa2

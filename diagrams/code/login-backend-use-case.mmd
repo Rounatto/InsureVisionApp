@@ -1,8 +1,21 @@
-flowchart TD
-    Start([User opens login page]) --> Enter[Enter email and password]
-    Enter --> Submit[Submit login form]
-    Submit --> Valid{Credentials valid?}
+flowchart LR
+    User([User])
+    NextAuth([NextAuth Credentials])
+    OAuth([Google OAuth])
+    DB([Database])
 
-    Valid -->|No| Error([Show login error])
-    Valid -->|Yes| Session[Create JWT session]
-    Session --> Redirect([Redirect to dashboard])
+    subgraph Backend[Authentication Backend]
+        Login((Login to Account))
+        Verify((Verify Email / Password))
+        Forgot((Request Password Reset))
+        Reset((Reset Password with Link))
+    end
+
+    User --> Login
+    Login --> Verify
+    Verify --> NextAuth
+    NextAuth --> DB
+    Login --> OAuth
+    User --> Forgot
+    User --> Reset
+    Forgot --> DB
