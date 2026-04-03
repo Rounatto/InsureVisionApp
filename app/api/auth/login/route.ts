@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, validateBody, db } from "@/lib/server/api-helpers";
 import { loginSchema } from "@/lib/validations/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit } from "@/lib/server/audit";
 import type { LoginResponse, ErrorResponse } from "@/types/auth";
 // =====================================================
 // POST /api/auth/login

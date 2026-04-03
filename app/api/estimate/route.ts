@@ -3,8 +3,8 @@ import {
   db,
   requireAuth,
   requireDb,
-} from '@/lib/api-helpers';
-import { queueEstimateJob, dispatchEstimateJob } from '@/lib/estimate/jobs';
+} from '@/lib/server/api-helpers';
+import { queueEstimateJob, dispatchEstimateJob } from '@/lib/server/estimate/jobs';
 import type { ErrorResponse } from '@/types/auth';
 
 export const runtime = 'nodejs';

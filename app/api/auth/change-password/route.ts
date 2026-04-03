@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { requireDb, requireAuth, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, validateBody, db } from "@/lib/server/api-helpers";
 import { changePasswordSchema } from "@/lib/validations/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit } from "@/lib/server/audit";
 import { SALT_ROUNDS } from "@/lib/constants";
 import type { ErrorResponse } from "@/types/auth";
 

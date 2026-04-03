@@ -1,4 +1,4 @@
-import { inferDamageFromModelApi, getModelApiBaseUrl } from '@/lib/model-inference';
+import { inferDamageFromModelApi, getModelApiBaseUrl } from '@/lib/server/model-inference';
 
 export interface EstimatePrediction {
   photoUrl: string;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAuth, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, db } from "@/lib/server/api-helpers";
 
 export async function GET() {
   try {

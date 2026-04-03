@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireDb, db } from "@/lib/api-helpers";
-import { hashToken } from "@/lib/tokens";
-import { logAudit } from "@/lib/audit";
+import { requireDb, db } from "@/lib/server/api-helpers";
+import { hashToken } from "@/lib/server/tokens";
+import { logAudit } from "@/lib/server/audit";
 
 /**
  * GET /api/auth/verify-email?token=...

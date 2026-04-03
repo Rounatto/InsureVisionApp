@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   inferDamageFromModelApi,
   ModelInferenceError,
-} from '@/lib/model-inference';
+} from '@/lib/server/model-inference';
 
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;

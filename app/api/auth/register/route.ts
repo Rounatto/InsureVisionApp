@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, validateBody, db } from "@/lib/server/api-helpers";
 import { registerSchema } from "@/lib/validations/auth";
 import { SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
-import { generateSecureToken } from "@/lib/tokens";
-import { sendVerificationEmail } from "@/lib/email";
-import { logAudit } from "@/lib/audit";
+import { generateSecureToken } from "@/lib/server/tokens";
+import { sendVerificationEmail } from "@/lib/server/email";
+import { logAudit } from "@/lib/server/audit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {

@@ -1,10 +1,10 @@
 import crypto from 'crypto';
 import type { Prisma } from '@/lib/generated/prisma/client';
-import { db } from '@/lib/api-helpers';
+import { db } from '@/lib/server/api-helpers';
 import {
   generateFallbackEstimate,
   type EstimatePrediction,
-} from '@/lib/estimate/provider';
+} from '@/lib/server/estimate/provider';
 
 const CONFIDENCE_THRESHOLD = 0.6;
 const COST_MODEL_PLACEHOLDER_TOTAL_USD = 2500;

@@ -3,8 +3,8 @@ import {
   requireDb,
   requireAuth,
   db,
-} from '@/lib/api-helpers';
-import { logAudit } from '@/lib/audit';
+} from '@/lib/server/api-helpers';
+import { logAudit } from '@/lib/server/audit';
 import type { ErrorResponse } from '@/types/auth';
 
 /**

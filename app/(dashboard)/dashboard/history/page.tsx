@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
-import { downloadEstimatePdf } from "@/lib/generatePdf";
+import { downloadEstimatePdf } from "@/lib/client/generatePdf";
 
 interface PredictionSummaryItem {
   photoUrl?: string;

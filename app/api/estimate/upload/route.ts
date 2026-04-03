@@ -5,7 +5,7 @@ import {
   db,
   requireAuth,
   requireDb,
-} from '@/lib/api-helpers';
+} from '@/lib/server/api-helpers';
 import type { ErrorResponse } from '@/types/auth';
 
 const BUCKET = 'damage-photos';

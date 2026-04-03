@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
-import { requireDb, requireAuth, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, db } from "@/lib/server/api-helpers";
 import type { ErrorResponse } from "@/types/auth";
 
 const BUCKET = "user-avatars";

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { Upload, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
 import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
-import { downloadEstimatePdf } from '@/lib/generatePdf';
+import { downloadEstimatePdf } from '@/lib/client/generatePdf';
 
 import LoadingSpinner from '@/components/LoadingSpinner';
 
