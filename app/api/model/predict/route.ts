@@ -40,9 +40,15 @@ export async function POST(req: Request) {
 
     const prediction = await inferDamageFromModelApi(file);
 
+    // Normalize to single prediction for backward compatibility
+    // (for direct model/predict calls, return best prediction)
+    const normalizedPrediction = Array.isArray(prediction)
+      ? prediction.sort((a, b) => b.confidence - a.confidence)[0]
+      : prediction;
+
     return NextResponse.json({
       success: true,
-      ...prediction,
+      ...normalizedPrediction,
     });
   } catch (error) {
     if (error instanceof ModelInferenceError) {

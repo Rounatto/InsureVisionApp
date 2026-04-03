@@ -93,7 +93,16 @@ export default function Home() {
     Record<string, PhotoUploadState>
   >({});
 
-  const displayedPredictions = result?.confidentPredictions ?? [];
+  const displayedPredictions =
+    result?.predictions ?? result?.confidentPredictions ?? [];
+
+  const hiddenByThresholdCount =
+    result?.predictions && result?.confidentPredictions
+      ? Math.max(
+          0,
+          result.predictions.length - result.confidentPredictions.length
+        )
+      : 0;
 
   useEffect(() => {
     if (result) {
@@ -126,7 +135,7 @@ export default function Home() {
           pollAttemptsWithoutResult >= ALMOST_DONE_POLL_ATTEMPTS
         ? 'Almost done...'
         : estimationStatus === 'PROCESSING'
-          ? 'Analyzing damage...'
+          ? 'Detecting parts and classifying damage...'
           : estimationStatus === 'COMPLETED'
             ? 'Estimate completed.'
             : estimationStatus === 'FAILED'
@@ -547,8 +556,8 @@ export default function Home() {
           Damage Estimation
         </h1>
         <p className="mx-auto max-w-lg text-sm text-[color:var(--muted-foreground)]">
-          Upload photos of the damaged vehicle and our AI will generate an
-          accurate repair cost estimate.
+          Upload photos of the damaged vehicle and our AI pipeline will detect
+          vehicle parts, classify damage, and generate a repair cost estimate.
         </p>
       </div>
 
@@ -622,7 +631,7 @@ export default function Home() {
                 AI-assisted estimate
               </p>
               <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
-                Damage parts, severity & cost
+                Part detection, damage classification & cost
               </p>
             </div>
 
@@ -822,6 +831,18 @@ export default function Home() {
             <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
               ID: {result.id}
             </p>
+            <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
+              Showing {displayedPredictions.length} detection result
+              {displayedPredictions.length === 1 ? '' : 's'}.
+              {hiddenByThresholdCount > 0 &&
+                typeof result.confidenceThreshold === 'number'
+                ? ` ${hiddenByThresholdCount} result${
+                    hiddenByThresholdCount === 1 ? '' : 's'
+                  } are below ${Math.round(
+                    result.confidenceThreshold * 100
+                  )}% confidence.`
+                : ''}
+            </p>
           </div>
 
           <div className="space-y-3 mb-6">
@@ -836,22 +857,6 @@ export default function Home() {
                 <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
                   {item.prediction}
                 </p>
-                <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
-                  Confidence: {Math.round(normalizeConfidence(item.confidence) * 100)}%
-                </p>
-
-                {Object.keys(item.probabilities).length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {Object.entries(item.probabilities).map(([label, score]) => (
-                      <span
-                        key={`${item.photoUrl}-${label}`}
-                        className="rounded-full border border-[color:var(--border)] px-2 py-0.5 text-[10px] text-[color:var(--muted-foreground)]"
-                      >
-                        {label}: {String(score)}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
 

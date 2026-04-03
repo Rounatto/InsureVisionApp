@@ -125,13 +125,19 @@ export const { handlers, auth } = NextAuth({
       if (trigger === 'update') {
         if (typeof session?.name === 'string') token.name = session.name;
         if (typeof session?.image === 'string') token.image = session.image;
+        token.isAdmin = isAdminEmail(
+          typeof token.email === 'string' ? token.email : undefined
+        );
         return token;
       }
 
-      if (user?.id) {
-        token.isAdmin = isAdminEmail(user.email);
-        return token;
-      }
+      token.isAdmin = isAdminEmail(
+        typeof user?.email === 'string'
+          ? user.email
+          : typeof token.email === 'string'
+            ? token.email
+            : undefined
+      );
 
       return token;
     },

@@ -56,6 +56,14 @@ function toJobErrorMessage(error: unknown): string {
     return 'Failed to process estimation job.';
   }
 
+  if (
+    /stage 1 pipeline|car-parts-detector|MODEL_PIPELINE_API_URL/i.test(
+      error.message
+    )
+  ) {
+    return 'Vehicle analysis service is unavailable. Please ensure the stage 1 pipeline is running and try again.';
+  }
+
   // Hide transient upstream details from users while preserving meaning.
   if (/Model server returned (502|503|504)/.test(error.message)) {
     return 'Estimation service is temporarily unavailable. Please try again.';

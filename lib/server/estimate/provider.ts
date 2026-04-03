@@ -1,4 +1,4 @@
-import { inferDamageFromModelApi, getModelApiBaseUrl } from '@/lib/server/model-inference';
+import { inferDamageFromModelApiAllDetections, getModelApiBaseUrl } from '@/lib/server/model-inference';
 
 export interface EstimatePrediction {
   photoUrl: string;
@@ -58,6 +58,7 @@ async function generateLocalModelEstimate(
   }> = [];
 
   const predictions: EstimatePrediction[] = [];
+  const errors: string[] = [];
 
   for (let i = 0; i < input.photoUrls.length; i++) {
     const photoUrl = input.photoUrls[i];
@@ -65,28 +66,39 @@ async function generateLocalModelEstimate(
 
     try {
       const file = await fetchPhotoAsFile(photoUrl, photoIndex);
-      const prediction = await inferDamageFromModelApi(file);
+      const allPredictions = await inferDamageFromModelApiAllDetections(file);
 
-      perPhoto.push({
-        photoUrl,
-        topLabel: prediction.prediction,
-        confidence: prediction.confidence,
-        scores: prediction.probabilities,
-      });
+      // Add each detected part as a separate prediction result
+      for (const prediction of allPredictions) {
+        perPhoto.push({
+          photoUrl,
+          topLabel: prediction.prediction,
+          confidence: prediction.confidence,
+          scores: prediction.probabilities,
+        });
 
-      predictions.push({
-        photoUrl,
-        prediction: prediction.prediction,
-        confidence: prediction.confidence,
-        probabilities: prediction.probabilities,
-      });
-    } catch {
-      // Continue processing remaining photos.
+        predictions.push({
+          photoUrl,
+          prediction: prediction.prediction,
+          confidence: prediction.confidence,
+          probabilities: prediction.probabilities,
+        });
+      }
+    } catch (error) {
+      // Continue processing remaining photos while collecting failure context.
+      const message =
+        error instanceof Error
+          ? error.message
+          : `Stage 1 pipeline failed for photo ${photoIndex}.`;
+      errors.push(message);
     }
   }
 
   if (!predictions.length) {
-    throw new Error('Local model inference failed for all uploaded photos.');
+    throw new Error(
+      errors[0] ||
+        'Stage 1 pipeline could not analyze any uploaded photos.'
+    );
   }
 
   return {
@@ -106,6 +118,6 @@ export async function generateFallbackEstimate(
   }
 
   throw new Error(
-    'MODEL_INFERENCE_API_URL is required for local estimation.'
+    'MODEL_PIPELINE_API_URL (or MODEL_INFERENCE_API_URL) is required for local estimation.'
   );
 }

@@ -1,12 +1,12 @@
 # InsureVision AI
 
 InsureVision is a Next.js fullstack app for vehicle damage estimation.
-Users upload vehicle photos, the local model inference pipeline analyzes them,
+Users upload vehicle photos, the local stage-1 pipeline analyzes them,
 and the app returns confident predictions plus a cost-estimation placeholder.
 
 ## Current Highlights
 
-- Local-only AI inference flow (`MODEL_INFERENCE_API_URL`)
+- Local-only AI inference flow via stage 1 pipeline (`MODEL_PIPELINE_API_URL`)
 - Async estimation job pipeline (queued -> processing -> completed/failed)
 - Confidence-filtered prediction display
 - Placeholder cost estimation block (until dedicated cost model is integrated)
@@ -30,7 +30,7 @@ and the app returns confident predictions plus a cost-estimation placeholder.
 - Node.js 20+
 - pnpm 10+
 - PostgreSQL database
-- Running local model API for inference (FastAPI endpoint expected)
+- Running local stage-1 model API for inference (FastAPI endpoint expected)
 
 ## Environment
 
@@ -49,7 +49,9 @@ GOOGLE_CLIENT_SECRET="..."
 GMAIL_USER="your@gmail.com"
 GMAIL_APP_PASS="your-app-password"
 
-MODEL_INFERENCE_API_URL="http://127.0.0.1:8000"
+MODEL_PIPELINE_API_URL="http://127.0.0.1:8000"
+# Backward-compatible fallback (optional):
+# MODEL_INFERENCE_API_URL="http://127.0.0.1:8000"
 ```
 
 ## Install and Run
