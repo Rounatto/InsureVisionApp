@@ -1,129 +1,110 @@
-<p align="center">
-  <img src="public/logo.svg" alt="InsureVision Logo" width="80" />
-</p>
+# InsureVision AI
 
-<h1 align="center">InsureVision AI</h1>
+InsureVision is a Next.js fullstack app for vehicle damage estimation.
+Users upload vehicle photos, the local model inference pipeline analyzes them,
+and the app returns confident predictions plus a cost-estimation placeholder.
 
-<p align="center">
-  Smart vehicle damage estimation powered by AI.<br />
-  Upload photos of a damaged car and get an instant repair cost breakdown.
-</p>
+## Current Highlights
 
----
-
-## Features
-
-- **AI Damage Estimation** — Upload up to 8 photos and receive a detailed parts-level cost breakdown with severity ratings.
-- **PDF Reports** — Download professional estimation reports as PDF, generated client-side.
-- **Authentication** — Email/password and Google OAuth via NextAuth v5 (JWT strategy).
-- **Profile Management** — Update name, change password, delete account.
-- **Dark Mode** — System-aware theme with manual toggle.
-- **Route Protection** — Middleware redirects unauthenticated users to login.
+- Local-only AI inference flow (`MODEL_INFERENCE_API_URL`)
+- Async estimation job pipeline (queued -> processing -> completed/failed)
+- Confidence-filtered prediction display
+- Placeholder cost estimation block (until dedicated cost model is integrated)
+- Plain insurance-style PDF export with attached photos
+- Auth with email/password + Google OAuth
+- Email verification and password reset via Gmail SMTP
 
 ## Tech Stack
 
-| Layer      | Technology                                |
-| ---------- | ----------------------------------------- |
-| Framework  | Next.js 16 (App Router, Turbopack)        |
-| Auth       | NextAuth v5 (beta) — Credentials + Google |
-| Database   | PostgreSQL via Prisma 7                   |
-| Styling    | Tailwind CSS 4                            |
-| PDF        | jsPDF                                     |
-| Validation | Zod                                       |
-| Language   | TypeScript                                |
+- Next.js 16 (App Router, Turbopack)
+- TypeScript
+- Prisma 7 + PostgreSQL
+- NextAuth v5 (Credentials + Google)
+- Zod for request validation
+- Tailwind CSS 4
+- `@react-pdf/renderer` for PDF generation
+- pnpm as package manager
 
-## Ordre de lecture du projet (A → Z)
+## Requirements
 
-Si tu veux comprendre toutes les pages et le flux complet sans te perdre, lis dans cet ordre :
-
-1. `app/layout.tsx`
-   - Comprendre la structure globale (HTML, fonts, CSS global).
-2. `app/page.tsx`
-   - Comprendre la landing page (navigation, sections marketing, CTA).
-3. `app/(auth)/register/page.tsx`
-   - Comprendre le formulaire d'inscription côté client et l'appel API.
-4. `app/api/auth/register/route.ts`
-   - Comprendre la validation, le hash du mot de passe, la création DB.
-5. `config/auth.ts`
-   - Comprendre la configuration NextAuth (Google + Credentials, session JWT).
-6. `app/api/auth/[...nextauth]/route.ts`
-   - Comprendre comment NextAuth expose ses endpoints API.
-7. `app/(auth)/login/page.tsx`
-   - Comprendre l'UI login actuelle et les points d'intégration auth à finaliser.
-
-Fichiers support utiles après ce parcours :
-
-- `lib/validations/auth.ts` (règles Zod)
-- `types/auth.ts` (contrats de réponses API)
-- `config/db.ts` + `prisma/schema.prisma` (modèle de données)
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
+- Node.js 20+
+- pnpm 10+
 - PostgreSQL database
-- Google OAuth credentials (optional, for social login)
+- Running local model API for inference (FastAPI endpoint expected)
 
-### Environment Variables
+## Environment
 
-Create a `.env` file in the project root:
+Required core variables in `.env`:
 
 ```env
-DATABASE_URL="postgresql://user:password@host:5432/insurevision"
-AUTH_SECRET="your-random-secret"
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
+DATABASE_URL="postgresql://..."
+MIGRATE_DATABASE_URL="postgresql://..."
+
+AUTH_SECRET="..."
+AUTH_URL="http://localhost:3001"
+
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+
+GMAIL_USER="your@gmail.com"
+GMAIL_APP_PASS="your-app-password"
+
 MODEL_INFERENCE_API_URL="http://127.0.0.1:8000"
 ```
 
-Local inference variable:
-
-- `MODEL_INFERENCE_API_URL`: Base URL for local image classification endpoint used by the estimation flow.
-
-### Install & Run
+## Install and Run
 
 ```bash
-# Install dependencies
-npm install
-
-# Generate Prisma client & push schema
-npx prisma generate
-npx prisma db push
-
-# Start development server
-npm run dev
+pnpm install
+pnpm prisma generate
+pnpm prisma db push
+pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
-
-## Project Structure
-
-```
-app/
-  (auth)/          Auth pages (login, register, forgot/reset password)
-  api/             API routes (auth, profile, estimate)
-  profile/         Profile management page
-  page.tsx         Home — upload & estimation
-components/        Reusable UI components
-config/            NextAuth & database configuration
-lib/               Constants, icons, validation schemas, PDF generation
-prisma/            Schema & migrations
-```
+App runs on: `http://localhost:3001`
 
 ## Scripts
 
-| Command         | Description                               |
-| --------------- | ----------------------------------------- |
-| `npm run dev`   | Start dev server (Turbopack)              |
-| `npm run build` | Generate Prisma client & production build |
-| `npm run start` | Start production server                   |
-| `npm run lint`  | Run ESLint                                |
+- `pnpm dev` - Run development server
+- `pnpm build` - Generate Prisma client and build app
+- `pnpm start` - Run production server
+- `pnpm lint` - Run ESLint
+- `pnpm test` - Run tests
+
+## Project Structure
+
+```text
+app/
+   (auth)/
+   (dashboard)/
+   api/
+
+components/
+config/
+
+lib/
+   client/        # browser/client utilities (PDF export)
+   server/        # server-only helpers (auth/db/email/estimate/model)
+   validations/
+   generated/
+   icons.tsx
+   constants.ts
+   utils.ts
+
+prisma/
+types/
+diagrams/
+   code/
+   images/
+```
+
+## Notes
+
+- Estimation output currently includes confident predictions and a hardcoded
+   placeholder cost block by design.
+- The middleware file convention is deprecated in Next.js and can later be
+   migrated to `proxy.ts`.
 
 ## License
 
-Private — all rights reserved.
-
----
-
-<p align="center">Built by the InsureVision Team</p>
+Private - all rights reserved.
