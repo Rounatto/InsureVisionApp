@@ -82,6 +82,23 @@ function parseSummary(summary: string): ParsedSummary {
   }
 }
 
+function getConfidenceText(prediction: PredictionSummaryItem): string {
+  if (typeof prediction.confidence !== "number") {
+    return "";
+  }
+
+  const confidenceValue = normalizeConfidence(prediction.confidence);
+  return `Confidence: ${Math.round(confidenceValue * 100)}%`;
+}
+
+function getPhotoLabel(photoCount: number): string {
+  if (photoCount === 1) {
+    return "1 photo uploaded";
+  }
+
+  return `${photoCount} photos uploaded`;
+}
+
 export default function HistoryPage() {
   const router = useRouter();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
@@ -108,8 +125,15 @@ export default function HistoryPage() {
     fetchEstimates();
   }, []);
 
-  const toggle = (id: string) =>
-    setExpandedId((prev) => (prev === id ? null : id));
+  const toggle = (id: string) => {
+    setExpandedId((prev) => {
+      if (prev === id) {
+        return null;
+      }
+
+      return id;
+    });
+  };
 
   return (
       <main className="relative mx-auto max-w-5xl px-6 py-14 sm:py-16">
@@ -265,10 +289,10 @@ export default function HistoryPage() {
                               Photo {i + 1}
                             </p>
                             <p className="text-sm font-medium text-[color:var(--foreground)]">
-                              {prediction.prediction ?? "Unknown"}
+                              {prediction.prediction || "Unknown"}
                             </p>
                             <p className="text-[11px] text-[color:var(--muted-foreground)]">
-                              Confidence: {typeof prediction.confidence === "number" ? `${Math.round(normalizeConfidence(prediction.confidence) * 100)}%` : ""}
+                              {getConfidenceText(prediction)}
                             </p>
                           </div>
                         ))}
@@ -301,11 +325,11 @@ export default function HistoryPage() {
                       )}
 
                       {/* Photos */}
-                      {est.photos.length > 0 && (
-                        <p className="text-xs text-[color:var(--muted-foreground)] mb-4">
-                          {est.photos.length} photo{est.photos.length > 1 ? "s" : ""} uploaded
-                        </p>
-                      )}
+                        {est.photos.length > 0 && (
+                          <p className="text-xs text-[color:var(--muted-foreground)] mb-4">
+                            {getPhotoLabel(est.photos.length)}
+                          </p>
+                        )}
 
                       <button
                         onClick={() =>

@@ -23,12 +23,20 @@ export default function GoogleButton({
 }: GoogleButtonProps) {
   const [loading, setLoading] = useState(false);
 
+  const notifyGoogleError = () => {
+    if (!onError) {
+      return;
+    }
+
+    onError("Google sign-in failed. Please try again.");
+  };
+
   const handleClick = async () => {
     setLoading(true);
     try {
       await signIn("google", { callbackUrl: "/dashboard" });
     } catch {
-      onError?.("Google sign-in failed. Please try again.");
+      notifyGoogleError();
       setLoading(false);
     }
   };

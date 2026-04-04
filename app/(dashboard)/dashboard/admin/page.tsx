@@ -75,7 +75,47 @@ export default function AdminPage() {
     return 'Active';
   };
 
-  const shownUsers = users.length > 0 ? users : [];
+  const getMetricValue = (value: number) => {
+    if (loadingData && !stats) return '...';
+    return value.toLocaleString();
+  };
+
+  const getHealthValue = () => {
+    if (!stats) {
+      if (loadingData) return '...';
+      return '0%';
+    }
+
+    const totalUsers = Math.max(1, stats.totalUsers);
+    const healthValue = Math.min(100, Math.round((stats.verifiedUsers / totalUsers) * 100));
+    return `${healthValue}%`;
+  };
+
+  const getStatusBadgeClass = (user: AdminUser) => {
+    if (user.banned) return 'bg-red-500/10 text-red-500';
+    if (!user.emailVerified) return 'bg-yellow-500/10 text-yellow-500';
+    return 'bg-green-500/10 text-green-500';
+  };
+
+  const toggleUserActions = (email: string) => {
+    setExpandedActionsUserEmail((previousEmail) => {
+      if (previousEmail === email) {
+        return null;
+      }
+
+      return email;
+    });
+  };
+
+  const getUserName = (user: AdminUser) => {
+    if (!user.name) {
+      return 'Unknown';
+    }
+
+    return user.name;
+  };
+
+  const shownUsers = users;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
@@ -117,29 +157,25 @@ export default function AdminPage() {
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">Total Users</p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats ? stats.totalUsers.toLocaleString() : loadingData ? '...' : '0'}
+                {stats ? stats.totalUsers.toLocaleString() : getMetricValue(0)}
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">Active Sessions</p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats ? stats.verifiedUsers.toLocaleString() : loadingData ? '...' : '0'}
+                {stats ? stats.verifiedUsers.toLocaleString() : getMetricValue(0)}
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">Open Reports</p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats ? stats.unverifiedUsers.toLocaleString() : loadingData ? '...' : '0'}
+                {stats ? stats.unverifiedUsers.toLocaleString() : getMetricValue(0)}
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">System Health</p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats
-                  ? `${Math.min(100, Math.round((stats.verifiedUsers / Math.max(1, stats.totalUsers)) * 100))}%`
-                  : loadingData
-                    ? '...'
-                    : '0%'}
+                {stats ? getHealthValue() : getMetricValue(0)}
               </p>
             </div>
           </div>
@@ -178,18 +214,12 @@ export default function AdminPage() {
                       key={user.id}
                       className="rounded-xl bg-[color:var(--background)] text-sm text-[color:var(--foreground)]"
                     >
-                      <td className="px-3 py-3 font-medium">{user.name || 'Unknown'}</td>
+                      <td className="px-3 py-3 font-medium">{getUserName(user)}</td>
                       <td className="px-3 py-3 text-[color:var(--muted-foreground)]">{user.email}</td>
                       <td className="px-3 py-3">{roleLabel(user)}</td>
                       <td className="px-3 py-3">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            user.banned
-                              ? 'bg-red-500/10 text-red-500'
-                              : !user.emailVerified
-                                ? 'bg-yellow-500/10 text-yellow-500'
-                                : 'bg-green-500/10 text-green-500'
-                          }`}
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusBadgeClass(user)}`}
                         >
                           {statusLabel(user)}
                         </span>
@@ -203,11 +233,7 @@ export default function AdminPage() {
                         <div className="relative inline-block">
                           <button
                             type="button"
-                            onClick={() =>
-                              setExpandedActionsUserEmail((prev) =>
-                                prev === user.email ? null : user.email
-                              )
-                            }
+                            onClick={() => toggleUserActions(user.email)}
                             className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[color:var(--muted)]"
                           >
                             View

@@ -79,6 +79,152 @@ type EstimationUiStatus =
   | 'COMPLETED'
   | 'FAILED';
 
+function getHiddenPredictionCount(result: EstimateResult | null): number {
+  if (!result) {
+    return 0;
+  }
+
+  if (!result.predictions) {
+    return 0;
+  }
+
+  if (!result.confidentPredictions) {
+    return 0;
+  }
+
+  const hiddenCount = result.predictions.length - result.confidentPredictions.length;
+  if (hiddenCount < 0) {
+    return 0;
+  }
+
+  return hiddenCount;
+}
+
+function getEstimationProgress(
+  status: EstimationUiStatus,
+  pollAttempts: number
+): number {
+  if (status === 'QUEUED') return 10;
+
+  if (status === 'PROCESSING') {
+    if (pollAttempts >= ALMOST_DONE_POLL_ATTEMPTS) return 90;
+    return Math.min(85, 30 + pollAttempts * 10);
+  }
+
+  if (status === 'COMPLETED') return 100;
+  if (status === 'FAILED') return 90;
+
+  return 0;
+}
+
+function getEstimationLabel(
+  status: EstimationUiStatus,
+  pollAttempts: number
+): string {
+  if (status === 'QUEUED') {
+    return 'Job queued, waiting to process...';
+  }
+
+  if (status === 'PROCESSING') {
+    if (pollAttempts >= ALMOST_DONE_POLL_ATTEMPTS) {
+      return 'Almost done...';
+    }
+
+    return 'Detecting parts and classifying damage...';
+  }
+
+  if (status === 'COMPLETED') return 'Estimate completed.';
+  if (status === 'FAILED') return 'Estimation failed. Please try again.';
+
+  return '';
+}
+
+function getUploadErrorMessage(uploadError: unknown, photoNumber: number): string {
+  if (uploadError instanceof Error) {
+    return uploadError.message;
+  }
+
+  return `Photo ${photoNumber} failed to upload.`;
+}
+
+function getFailedUploadsNotice(failedMessages: string[]): string {
+  if (failedMessages.length === 0) {
+    return '';
+  }
+
+  if (failedMessages.length === 1) {
+    return failedMessages[0];
+  }
+
+  return `${failedMessages[0]} (+${failedMessages.length - 1} more photo errors)`;
+}
+
+function getSelectedPhotosLabel(fileCount: number): string {
+  if (fileCount === 1) {
+    return '1 photo selected';
+  }
+
+  return `${fileCount} photos selected`;
+}
+
+function getUploadStatusText(state?: PhotoUploadState): string {
+  if (!state || state.status === 'pending') {
+    return 'Ready';
+  }
+
+  if (state.status === 'uploaded') {
+    return 'Uploaded';
+  }
+
+  if (state.status === 'failed') {
+    return 'Failed';
+  }
+
+  return '';
+}
+
+function getProgressBarClass(status: EstimationUiStatus): string {
+  if (status === 'FAILED') {
+    return 'bg-red-500';
+  }
+
+  if (status === 'COMPLETED') {
+    return 'bg-green-500 animate-pulse';
+  }
+
+  return 'bg-[color:var(--foreground)]';
+}
+
+function getProgressLabelClass(status: EstimationUiStatus): string {
+  if (status === 'FAILED') {
+    return 'text-red-500';
+  }
+
+  return 'text-[color:var(--muted-foreground)]';
+}
+
+function getHiddenThresholdText(result: EstimateResult, hiddenCount: number): string {
+  if (hiddenCount <= 0) {
+    return '';
+  }
+
+  if (typeof result.confidenceThreshold !== 'number') {
+    return '';
+  }
+
+  const resultLabel = hiddenCount === 1 ? 'result' : 'results';
+  const thresholdValue = Math.round(result.confidenceThreshold * 100);
+  return ` ${hiddenCount} ${resultLabel} are below ${thresholdValue}% confidence.`;
+}
+
+function getNoPredictionsText(result: EstimateResult): string {
+  if (typeof result.confidenceThreshold !== 'number') {
+    return 'No predictions met the confidence threshold.';
+  }
+
+  return `No predictions met the confidence threshold (${Math.round(result.confidenceThreshold * 100)}%).`;
+}
+
 export default function Home() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -96,13 +242,7 @@ export default function Home() {
   const displayedPredictions =
     result?.predictions ?? result?.confidentPredictions ?? [];
 
-  const hiddenByThresholdCount =
-    result?.predictions && result?.confidentPredictions
-      ? Math.max(
-          0,
-          result.predictions.length - result.confidentPredictions.length
-        )
-      : 0;
+  const hiddenByThresholdCount = getHiddenPredictionCount(result);
 
   useEffect(() => {
     if (result) {
@@ -114,36 +254,19 @@ export default function Home() {
 
   const estimationInProgress = estimationStatus !== 'IDLE';
 
-  const estimationProgress =
-    estimationStatus === 'QUEUED'
-      ? 10
-      : estimationStatus === 'PROCESSING' &&
-          pollAttemptsWithoutResult >= ALMOST_DONE_POLL_ATTEMPTS
-        ? 90
-        : estimationStatus === 'PROCESSING'
-          ? Math.min(85, 30 + pollAttemptsWithoutResult * 10)
-          : estimationStatus === 'COMPLETED'
-            ? 100
-            : estimationStatus === 'FAILED'
-              ? 90
-              : 0;
+  const estimationProgress = getEstimationProgress(
+    estimationStatus,
+    pollAttemptsWithoutResult
+  );
 
-  const estimationLabel =
-    estimationStatus === 'QUEUED'
-      ? 'Job queued, waiting to process...'
-      : estimationStatus === 'PROCESSING' &&
-          pollAttemptsWithoutResult >= ALMOST_DONE_POLL_ATTEMPTS
-        ? 'Almost done...'
-        : estimationStatus === 'PROCESSING'
-          ? 'Detecting parts and classifying damage...'
-          : estimationStatus === 'COMPLETED'
-            ? 'Estimate completed.'
-            : estimationStatus === 'FAILED'
-              ? 'Estimation failed. Please try again.'
-              : '';
+  const estimationLabel = getEstimationLabel(
+    estimationStatus,
+    pollAttemptsWithoutResult
+  );
 
   const addFiles = useCallback(
     (incoming: FileList | File[]) => {
+      // Validate each incoming file, skip invalid/duplicate files, then merge.
       setError('');
       const newFiles: UploadedFile[] = [];
 
@@ -344,6 +467,7 @@ export default function Home() {
   };
 
   const handleSubmit = async () => {
+    // Full flow: upload photos -> create estimation job -> poll until completed/failed.
     if (!files.length) return;
     setSubmitting(true);
     setEstimationStatus('IDLE');
@@ -395,10 +519,7 @@ export default function Home() {
             },
           }));
         } catch (uploadError) {
-          const message =
-            uploadError instanceof Error
-              ? uploadError.message
-              : `Photo ${photoNumber} failed to upload.`;
+          const message = getUploadErrorMessage(uploadError, photoNumber);
           failedMessages.push(message);
           setPhotoUploads((prev) => ({
             ...prev,
@@ -465,6 +586,7 @@ export default function Home() {
       let finalError = '';
 
       for (let attempt = 0; attempt < JOB_POLL_MAX_ATTEMPTS; attempt++) {
+        // Polling loop keeps UI status in sync while backend job is running.
         await new Promise((resolve) =>
           setTimeout(resolve, JOB_POLL_INTERVAL_MS)
         );
@@ -518,13 +640,7 @@ export default function Home() {
       }
 
       if (failedMessages.length > 0) {
-        setError(
-          `${failedMessages[0]} ${
-            failedMessages.length > 1
-              ? `(+${failedMessages.length - 1} more photo errors)`
-              : ''
-          }`
-        );
+        setError(getFailedUploadsNotice(failedMessages));
       }
 
       if (finalResult) {
@@ -655,7 +771,7 @@ export default function Home() {
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-[color:var(--muted-foreground)]">
-              {files.length} photo{files.length > 1 ? 's' : ''} selected
+              {getSelectedPhotosLabel(files.length)}
             </p>
             <div className="flex gap-2">
               {files.length < MAX_FILES && (
@@ -722,11 +838,7 @@ export default function Home() {
                   </p>
                   {photoUploads[f.id]?.status !== 'uploading' && (
                     <p className="mt-0.5 text-[10px] text-white/90">
-                      {photoUploads[f.id]?.status === 'uploaded' && 'Uploaded'}
-                      {photoUploads[f.id]?.status === 'failed' && 'Failed'}
-                      {(!photoUploads[f.id] ||
-                        photoUploads[f.id]?.status === 'pending') &&
-                        'Ready'}
+                      {getUploadStatusText(photoUploads[f.id])}
                     </p>
                   )}
                 </div>
@@ -773,22 +885,12 @@ export default function Home() {
             <div className="mb-4">
               <div className="h-2 w-full overflow-hidden rounded-full bg-[color:var(--muted)]">
                 <div
-                  className={`h-full transition-all duration-[800ms] ease-in-out ${
-                    estimationStatus === 'FAILED'
-                      ? 'bg-red-500'
-                      : estimationStatus === 'COMPLETED'
-                        ? 'bg-green-500 animate-pulse'
-                        : 'bg-[color:var(--foreground)]'
-                  }`}
+                  className={`h-full transition-all duration-[800ms] ease-in-out ${getProgressBarClass(estimationStatus)}`}
                   style={{ width: `${estimationProgress}%` }}
                 />
               </div>
               <p
-                className={`mt-2 text-xs ${
-                  estimationStatus === 'FAILED'
-                    ? 'text-red-500'
-                    : 'text-[color:var(--muted-foreground)]'
-                }`}
+                className={`mt-2 text-xs ${getProgressLabelClass(estimationStatus)}`}
               >
                 {estimationLabel}
               </p>
@@ -834,14 +936,7 @@ export default function Home() {
             <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
               Showing {displayedPredictions.length} detection result
               {displayedPredictions.length === 1 ? '' : 's'}.
-              {hiddenByThresholdCount > 0 &&
-                typeof result.confidenceThreshold === 'number'
-                ? ` ${hiddenByThresholdCount} result${
-                    hiddenByThresholdCount === 1 ? '' : 's'
-                  } are below ${Math.round(
-                    result.confidenceThreshold * 100
-                  )}% confidence.`
-                : ''}
+              {getHiddenThresholdText(result, hiddenByThresholdCount)}
             </p>
           </div>
 
@@ -863,11 +958,7 @@ export default function Home() {
             {displayedPredictions.length === 0 && (
               <div className="rounded-xl border border-[color:var(--border)] px-3 py-3">
                 <p className="text-sm text-[color:var(--muted-foreground)]">
-                  No predictions met the confidence threshold
-                  {typeof result.confidenceThreshold === 'number'
-                    ? ` (${Math.round(result.confidenceThreshold * 100)}%)`
-                    : ''}
-                  .
+                  {getNoPredictionsText(result)}
                 </p>
               </div>
             )}

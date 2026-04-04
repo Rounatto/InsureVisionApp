@@ -47,10 +47,20 @@ export default function Login() {
         redirect: false,
       });
 
-      if (!result?.ok) {
-        setError(result?.error || "Invalid email or password");
-      } else {
+      if (!result) {
+        setError("Invalid email or password");
+        return;
+      }
+
+      if (result.ok === true) {
         router.push("/dashboard");
+        return;
+      }
+
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setError("Invalid email or password");
       }
     } catch (err) {
       setError("An error occurred during sign in");
