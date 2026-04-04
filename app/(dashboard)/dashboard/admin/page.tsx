@@ -30,6 +30,9 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status !== 'authenticated' || !canAccessAdmin) return;
@@ -115,6 +118,69 @@ export default function AdminPage() {
     return user.name;
   };
 
+  const handleDeleteUser = async (user: AdminUser) => {
+    setActionError('');
+    setActionSuccess('');
+
+    const confirmDelete = window.confirm(
+      `Delete account for ${user.email}? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    setBusyUserId(user.id);
+
+    try {
+      const res = await fetch(
+        `/api/admin/users?id=${encodeURIComponent(user.id)}`,
+        { method: 'DELETE' }
+      );
+
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+      };
+
+      if (!res.ok) {
+        setActionError(data.message || 'Failed to delete user.');
+        return;
+      }
+
+      setUsers((previousUsers) =>
+        previousUsers.filter((currentUser) => currentUser.id !== user.id)
+      );
+
+      setStats((previousStats) => {
+        if (!previousStats) {
+          return previousStats;
+        }
+
+        const updatedTotalUsers = Math.max(0, previousStats.totalUsers - 1);
+        const updatedVerifiedUsers = user.emailVerified
+          ? Math.max(0, previousStats.verifiedUsers - 1)
+          : previousStats.verifiedUsers;
+        const updatedUnverifiedUsers = user.emailVerified
+          ? previousStats.unverifiedUsers
+          : Math.max(0, previousStats.unverifiedUsers - 1);
+
+        return {
+          ...previousStats,
+          totalUsers: updatedTotalUsers,
+          verifiedUsers: updatedVerifiedUsers,
+          unverifiedUsers: updatedUnverifiedUsers,
+        };
+      });
+
+      setExpandedActionsUserEmail(null);
+      setActionSuccess('User deleted successfully.');
+    } catch {
+      setActionError('Failed to delete user.');
+    } finally {
+      setBusyUserId(null);
+    }
+  };
+
   const shownUsers = users;
 
   return (
@@ -186,6 +252,18 @@ export default function AdminPage() {
             </div>
           )}
 
+          {actionError && (
+            <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-500">
+              {actionError}
+            </div>
+          )}
+
+          {actionSuccess && (
+            <div className="mb-4 rounded-2xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-500">
+              {actionSuccess}
+            </div>
+          )}
+
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[color:var(--foreground)]">
@@ -249,9 +327,11 @@ export default function AdminPage() {
                               </button>
                               <button
                                 type="button"
+                                onClick={() => void handleDeleteUser(user)}
+                                disabled={busyUserId === user.id}
                                 className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
                               >
-                                Delete
+                                {busyUserId === user.id ? 'Deleting...' : 'Delete'}
                               </button>
                             </div>
                           )}
