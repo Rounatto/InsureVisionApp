@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -25,6 +25,10 @@ export default function Sidebar() {
   const profileRef = useRef<HTMLDivElement>(null);
   const canAccessAdmin = Boolean(session?.user?.isAdmin);
 
+  const closeProfileMenu = () => {
+    setProfileOpen(false);
+  };
+
   const navItems = [
     { href: '/dashboard', label: 'Home', icon: HomeIcon },
     { href: '/dashboard/history', label: 'History', icon: ClockIcon },
@@ -41,10 +45,7 @@ export default function Sidebar() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  useClickOutside(
-    profileRef,
-    useCallback(() => setProfileOpen(false), [])
-  );
+  useClickOutside(profileRef, closeProfileMenu);
 
   return (
     <>
@@ -182,8 +183,8 @@ export default function Sidebar() {
               <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-xl overflow-hidden">
                 <button
                   onClick={() => {
-                    setProfileOpen(false);
-                    handleSignOut();
+                    closeProfileMenu();
+                    void handleSignOut();
                   }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
                 >

@@ -8,7 +8,12 @@ import LightRays from "@/components/LightRays";
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
-  const email = searchParams.get("email") ?? "your email address";
+  const emailFromQuery = searchParams.get("email");
+  let email = "your email address";
+
+  if (emailFromQuery) {
+    email = emailFromQuery;
+  }
 
   return (
     <div className="relative flex h-screen w-full items-center justify-center bg-black p-4 overflow-hidden">

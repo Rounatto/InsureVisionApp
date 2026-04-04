@@ -9,6 +9,33 @@ import InsureVisionLogo from '@/components/InsureVisionLogo';
 import LightRays from '@/components/LightRays';
 import type { ErrorResponse, RegisterResponse } from '@/types/auth';
 
+function getRegisteredEmail(
+  data: RegisterResponse | ErrorResponse,
+  fallbackEmail: string
+): string {
+  // Prefer backend email if present, fallback to typed email.
+  if ('user' in data && data.user && data.user.email) {
+    return data.user.email;
+  }
+
+  return fallbackEmail;
+}
+
+function mapValidationErrors(data: RegisterResponse | ErrorResponse): Record<string, string> {
+  // Convert backend array errors into a field -> message map for the form.
+  if (!('errors' in data) || !data.errors) {
+    return {};
+  }
+
+  const mapped: Record<string, string> = {};
+
+  for (const err of data.errors) {
+    mapped[err.field] = err.message;
+  }
+
+  return mapped;
+}
+
 export default function Register() {
   // `router` sert à naviguer programmatiquement après un événement (ex: succès)
   const router = useRouter();
@@ -40,6 +67,7 @@ export default function Register() {
   // ─── Submit Handler ───────────────────────────────────────
   // Handler principal du formulaire d'inscription (email/password)
   const handleSubmit = async (e: React.FormEvent) => {
+    // Submit registration and handle success, validation errors, and generic failures.
     e.preventDefault();
     clearErrors();
     setLoading(true);
@@ -54,19 +82,14 @@ export default function Register() {
       const data: RegisterResponse | ErrorResponse = await res.json();
 
       if (res.status === 201 && data.success) {
-        const registeredEmail = 'user' in data && data.user?.email ? data.user.email : email;
+        const registeredEmail = getRegisteredEmail(data, email);
         router.push(`/verify-email?email=${encodeURIComponent(registeredEmail)}`);
         return;
       }
 
       // Handle validation errors (400)
       if (res.status === 400 && 'errors' in data && data.errors) {
-        const mapped: Record<string, string> = {};
-        // Transforme le tableau backend en objet indexé par champ
-        for (const err of data.errors) {
-          mapped[err.field] = err.message;
-        }
-        setFieldErrors(mapped);
+        setFieldErrors(mapValidationErrors(data));
         return;
       }
 
