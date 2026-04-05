@@ -32,6 +32,37 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get('page') ?? 1));
     const search = searchParams.get('search')?.trim() ?? '';
+    const exportFormat = searchParams.get('export');
+    const estimatesParam = searchParams.get('estimates');
+    const userId = searchParams.get('id');
+
+    // Handle user estimates request
+    if (estimatesParam && userId) {
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: {
+          estimates: {
+            select: {
+              id: true,
+              createdAt: true,
+              totalCost: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: 'User not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        estimates: user.estimates || [],
+      });
+    }
 
     const where = search
       ? {
@@ -67,21 +98,66 @@ export async function GET(req: Request) {
       db.user.count({ where }),
     ]);
 
+    const usersMapped = users.map((u) => ({
+      authProvider: u.accounts.some((a) => a.provider === 'google')
+        ? 'Google'
+        : 'Email/Password',
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      emailVerified: !!u.emailVerified,
+      image: u.image,
+      createdAt: u.createdAt,
+      estimateCount: u._count.estimates,
+      isAdmin: isAdminEmail(u.email),
+      banned: u.banned,
+    }));
+
+    // Handle export
+    if (exportFormat === 'csv') {
+      const csv = [
+        [
+          'ID',
+          'Name',
+          'Email',
+          'Created At',
+          'Banned',
+          'Estimates',
+          'Admin',
+        ].join(','),
+        ...usersMapped.map((u) =>
+          [
+            u.id,
+            `"${u.name || ''}"`,
+            u.email,
+            new Date(u.createdAt).toISOString(),
+            u.banned ? 'Yes' : 'No',
+            u.estimateCount,
+            u.isAdmin ? 'Yes' : 'No',
+          ].join(',')
+        ),
+      ].join('\n');
+
+      return new NextResponse(csv, {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="users.csv"',
+        },
+      });
+    }
+
+    if (exportFormat === 'json') {
+      const json = JSON.stringify(usersMapped, null, 2);
+      return new NextResponse(json, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="users.json"',
+        },
+      });
+    }
+
     return NextResponse.json({
-      users: users.map((u) => ({
-        authProvider: u.accounts.some((a) => a.provider === 'google')
-          ? 'Google'
-          : 'Email/Password',
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        emailVerified: !!u.emailVerified,
-        image: u.image,
-        createdAt: u.createdAt,
-        estimateCount: u._count.estimates,
-        isAdmin: isAdminEmail(u.email),
-        banned: u.banned,
-      })),
+      users: usersMapped,
       total,
       page,
       pageSize: PAGE_SIZE,

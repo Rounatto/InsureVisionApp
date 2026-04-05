@@ -8,8 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 interface Estimate {
   id: string;
   createdAt: string;
-  status: string;
-  jobId?: string;
+  totalCost: number;
 }
 
 interface User {
@@ -17,7 +16,7 @@ interface User {
   name: string | null;
   email: string | null;
   image: string | null;
-  isBanned: boolean;
+  banned: boolean;
   createdAt: string;
   lastLoginAt: string | null;
   estimateCount: number;
@@ -90,7 +89,7 @@ export default function AdminPage() {
   const fetchUserEstimates = async (userId: string) => {
     setLoadingEstimates(true);
     try {
-      const res = await fetch(`/api/admin/users/${userId}/estimates`);
+      const res = await fetch(`/api/admin/users?id=${userId}&estimates=true`);
       if (res.ok) {
         const data = await res.json();
         setUserEstimates(data.estimates || []);
@@ -105,14 +104,16 @@ export default function AdminPage() {
   const handleBan = async (userId: string, banned: boolean) => {
     setActionLoading(userId);
     try {
-      const res = await fetch(`/api/admin/users/${userId}/ban`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ banned }),
-      });
+      const res = await fetch(
+        `/api/admin/users?id=${userId}&action=${banned ? 'ban' : 'unban'}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       if (res.ok) {
         setUsers(
-          users.map((u) => (u.id === userId ? { ...u, isBanned: banned } : u))
+          users.map((u) => (u.id === userId ? { ...u, banned: banned } : u))
         );
       }
     } catch (err) {
@@ -127,7 +128,7 @@ export default function AdminPage() {
     if (!confirm('Are you sure you want to delete this user?')) return;
     setActionLoading(userId);
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await fetch(`/api/admin/users?id=${userId}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -143,7 +144,7 @@ export default function AdminPage() {
 
   const handleExport = async (format: 'csv' | 'json') => {
     try {
-      const res = await fetch(`/api/admin/users/export?format=${format}`);
+      const res = await fetch(`/api/admin/users?export=${format}`);
       if (res.ok) {
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
@@ -307,12 +308,12 @@ export default function AdminPage() {
                           <td className="px-3 py-3">
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                user.isBanned
+                                user.banned
                                   ? 'bg-red-500/10 text-red-500'
                                   : 'bg-green-500/10 text-green-500'
                               }`}
                             >
-                              {user.isBanned ? 'Banned' : 'Active'}
+                              {user.banned ? 'Banned' : 'Active'}
                             </span>
                           </td>
                           <td className="px-3 py-3">
@@ -347,7 +348,7 @@ export default function AdminPage() {
                                         >
                                           <div className="flex items-center justify-between gap-2">
                                             <span className="text-xs font-semibold text-[color:var(--foreground)]">
-                                              {est.jobId || est.id.slice(0, 8)}
+                                              {est.id.slice(0, 8)}
                                             </span>
                                             <span className="text-[11px] text-[color:var(--muted-foreground)]">
                                               {new Date(
@@ -355,16 +356,8 @@ export default function AdminPage() {
                                               ).toLocaleDateString()}
                                             </span>
                                           </div>
-                                          <span
-                                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                              est.status === 'completed'
-                                                ? 'bg-green-500/10 text-green-500'
-                                                : est.status === 'failed'
-                                                  ? 'bg-red-500/10 text-red-500'
-                                                  : 'bg-yellow-500/10 text-yellow-500'
-                                            }`}
-                                          >
-                                            {est.status}
+                                          <span className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-500/10 text-blue-500">
+                                            ${est.totalCost.toFixed(2)}
                                           </span>
                                         </div>
                                       ))}
@@ -396,11 +389,11 @@ export default function AdminPage() {
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      handleBan(user.id, !user.isBanned)
+                                      handleBan(user.id, !user.banned)
                                     }
                                     className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-amber-500 hover:bg-amber-500/10 transition-colors"
                                   >
-                                    {user.isBanned ? 'Unban' : 'Ban'}
+                                    {user.banned ? 'Unban' : 'Ban'}
                                   </button>
                                   <button
                                     type="button"
