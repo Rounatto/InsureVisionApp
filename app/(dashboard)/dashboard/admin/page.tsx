@@ -32,8 +32,9 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status !== 'authenticated' || !canAccessAdmin) return;
@@ -129,8 +130,9 @@ export default function AdminPage() {
     }
 
     const action = user.banned ? 'unban' : 'ban';
-    setActionLoading(user.id);
+    setBusyUserId(user.id);
     setActionError('');
+    setActionSuccess('');
 
     try {
       const res = await fetch(
@@ -154,10 +156,13 @@ export default function AdminPage() {
         )
       );
       setExpandedActionsUserEmail(null);
+      setActionSuccess(
+        `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully.`
+      );
     } catch {
       setActionError(`Failed to ${action} user`);
     } finally {
-      setActionLoading(null);
+      setBusyUserId(null);
     }
   };
 
@@ -167,36 +172,65 @@ export default function AdminPage() {
       return;
     }
 
-    if (
-      !confirm(
-        `Are you sure you want to delete ${user.email}? This action cannot be undone.`
-      )
-    ) {
+    setActionError('');
+    setActionSuccess('');
+
+    const confirmDelete = window.confirm(
+      `Delete account for ${user.email}? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) {
       return;
     }
 
-    setActionLoading(user.id);
-    setActionError('');
+    setBusyUserId(user.id);
 
     try {
-      const res = await fetch(`/api/admin/users?id=${user.id}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(
+        `/api/admin/users?id=${encodeURIComponent(user.id)}`,
+        { method: 'DELETE' }
+      );
 
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+      };
 
       if (!res.ok) {
-        setActionError(data.message || 'Failed to delete user');
+        setActionError(data.message || 'Failed to delete user.');
         return;
       }
 
-      // Remove the user from the local state
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      setUsers((previousUsers) =>
+        previousUsers.filter((currentUser) => currentUser.id !== user.id)
+      );
+
+      setStats((previousStats) => {
+        if (!previousStats) {
+          return previousStats;
+        }
+
+        const updatedTotalUsers = Math.max(0, previousStats.totalUsers - 1);
+        const updatedVerifiedUsers = user.emailVerified
+          ? Math.max(0, previousStats.verifiedUsers - 1)
+          : previousStats.verifiedUsers;
+        const updatedUnverifiedUsers = user.emailVerified
+          ? previousStats.unverifiedUsers
+          : Math.max(0, previousStats.unverifiedUsers - 1);
+
+        return {
+          ...previousStats,
+          totalUsers: updatedTotalUsers,
+          verifiedUsers: updatedVerifiedUsers,
+          unverifiedUsers: updatedUnverifiedUsers,
+        };
+      });
+
       setExpandedActionsUserEmail(null);
+      setActionSuccess('User deleted successfully.');
     } catch {
-      setActionError('Failed to delete user');
+      setActionError('Failed to delete user.');
     } finally {
-      setActionLoading(null);
+      setBusyUserId(null);
     }
   };
 
@@ -325,6 +359,18 @@ export default function AdminPage() {
             </div>
           )}
 
+          {actionSuccess && (
+            <div className="mb-4 rounded-2xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-500">
+              {actionSuccess}
+              <button
+                onClick={() => setActionSuccess('')}
+                className="ml-2 text-green-500 hover:text-green-600"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[color:var(--foreground)]">
@@ -391,10 +437,10 @@ export default function AdminPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleBanUser(user)}
-                                  disabled={actionLoading === user.id}
+                                  disabled={busyUserId === user.id}
                                   className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-amber-500 transition-colors hover:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {actionLoading === user.id
+                                  {busyUserId === user.id
                                     ? 'Processing...'
                                     : user.banned
                                       ? 'Unban'
@@ -405,10 +451,10 @@ export default function AdminPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteUser(user)}
-                                  disabled={actionLoading === user.id}
+                                  disabled={busyUserId === user.id}
                                   className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {actionLoading === user.id
+                                  {busyUserId === user.id
                                     ? 'Processing...'
                                     : 'Delete'}
                                 </button>
