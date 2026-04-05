@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -13,15 +13,10 @@ import {
   ClockIcon,
   UserIcon,
   SettingsIcon,
-  MessageIcon,
   ShieldIcon,
 } from '@/lib/icons';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Sidebar() {
-  // `t` is read from LanguageContext.
-  // Any language change in Settings triggers re-render with updated labels.
-  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -30,16 +25,16 @@ export default function Sidebar() {
   const profileRef = useRef<HTMLDivElement>(null);
   const canAccessAdmin = Boolean(session?.user?.isAdmin);
 
-  // Navigation labels are translated at render time via `t("key")`.
-  // The href values stay stable; only visible text changes with locale.
+  const closeProfileMenu = () => {
+    setProfileOpen(false);
+  };
+
   const navItems = [
-    { href: '/dashboard', label: t('home'), icon: HomeIcon },
-    { href: '/dashboard/history', label: t('history'), icon: ClockIcon },
-    ...(canAccessAdmin
-      ? [{ href: '/dashboard/admin', label: t('admin'), icon: ShieldIcon }]
-      : []),
-    { href: '/dashboard/profile', label: t('profile'), icon: UserIcon },
-    { href: '/dashboard/settings', label: t('settings'), icon: SettingsIcon },
+    { href: '/dashboard', label: 'Home', icon: HomeIcon },
+    { href: '/dashboard/history', label: 'History', icon: ClockIcon },
+    ...(canAccessAdmin ? [{ href: '/dashboard/admin', label: 'Admin', icon: ShieldIcon }] : []),
+    { href: '/dashboard/profile', label: 'Profile', icon: UserIcon },
+    { href: '/dashboard/settings', label: 'Settings', icon: SettingsIcon },
   ];
 
   const handleSignOut = async () => {
@@ -50,10 +45,7 @@ export default function Sidebar() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  useClickOutside(
-    profileRef,
-    useCallback(() => setProfileOpen(false), [])
-  );
+  useClickOutside(profileRef, closeProfileMenu);
 
   return (
     <>
@@ -61,7 +53,7 @@ export default function Sidebar() {
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)]/95 px-3 py-2 text-[color:var(--foreground)] shadow-lg backdrop-blur-sm"
-          aria-label={t('goToDashboardHome')}
+          aria-label="Go to dashboard home"
         >
           <InsureVisionLogo className="h-5 w-5" />
           <span className="text-xs font-bold tracking-wide">InsureVision</span>
@@ -71,7 +63,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => setMobileMenuOpen((prev) => !prev)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--foreground)] shadow-lg transition-colors hover:bg-[color:var(--muted)]"
-          aria-label={t('toggleSidebarMenu')}
+          aria-label="Toggle sidebar menu"
           aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? (
@@ -105,7 +97,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => setMobileMenuOpen(false)}
           className="fixed inset-0 z-40 bg-black/45 lg:hidden"
-          aria-label={t('closeSidebarBackdrop')}
+          aria-label="Close sidebar backdrop"
         />
       )}
 
@@ -143,20 +135,6 @@ export default function Sidebar() {
             })}
           </div>
         </nav>
-
-        <div className="px-4 pb-3">
-          <Link
-            href="/dashboard/support"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-              pathname === '/dashboard/support'
-                ? 'bg-[color:var(--foreground)] text-[color:var(--background)]'
-                : 'text-[color:var(--foreground)] hover:bg-[color:var(--muted)]'
-            }`}
-          >
-            <MessageIcon className="h-5 w-5" />
-            {t('support')}
-          </Link>
-        </div>
 
         {/* User Profile Section */}
         <div className="border-t border-[color:var(--border)] p-4">
@@ -205,8 +183,8 @@ export default function Sidebar() {
               <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-xl overflow-hidden">
                 <button
                   onClick={() => {
-                    setProfileOpen(false);
-                    handleSignOut();
+                    closeProfileMenu();
+                    void handleSignOut();
                   }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
                 >
@@ -224,7 +202,7 @@ export default function Sidebar() {
                       d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
                     />
                   </svg>
-                  {t('signOut')}
+                  Sign Out
                 </button>
               </div>
             )}

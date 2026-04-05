@@ -1,0 +1,21 @@
+flowchart LR
+    User([User])
+    NextAuth([NextAuth Credentials])
+    OAuth([Google OAuth])
+    DB([Database])
+
+    subgraph Backend[Authentication Backend]
+        Login((Login to Account))
+        Verify((Verify Email / Password))
+        Forgot((Request Password Reset))
+        Reset((Reset Password with Link))
+    end
+
+    User --> Login
+    Login --> Verify
+    Verify --> NextAuth
+    NextAuth --> DB
+    Login --> OAuth
+    User --> Forgot
+    User --> Reset
+    Forgot --> DB

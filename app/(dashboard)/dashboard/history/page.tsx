@@ -2,27 +2,104 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { downloadEstimatePdf } from "@/lib/generatePdf";
 import { NETWORK_ERROR_MESSAGE } from "@/lib/constants";
+import { downloadEstimatePdf } from "@/lib/client/generatePdf";
 
-interface EstimatePart {
-  name: string;
-  cost: number;
-  severity: string;
+interface PredictionSummaryItem {
+  photoUrl?: string;
+  prediction?: string;
+  confidence?: number;
+  probabilities?: Record<string, number>;
+}
+
+interface CostEstimateSummary {
+  model?: string;
+  currency?: string;
+  total?: number;
+  note?: string;
+}
+
+interface ParsedSummary {
+  confidentPredictions: PredictionSummaryItem[];
+  confidenceThreshold?: number;
+  costEstimate?: CostEstimateSummary;
 }
 
 interface Estimate {
   id: string;
-  totalCost: number;
-  parts: EstimatePart[];
   photos: string[];
   summary: string;
   createdAt: string;
 }
 
+function normalizeConfidence(confidence: number): number {
+  return confidence > 1 ? confidence / 100 : confidence;
+}
+
+function parseSummary(summary: string): ParsedSummary {
+  try {
+    const parsed = JSON.parse(summary) as unknown;
+
+    if (Array.isArray(parsed)) {
+      return {
+        confidentPredictions: parsed.filter(
+          (item): item is PredictionSummaryItem =>
+            Boolean(item) && typeof item === "object"
+        ),
+      };
+    }
+
+    if (parsed && typeof parsed === "object") {
+      const record = parsed as {
+        confidentPredictions?: unknown;
+        confidenceThreshold?: unknown;
+        costEstimate?: unknown;
+      };
+
+      const confidentPredictions = Array.isArray(record.confidentPredictions)
+        ? record.confidentPredictions.filter(
+            (item): item is PredictionSummaryItem =>
+              Boolean(item) && typeof item === "object"
+          )
+        : [];
+
+      const confidenceThreshold =
+        typeof record.confidenceThreshold === "number"
+          ? record.confidenceThreshold
+          : undefined;
+
+      const costEstimate =
+        record.costEstimate && typeof record.costEstimate === "object"
+          ? (record.costEstimate as CostEstimateSummary)
+          : undefined;
+
+      return { confidentPredictions, confidenceThreshold, costEstimate };
+    }
+
+    return { confidentPredictions: [] };
+  } catch {
+    return { confidentPredictions: [] };
+  }
+}
+
+function getConfidenceText(prediction: PredictionSummaryItem): string {
+  if (typeof prediction.confidence !== "number") {
+    return "";
+  }
+
+  const confidenceValue = normalizeConfidence(prediction.confidence);
+  return `Confidence: ${Math.round(confidenceValue * 100)}%`;
+}
+
+function getPhotoLabel(photoCount: number): string {
+  if (photoCount === 1) {
+    return "1 photo uploaded";
+  }
+
+  return `${photoCount} photos uploaded`;
+}
+
 export default function HistoryPage() {
-  const { data: session } = useSession();
   const router = useRouter();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,10 +125,15 @@ export default function HistoryPage() {
     fetchEstimates();
   }, []);
 
-  const toggle = (id: string) =>
-    setExpandedId((prev) => (prev === id ? null : id));
+  const toggle = (id: string) => {
+    setExpandedId((prev) => {
+      if (prev === id) {
+        return null;
+      }
 
-  const totalAmount = estimates.reduce((sum, est) => sum + est.totalCost, 0);
+      return id;
+    });
+  };
 
   return (
       <main className="relative mx-auto max-w-5xl px-6 py-14 sm:py-16">
@@ -94,14 +176,14 @@ export default function HistoryPage() {
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)]/80 p-4 text-left backdrop-blur-sm">
               <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--muted)] text-[color:var(--foreground)]">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-2.21 0-4 .895-4 2s1.79 2 4 2 4 .895 4 2-1.79 2-4 2m0-10V6m0 12v-2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m-7-8h8m-8 12h8" />
                 </svg>
               </span>
               <p className="text-[11px] uppercase tracking-wide text-[color:var(--muted-foreground)]">
-                Total Value
+                Output Type
               </p>
               <p className="mt-1 text-lg font-semibold text-[color:var(--foreground)]">
-                ${totalAmount.toLocaleString()}
+                Model Predictions
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)]/80 p-4 text-left backdrop-blur-sm">
@@ -157,6 +239,7 @@ export default function HistoryPage() {
                 "en-US",
                 { year: "numeric", month: "short", day: "numeric" }
               );
+              const parsedSummary = parseSummary(est.summary);
 
               return (
                 <div
@@ -175,14 +258,8 @@ export default function HistoryPage() {
                       <span className="text-xs text-[color:var(--muted-foreground)] hidden sm:inline">
                         {date}
                       </span>
-                      <span className="hidden rounded-full border border-[color:var(--border)] px-2 py-1 text-[10px] text-[color:var(--muted-foreground)] sm:inline">
-                        {est.parts.length} part{est.parts.length > 1 ? "s" : ""}
-                      </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="rounded-full bg-[color:var(--muted)] px-3 py-1 text-sm font-bold text-[color:var(--foreground)]">
-                        ${est.totalCost.toLocaleString()}
-                      </span>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -202,60 +279,68 @@ export default function HistoryPage() {
                       <p className="text-xs text-[color:var(--muted-foreground)] mt-4 mb-4 sm:hidden">
                         {date}
                       </p>
-                      <p className="mb-4 rounded-xl bg-[color:var(--muted)]/40 px-3 py-2 text-sm text-[color:var(--muted-foreground)]">
-                        {est.summary}
-                      </p>
-
-                      {/* Parts */}
                       <div className="space-y-2 mb-4">
-                        {est.parts.map((part, i) => (
-                          <div key={i} className="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-[color:var(--muted)]/30">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-block h-2 w-2 rounded-full ${
-                                  part.severity === "High"
-                                    ? "bg-red-500"
-                                    : part.severity === "Medium"
-                                      ? "bg-yellow-500"
-                                      : "bg-green-500"
-                                }`}
-                              />
-                              <span className="text-sm text-[color:var(--foreground)]">
-                                {part.name}
-                              </span>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                  part.severity === "High"
-                                    ? "bg-red-500/15 text-red-500"
-                                    : part.severity === "Medium"
-                                      ? "bg-yellow-500/20 text-yellow-600"
-                                      : "bg-green-500/15 text-green-600"
-                                }`}
-                              >
-                                {part.severity}
-                              </span>
-                            </div>
-                            <span className="text-sm font-medium text-[color:var(--foreground)]">
-                              ${part.cost.toLocaleString()}
-                            </span>
+                        {parsedSummary.confidentPredictions.map((prediction, i) => (
+                          <div
+                            key={`${est.id}-${i}`}
+                            className="rounded-lg border border-[color:var(--border)] px-3 py-2"
+                          >
+                            <p className="text-[11px] text-[color:var(--muted-foreground)]">
+                              Photo {i + 1}
+                            </p>
+                            <p className="text-sm font-medium text-[color:var(--foreground)]">
+                              {prediction.prediction || "Unknown"}
+                            </p>
+                            <p className="text-[11px] text-[color:var(--muted-foreground)]">
+                              {getConfidenceText(prediction)}
+                            </p>
                           </div>
                         ))}
+
+                        {parsedSummary.confidentPredictions.length === 0 && (
+                          <p className="rounded-lg border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--muted-foreground)]">
+                            No confident predictions
+                            {typeof parsedSummary.confidenceThreshold === "number"
+                              ? ` (threshold ${Math.round(parsedSummary.confidenceThreshold * 100)}%)`
+                              : ""}
+                            .
+                          </p>
+                        )}
                       </div>
 
-                      {/* Photos */}
-                      {est.photos.length > 0 && (
-                        <p className="text-xs text-[color:var(--muted-foreground)] mb-4">
-                          {est.photos.length} photo{est.photos.length > 1 ? "s" : ""} uploaded
-                        </p>
+                      {parsedSummary.costEstimate && (
+                        <div className="mb-4 rounded-lg border border-[color:var(--border)] px-3 py-2">
+                          <p className="text-[11px] text-[color:var(--muted-foreground)]">
+                            Cost Estimation Model
+                          </p>
+                          <p className="text-sm font-medium text-[color:var(--foreground)]">
+                            {(parsedSummary.costEstimate.currency ?? "USD")} {(parsedSummary.costEstimate.total ?? 0).toLocaleString()}
+                          </p>
+                          {parsedSummary.costEstimate.note && (
+                            <p className="text-[11px] text-[color:var(--muted-foreground)]">
+                              {parsedSummary.costEstimate.note}
+                            </p>
+                          )}
+                        </div>
                       )}
 
-                      {/* Actions */}
+                      {/* Photos */}
+                        {est.photos.length > 0 && (
+                          <p className="text-xs text-[color:var(--muted-foreground)] mb-4">
+                            {getPhotoLabel(est.photos.length)}
+                          </p>
+                        )}
+
                       <button
                         onClick={() =>
                           downloadEstimatePdf({
-                            ...est,
-                            userName: session?.user?.name || undefined,
-                            userEmail: session?.user?.email || undefined,
+                            id: est.id,
+                            confidentPredictions:
+                              parsedSummary.confidentPredictions,
+                            confidenceThreshold:
+                              parsedSummary.confidenceThreshold,
+                            costEstimate: parsedSummary.costEstimate,
+                            photoUrls: est.photos,
                             photoCount: est.photos.length,
                           })
                         }

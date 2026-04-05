@@ -2,13 +2,9 @@ import { NextResponse } from 'next/server';
 import {
   requireDb,
   requireAuth,
-  requireTrustedOrigin,
-  requireRateLimit,
   db,
-} from '@/lib/api-helpers';
-import { logAudit } from '@/lib/audit';
-import { getClientIp } from '@/lib/rate-limit';
-import { RL_DELETE_ACCOUNT } from '@/lib/constants';
+} from '@/lib/server/api-helpers';
+import { logAudit } from '@/lib/server/audit';
 import type { ErrorResponse } from '@/types/auth';
 
 /**
@@ -22,9 +18,6 @@ import type { ErrorResponse } from '@/types/auth';
  */
 export async function DELETE(req: Request) {
   try {
-    const originError = requireTrustedOrigin(req);
-    if (originError) return originError;
-
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -32,12 +25,6 @@ export async function DELETE(req: Request) {
     if (authError) return authError;
 
     const userId = session.user.id;
-    const rlError = requireRateLimit(
-      req,
-      `delete-account:${userId}`,
-      RL_DELETE_ACCOUNT
-    );
-    if (rlError) return rlError;
 
     // ── Check if user is banned and fetch email ─────────────────────────────
     const bannedCheckUser = await db.user.findUnique({
@@ -76,8 +63,7 @@ export async function DELETE(req: Request) {
     });
 
     // ── Audit (userId will no longer exist, but we log it for records) ───
-    const ip = getClientIp(req);
-    logAudit({ userId, action: 'ACCOUNT_DELETED', ip });
+    logAudit({ userId, action: 'ACCOUNT_DELETED' });
 
     return NextResponse.json({
       success: true,

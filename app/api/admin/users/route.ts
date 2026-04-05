@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { requireDb, requireAdmin, db } from '@/lib/api-helpers';
+import { requireDb, requireAdmin, db } from '@/lib/server/api-helpers';
 import { isAdminEmail } from '@/lib/admin';
-import { logAudit } from '@/lib/audit';
-import { getClientIp } from '@/lib/rate-limit';
+import { logAudit } from '@/lib/server/audit';
 import type { ErrorResponse } from '@/types/auth';
 
 const PAGE_SIZE = 20;
@@ -21,11 +20,9 @@ export async function GET(req: Request) {
     const { session, error: adminError } = await requireAdmin();
     if (adminError) return adminError;
 
-    const ip = getClientIp(req);
     logAudit({
       userId: session.user.id,
       action: 'ADMIN_ACCESS',
-      ip,
       metadata: { route: '/api/admin/users' },
     });
 
@@ -141,8 +138,6 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const ip = getClientIp(req);
-
     // Full hard-delete workflow:
     // 1) Remove auth/session/token artifacts
     // 2) Remove app-owned records that can outlive the user (audit/security)
@@ -157,7 +152,6 @@ export async function DELETE(req: Request) {
       await tx.account.deleteMany({ where: { userId } });
       await tx.session.deleteMany({ where: { userId } });
       await tx.estimate.deleteMany({ where: { userId } });
-      await tx.conversation.deleteMany({ where: { bannedUserId: userId } });
       await tx.auditLog.deleteMany({ where: { userId } });
 
       await tx.user.delete({ where: { id: userId } });
@@ -166,7 +160,6 @@ export async function DELETE(req: Request) {
     logAudit({
       userId: session.user.id,
       action: 'ADMIN_DELETE_USER',
-      ip,
       metadata: { route: '/api/admin/users', mode: 'hard-delete' },
     });
 
@@ -251,14 +244,12 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const ip = getClientIp(req);
     const auditAction =
       action === 'ban' ? 'ADMIN_BAN_USER' : 'ADMIN_UNBAN_USER';
 
     logAudit({
       userId: session.user.id,
       action: auditAction,
-      ip,
       metadata: { targetUserId: userId },
     });
 
@@ -271,16 +262,6 @@ export async function PATCH(req: Request) {
     // Delete user sessions if banning
     if (action === 'ban') {
       await db.session.deleteMany({ where: { userId } });
-    }
-
-    // Delete all messages and conversation if unbanning
-    if (action === 'unban') {
-      await db.message.deleteMany({
-        where: {
-          conversation: { bannedUserId: userId },
-        },
-      });
-      await db.conversation.deleteMany({ where: { bannedUserId: userId } });
     }
 
     return NextResponse.json(

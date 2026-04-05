@@ -1,0 +1,8 @@
+flowchart TD
+    Start([User opens login page]) --> Enter[Enter email and password]
+    Enter --> Submit[Submit login form]
+    Submit --> Valid{Credentials valid and verified?}
+
+    Valid -->|No| Error([Show login error])
+    Valid -->|Yes| Session[Create session via NextAuth]
+    Session --> Redirect([Redirect to dashboard])

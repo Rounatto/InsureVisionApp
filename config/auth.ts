@@ -6,7 +6,6 @@ import bcrypt from 'bcrypt';
 import authConfig from '@/config/auth.config';
 import { db, isDatabaseConfigured } from '@/config/db';
 import { loginSchema } from '@/lib/validations/auth';
-import { TOKEN_VERSION_CHECK_INTERVAL_MS } from '@/lib/constants';
 import { isAdminEmail } from '@/lib/admin';
 
 export const { handlers, auth } = NextAuth({
@@ -56,8 +55,6 @@ export const { handlers, auth } = NextAuth({
 
         if (!user || !user.password) return null;
         if (user.banned) return null;
-
-        // Block unverified email users
         if (!user.emailVerified) return null;
 
         const passwordMatch = await bcrypt.compare(password, user.password);
@@ -106,10 +103,6 @@ export const { handlers, auth } = NextAuth({
       return !dbUser?.banned;
     },
 
-    /**
-     * JWT callback runs on every request.
-     * Uses tokenVersion to invalidate sessions after password changes.
-     */
     async jwt({ token, user, trigger, session, account }) {
       // On Google sign-in, strip the Google profile image so the app
       // always uses its own letter avatar — also clear it in the DB for
@@ -132,47 +125,19 @@ export const { handlers, auth } = NextAuth({
       if (trigger === 'update') {
         if (typeof session?.name === 'string') token.name = session.name;
         if (typeof session?.image === 'string') token.image = session.image;
+        token.isAdmin = isAdminEmail(
+          typeof token.email === 'string' ? token.email : undefined
+        );
         return token;
       }
 
-      // Initial sign-in: snapshot tokenVersion
-      if (user?.id) {
-        try {
-          const dbUser = await db.user.findUnique({
-            where: { id: user.id },
-            select: { tokenVersion: true },
-          });
-          token.tokenVersion = dbUser?.tokenVersion ?? 0;
-        } catch (error) {
-          console.warn('JWT sign-in tokenVersion check skipped:', error);
-          token.tokenVersion = 0;
-        }
-        token.isAdmin = isAdminEmail(user.email);
-        token.versionCheckedAt = Date.now();
-        return token;
-      }
-
-      // Existing session: periodic version check
-      if (token.sub) {
-        const lastCheck = (token.versionCheckedAt as number) ?? 0;
-        if (Date.now() - lastCheck > TOKEN_VERSION_CHECK_INTERVAL_MS) {
-          try {
-            const dbUser = await db.user.findUnique({
-              where: { id: token.sub },
-              select: { tokenVersion: true },
-            });
-
-            if (!dbUser || dbUser.tokenVersion !== token.tokenVersion) {
-              token.sub = undefined;
-              token.tokenVersion = undefined;
-            }
-          } catch (error) {
-            console.warn('JWT periodic tokenVersion check skipped:', error);
-          }
-
-          token.versionCheckedAt = Date.now();
-        }
-      }
+      token.isAdmin = isAdminEmail(
+        typeof user?.email === 'string'
+          ? user.email
+          : typeof token.email === 'string'
+            ? token.email
+            : undefined
+      );
 
       return token;
     },

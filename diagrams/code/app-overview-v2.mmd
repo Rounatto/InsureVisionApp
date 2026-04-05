@@ -1,0 +1,64 @@
+graph LR
+    %% Actors (outside system boundary)
+    Guest(("Guest"))
+    RegUser(("User"))
+    Admin(("Admin"))
+
+    %% System boundary
+    subgraph System["AI Car Scanner System"]
+        direction TB
+
+        subgraph Auth["Authentication"]
+            UC1(["Register"])
+            UC2(["Login"])
+            UC3(["Forgot Password"])
+            UC4(["Reset Password"])
+            UC5(["Verify Email"])
+        end
+
+        subgraph UserFeatures["User Features"]
+            UC6(["Upload Car Photos"])
+            UC7(["View Estimate Status"])
+            UC8(["View Estimation History"])
+            UC9(["Export PDF Report"])
+            UC10(["Manage Profile"])
+            UC11(["Manage Settings"])
+        end
+
+        subgraph AdminFeatures["Admin Features"]
+            UC12(["View Platform Stats"])
+            UC13(["Ban / Unban / Delete Users"])
+        end
+    end
+
+    %% Guest associations
+    Guest --- UC1
+    Guest --- UC2
+    Guest --- UC3
+
+    %% User associations
+    RegUser --- UC2
+    RegUser --- UC6
+    RegUser --- UC8
+    RegUser --- UC10
+    RegUser --- UC11
+
+    %% Admin generalization (Admin inherits User)
+    Admin --- UC12
+    Admin --- UC13
+    Admin -->|"generalizes"| RegUser
+
+    %% <<include>> relationships (mandatory sub-flows)
+    UC3 -.->|"<<include>>"| UC4
+    UC1 -.->|"<<include>>"| UC5
+    UC6 -.->|"<<include>>"| UC7
+
+    %% <<extend>> relationships (optional sub-flows)
+    UC8 -.->|"<<extend>>"| UC9
+    UC7 -.->|"<<extend>>"| UC9
+
+    %% Styling
+    style Guest fill:#f4f4f4,stroke:#333
+    style RegUser fill:#e1f5fe,stroke:#01579b
+    style Admin fill:#fff3e0,stroke:#e65100
+    style System fill:#fafafa,stroke:#999
