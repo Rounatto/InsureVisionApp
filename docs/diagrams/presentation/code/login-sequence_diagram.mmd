@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant App
+    participant Auth as Auth Backend
+    participant Email as Email Provider
+
+    rect rgb(245, 245, 245)
+    Note over User,Auth: Login flow
+    User->>App: Submit credentials
+    App->>Auth: Login request
+    Auth-->>App: Success or failure response
+    end
+
+    rect rgb(245, 245, 245)
+    Note over User,Email: Forgot password flow
+    User->>App: Request password reset
+    App->>Auth: Forgot password request
+    Auth->>Email: Send reset link
+    Email-->>User: Reset email
+    User->>App: Submit new password from link
+    App->>Auth: Reset password request
+    Auth-->>App: Reset result
+    end

@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, validateBody, db } from "@/lib/server/api-helpers";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { loginSchema } from "@/lib/validations/auth";
-import { logAudit } from "@/lib/server/audit";
+import { RL_LOGIN } from "@/lib/constants";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
 import type { LoginResponse, ErrorResponse } from "@/types/auth";
 // =====================================================
 // POST /api/auth/login
 // =====================================================
 export async function POST(req: Request) {
   try {
+    // ── Rate limit (IP-based) ──────────────────────────────
+    const rlError = requireRateLimit(req, "login", RL_LOGIN);
+    if (rlError) return rlError;
+
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -18,6 +24,7 @@ export async function POST(req: Request) {
     if (valError) return valError;
 
     const { email, password } = validated;
+    const ip = getClientIp(req);
 
     // Check if user exists (generic message to prevent enumeration)
     const user = await db.user.findUnique({
@@ -25,7 +32,7 @@ export async function POST(req: Request) {
     });
 
     if (!user || !user.password) {
-      logAudit({ action: "LOGIN_FAILED", metadata: { email } });
+      logAudit({ action: "LOGIN_FAILED", ip, metadata: { email } });
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
@@ -42,7 +49,7 @@ export async function POST(req: Request) {
     );
 
     if (!isPasswordValid) {
-      logAudit({ action: "LOGIN_FAILED", metadata: { email } });
+      logAudit({ action: "LOGIN_FAILED", ip, metadata: { email } });
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
@@ -53,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     // ── Audit ──────────────────────────────────────────────
-    logAudit({ userId: user.id, action: "LOGIN_SUCCESS" });
+    logAudit({ userId: user.id, action: "LOGIN_SUCCESS", ip });
 
     return NextResponse.json<LoginResponse>(
       {

@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, validateBody, db } from "@/lib/server/api-helpers";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { resetPasswordSchema } from "@/lib/validations/auth";
-import { SALT_ROUNDS } from "@/lib/constants";
-import { hashToken } from "@/lib/server/tokens";
-import { logAudit } from "@/lib/server/audit";
+import { RL_RESET_PW, SALT_ROUNDS } from "@/lib/constants";
+import { hashToken } from "@/lib/tokens";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
   try {
+    // ── Rate limit (IP-based) ──────────────────────────────
+    const rlError = requireRateLimit(req, "resetpw", RL_RESET_PW);
+    if (rlError) return rlError;
+
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -62,6 +67,7 @@ export async function POST(req: Request) {
         where: { id: user.id },
         data: {
           password: hashedPassword,
+          tokenVersion: { increment: 1 }, // invalidates all existing JWTs
         },
       }),
       db.securityToken.deleteMany({
@@ -70,7 +76,8 @@ export async function POST(req: Request) {
     ]);
 
     // ── Audit ──────────────────────────────────────────────
-    logAudit({ userId: user.id, action: "PASSWORD_RESET" });
+    const ip = getClientIp(req);
+    logAudit({ userId: user.id, action: "PASSWORD_RESET", ip });
 
     return NextResponse.json<AuthResponse>(
       {

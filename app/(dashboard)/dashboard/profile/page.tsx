@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import UserAvatar from "@/components/UserAvatar";
 import SectionHeading from "@/components/SectionHeading";
 import PrimaryButton from "@/components/PrimaryButton";
@@ -34,62 +34,11 @@ export default function ProfilePage() {
 
   const [stats, setStats] = useState<{ estimates: number; photos: number } | null>(null);
 
-  const getDisplayName = () => {
-    if (!session) return "User";
-    if (!session.user) return "User";
-    if (!session.user.name) return "User";
-    return session.user.name;
-  };
-
-  const getNameInputValue = () => {
-    if (nameTouched) return name;
-    if (session?.user?.name) return session.user.name;
-    return "";
-  };
-
-  const getAvatarMessageClass = () => {
-    if (avatarMsg === "Photo updated.") {
-      return "text-green-600";
-    }
-
-    return "text-red-500";
-  };
-
-  const getSaveMessageClass = () => {
-    if (saveMsg === "Saved!") {
-      return "text-green-600";
-    }
-
-    return "text-red-500";
-  };
-
-  const handleAvatarFileChange = (files: FileList | null) => {
-    const file = files && files.length > 0 ? files[0] : null;
-
-    if (!file) {
-      setAvatarFile(null);
-      setAvatarMsg("");
-      return;
-    }
-
-    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      setAvatarFile(null);
-      setAvatarMsg("Use PNG, JPG, or WEBP image.");
-      return;
-    }
-
-    if (file.size > MAX_AVATAR_BYTES) {
-      setAvatarFile(null);
-      setAvatarMsg("Avatar must be 5MB or smaller.");
-      return;
-    }
-
-    setAvatarFile(file);
-    setAvatarMsg("");
-  };
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    // Load basic activity counts shown in the "Activity" section.
     async function loadStats() {
       try {
         const res = await fetch("/api/auth/stats");
@@ -102,7 +51,6 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    // Determine if the current account type can change password.
     async function loadAccountCapabilities() {
       try {
         const res = await fetch("/api/auth/account-capabilities");
@@ -117,8 +65,7 @@ export default function ProfilePage() {
   }, []);
 
   const handleSaveProfile = async () => {
-    // Save current display name and mirror it into the session data.
-    const resolvedName = getNameInputValue();
+    const resolvedName = nameTouched ? name : (session?.user?.name || "");
     setSaving(true);
     setSaveMsg("");
     try {
@@ -143,7 +90,6 @@ export default function ProfilePage() {
   };
 
   const handleChangePassword = async () => {
-    // Validate account capability first, then attempt password change.
     if (canChangePassword === false) {
       setPwdError("Password change is only available for email/password accounts.");
       return;
@@ -213,13 +159,34 @@ export default function ProfilePage() {
     setUploadingAvatar(false);
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      const res = await fetch("/api/auth/delete-account", { method: "DELETE" });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.error || "Failed to delete account");
+        setDeleting(false);
+        return;
+      }
+
+      await signOut({ callbackUrl: "/login" });
+    } catch {
+      setDeleteError(NETWORK_ERROR_MESSAGE);
+      setDeleting(false);
+    }
+  };
+
   return (
     <>
       <main className="mx-auto max-w-xl px-6 py-12">
         <div className="flex items-center gap-5 mb-12">
           <UserAvatar name={session?.user?.name} image={session?.user?.image} loading={status === "loading"} size="h-16 w-16" textSize="text-2xl" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{getDisplayName()}</h1>
+            <h1 className="text-2xl font-bold text-[color:var(--foreground)]">{session?.user?.name || "User"}</h1>
             <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Member since February 2026</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label className="rounded-full border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium text-[color:var(--foreground)] cursor-pointer hover:bg-[color:var(--muted)] transition-colors">
@@ -228,7 +195,21 @@ export default function ProfilePage() {
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   className="hidden"
-                  onChange={(e) => handleAvatarFileChange(e.target.files)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && !ALLOWED_AVATAR_TYPES.includes(file.type)) {
+                      setAvatarFile(null);
+                      setAvatarMsg("Use PNG, JPG, or WEBP image.");
+                      return;
+                    }
+                    if (file && file.size > MAX_AVATAR_BYTES) {
+                      setAvatarFile(null);
+                      setAvatarMsg("Avatar must be 5MB or smaller.");
+                      return;
+                    }
+                    setAvatarFile(file);
+                    setAvatarMsg("");
+                  }}
                 />
               </label>
               <button
@@ -240,7 +221,7 @@ export default function ProfilePage() {
               </button>
             </div>
             {avatarMsg && (
-              <p className={`mt-2 text-xs ${getAvatarMessageClass()}`}>
+              <p className={`mt-2 text-xs ${avatarMsg === "Photo updated." ? "text-green-600" : "text-red-500"}`}>
                 {avatarMsg}
               </p>
             )}
@@ -254,7 +235,7 @@ export default function ProfilePage() {
             <label className="text-sm text-[color:var(--muted-foreground)] shrink-0 w-28">Full Name</label>
             <input
               type="text"
-              value={getNameInputValue()}
+              value={nameTouched ? name : (session?.user?.name || "")}
               onChange={(e) => {
                 if (!nameTouched) setNameTouched(true);
                 setName(e.target.value);
@@ -274,7 +255,7 @@ export default function ProfilePage() {
             {saving ? "Saving..." : "Save Changes"}
           </PrimaryButton>
           {saveMsg && (
-            <span className={`text-xs ${getSaveMessageClass()}`}>{saveMsg}</span>
+            <span className={`text-xs ${saveMsg === "Saved!" ? "text-green-600" : "text-red-500"}`}>{saveMsg}</span>
           )}
         </div>
 
@@ -376,8 +357,62 @@ export default function ProfilePage() {
           <p className="text-xs text-[color:var(--muted-foreground)]">No activity yet - your estimation history will appear here.</p>
         )}
 
+        <div className="border-b border-[color:var(--border)] my-10" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-red-500">Delete Account</p>
+            <p className="text-xs text-[color:var(--muted-foreground)] mt-1">Permanently remove your account and all data.</p>
+            {deleteError && (
+              <p className="text-[11px] text-red-500 mt-2">{deleteError}</p>
+            )}
+          </div>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={deleting}
+            className="shrink-0 self-start rounded-full border border-red-500 px-5 py-2 text-sm font-medium text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+
         <div className="h-16" />
       </main>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-[color:var(--card)] border border-[color:var(--border)] p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-[color:var(--foreground)] mb-2">
+              Delete Account?
+            </h3>
+            <p className="text-sm text-[color:var(--muted-foreground)] mb-6">
+              This will permanently delete your account, all your data, and cannot be undone. Are you sure?
+            </p>
+            {deleteError && (
+              <p className="text-[11px] text-red-500 mb-4">{deleteError}</p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError("");
+                }}
+                disabled={deleting}
+                className="rounded-full px-5 py-2.5 text-sm font-medium text-[color:var(--foreground)] border border-[color:var(--border)] hover:bg-[color:var(--muted)] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -26,6 +26,8 @@ yarn-error.log*
 # env files — .env is committed so teammates get the config automatically
 .env.development
 .env.production
+# vercel
+.vercel
 # IDE
 .idea/
 
@@ -36,4 +38,5 @@ next-env.d.ts
 .env*.local
 
 # local-only files
+.vercelignore
 pnpm-lock.yaml

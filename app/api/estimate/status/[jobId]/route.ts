@@ -1,5 +1,5 @@
 import { after, NextResponse } from 'next/server';
-import { db, requireAuth, requireDb } from '@/lib/server/api-helpers';
+import { db, requireAuth, requireDb } from '@/lib/api-helpers';
 // Import removed
 import type { ErrorResponse } from '@/types/auth';
 

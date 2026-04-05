@@ -1,0 +1,51 @@
+erDiagram
+    User {
+        String id PK
+        String email UK
+        String password nullable
+        DateTime emailVerified nullable
+        Int tokenVersion
+        DateTime createdAt
+    }
+
+    Account {
+        String id PK
+        String userId FK
+        String provider
+        String providerAccountId
+    }
+
+    Session {
+        String id PK
+        String userId FK
+        String sessionToken UK
+        DateTime expires
+    }
+
+    SecurityToken {
+        String id PK
+        String type
+        String hashedToken UK
+        String identifier
+        DateTime expires
+    }
+
+    Estimate {
+        String id PK
+        String userId FK
+        Float totalCost
+        DateTime createdAt
+    }
+
+    EstimatePart {
+        String id PK
+        String estimateId FK
+        String name
+        Float cost
+        String severity
+    }
+
+    User ||--o{ Account : has
+    User ||--o{ Session : has
+    User ||--o{ Estimate : owns
+    Estimate ||--|{ EstimatePart : contains

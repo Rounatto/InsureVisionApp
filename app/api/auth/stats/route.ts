@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAuth, db } from "@/lib/server/api-helpers";
+import { requireDb, requireAuth, db } from "@/lib/api-helpers";
 
 const QUERY_TIMEOUT_MS = 3000;
 

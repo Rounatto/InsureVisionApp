@@ -4,47 +4,6 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { Camera, Zap as ZapIcon, DollarSign, Lightbulb, Lock, Smartphone, Target, Trophy, Sparkles } from "lucide-react";
 import { AICarScanner } from "@/components/AICarScanner";
 
-const HOW_IT_WORKS_STEPS = [
-  {
-    icon: Camera,
-    title: "Upload Photos",
-    desc: "Capture clear images of the damage from multiple angles. Our AI works with any quality.",
-  },
-  {
-    icon: ZapIcon,
-    title: "AI Analyzes",
-    desc: "Advanced computer vision examines every detail and assesses the extent of damage.",
-  },
-  {
-    icon: DollarSign,
-    title: "Get Estimate",
-    desc: "Receive a detailed report with repair costs and part-by-part breakdown.",
-  },
-];
-
-const WHY_CHOOSE_ITEMS = [
-  { icon: ZapIcon, title: "Lightning Fast", desc: "Get estimates in seconds, not hours. Analyze unlimited photos instantly." },
-  { icon: Target, title: "95% Accurate", desc: "Advanced AI matches professional appraiser accuracy. Industry-leading precision." },
-  { icon: Lock, title: "Bank-Grade Security", desc: "Military encryption. GDPR compliant. Your data is yours alone." },
-  { icon: Smartphone, title: "Always Available", desc: "24/7 access from any device, anywhere. No appointments needed." },
-  { icon: Lightbulb, title: "Detailed Reports", desc: "Part-by-part breakdown with severity indicators and repair timelines." },
-  { icon: Trophy, title: "Trusted by Insurers", desc: "Use your estimate with 1000+ insurance companies worldwide." },
-];
-
-const STAT_ITEMS = [
-  { value: "50K+", label: "Active Users", sublabel: "Growing daily" },
-  { value: "500K+", label: "Estimates Analyzed", sublabel: "In the past year" },
-  { value: "4.8/5", label: "User Rating", sublabel: "Across all platforms" },
-];
-
-const FAQ_ITEMS = [
-  { q: "How accurate are the estimates?", a: "Our AI achieves 95% accuracy compared to professional appraisals. Photo quality matters – multiple angles and good lighting improve results." },
-  { q: "How does the AI evaluate damage?", a: "We use advanced computer vision and machine learning trained on 100,000+ professional assessments. It identifies damaged areas, severity levels, and matches repair costs." },
-  { q: "Is my data secure?", a: "Yes. We use military-grade AES-256 encryption for data in transit and at rest. We're GDPR and HIPAA compliant. Your images are never shared or used for training." },
-  { q: "Can I use this estimate with my insurance?", a: "Absolutely. Our estimates are accepted by 1000+ insurance companies. You can download a detailed PDF report directly from the app." },
-  { q: "What if I'm not satisfied?", a: "We offer a satisfaction guarantee. If the actual repair differs significantly from our estimate, we'll provide a full refund or reanalysis." },
-];
-
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
@@ -150,7 +109,23 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {HOW_IT_WORKS_STEPS.map((step) => {
+            {[
+              { 
+                icon: Camera, 
+                title: "Upload Photos", 
+                desc: "Capture clear images of the damage from multiple angles. Our AI works with any quality."
+              },
+              { 
+                icon: ZapIcon, 
+                title: "AI Analyzes", 
+                desc: "Advanced computer vision examines every detail and assesses the extent of damage."
+              },
+              { 
+                icon: DollarSign, 
+                title: "Get Estimate", 
+                desc: "Receive a detailed report with repair costs and part-by-part breakdown."
+              },
+            ].map((step, idx) => {
               const IconComponent = step.icon;
               return (
                 <div 
@@ -183,7 +158,14 @@ export default function LandingPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {WHY_CHOOSE_ITEMS.map((item) => {
+          {[
+            { icon: ZapIcon, title: "Lightning Fast", desc: "Get estimates in seconds, not hours. Analyze unlimited photos instantly." },
+            { icon: Target, title: "95% Accurate", desc: "Advanced AI matches professional appraiser accuracy. Industry-leading precision." },
+            { icon: Lock, title: "Bank-Grade Security", desc: "Military encryption. GDPR compliant. Your data is yours alone." },
+            { icon: Smartphone, title: "Always Available", desc: "24/7 access from any device, anywhere. No appointments needed." },
+            { icon: Lightbulb, title: "Detailed Reports", desc: "Part-by-part breakdown with severity indicators and repair timelines." },
+            { icon: Trophy, title: "Trusted by Insurers", desc: "Use your estimate with 1000+ insurance companies worldwide." },
+          ].map((item) => {
             const IconComponent = item.icon;
             return (
               <div key={item.title} className="group flex gap-4 p-6 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 hover:border-primary/40 hover:from-primary/20 hover:to-primary/10 transition-all shadow-sm hover:shadow-md hover:shadow-primary/20">
@@ -213,7 +195,11 @@ export default function LandingPage() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid md:grid-cols-3 gap-8 py-12 text-white text-center">
-            {STAT_ITEMS.map((stat) => (
+            {[
+              { value: "50K+", label: "Active Users", sublabel: "Growing daily" },
+              { value: "500K+", label: "Estimates Analyzed", sublabel: "In the past year" },
+              { value: "4.8/5", label: "User Rating", sublabel: "Across all platforms" },
+            ].map((stat) => (
               <div key={stat.label} className="group">
                 <div className="text-5xl sm:text-6xl font-bold mb-2 group-hover:scale-105 transition-transform drop-shadow-lg">{stat.value}</div>
                 <p className="text-lg font-semibold opacity-100 drop-shadow-md">{stat.label}</p>
@@ -231,7 +217,13 @@ export default function LandingPage() {
         </div>
 
         <div className="space-y-3">
-          {FAQ_ITEMS.map((faq) => (
+          {[
+            { q: "How accurate are the estimates?", a: "Our AI achieves 95% accuracy compared to professional appraisals. Photo quality matters – multiple angles and good lighting improve results." },
+            { q: "How does the AI evaluate damage?", a: "We use advanced computer vision and machine learning trained on 100,000+ professional assessments. It identifies damaged areas, severity levels, and matches repair costs." },
+            { q: "Is my data secure?", a: "Yes. We use military-grade AES-256 encryption for data in transit and at rest. We're GDPR and HIPAA compliant. Your images are never shared or used for training." },
+            { q: "Can I use this estimate with my insurance?", a: "Absolutely. Our estimates are accepted by 1000+ insurance companies. You can download a detailed PDF report directly from the app." },
+            { q: "What if I'm not satisfied?", a: "We offer a satisfaction guarantee. If the actual repair differs significantly from our estimate, we'll provide a full refund or reanalysis." },
+          ].map((faq, idx) => (
             <details
               key={faq.q}
               className="group border border-[color:var(--border)] rounded-xl overflow-hidden hover:border-primary/30 transition-all"

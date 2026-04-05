@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 
-import { requireDb, validateBody, db } from "@/lib/server/api-helpers";
-import { sendPasswordResetEmail } from "@/lib/server/email";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
+import { sendPasswordResetEmail } from "@/lib/email";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
-import { RESET_TOKEN_TTL_MS } from "@/lib/constants";
-import { generateSecureToken } from "@/lib/server/tokens";
-import { logAudit } from "@/lib/server/audit";
+import { RL_FORGOT_PW, RESET_TOKEN_TTL_MS } from "@/lib/constants";
+import { generateSecureToken } from "@/lib/tokens";
+import { logAudit } from "@/lib/audit";
+import { getClientIp } from "@/lib/rate-limit";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
 export async function POST(req: Request) {
   try {
+    // ── Rate limit (IP-based) ──────────────────────────────
+    const rlError = requireRateLimit(req, "forgotpw", RL_FORGOT_PW);
+    if (rlError) return rlError;
+
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -53,7 +58,8 @@ export async function POST(req: Request) {
     await sendPasswordResetEmail(user.email, rawToken);
 
     // ── Audit ────────────────────────────────────────────
-    logAudit({ action: "FORGOT_PASSWORD_REQUESTED", metadata: { email: user.email } });
+    const ip = getClientIp(req);
+    logAudit({ action: "FORGOT_PASSWORD_REQUESTED", ip, metadata: { email: user.email } });
     console.info(`[PASSWORD_RESET_EMAIL_SENT] ${user.email}`);
 
     return NextResponse.json<AuthResponse>(

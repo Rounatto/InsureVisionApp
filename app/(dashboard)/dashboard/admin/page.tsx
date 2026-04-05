@@ -1,292 +1,144 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-
-type AdminUser = {
-  id: string;
-  name: string | null;
-  email: string;
-  emailVerified: boolean;
-  estimateCount: number;
-  isAdmin: boolean;
-  banned: boolean;
-};
-
-type AdminStats = {
-  totalUsers: number;
-  verifiedUsers: number;
-  unverifiedUsers: number;
-  totalEstimates: number;
-  recentSignups: number;
-};
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
+  const { t } = useLanguage();
   const canAccessAdmin = Boolean(session?.user?.isAdmin);
-  const [expandedActionsUserEmail, setExpandedActionsUserEmail] = useState<
-    string | null
-  >(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loadingData, setLoadingData] = useState(false);
-  const [loadError, setLoadError] = useState('');
-  const [actionError, setActionError] = useState('');
-  const [actionSuccess, setActionSuccess] = useState('');
-  const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [expandedActionsUserEmail, setExpandedActionsUserEmail] = useState<string | null>(null);
+  const [expandedEstimationsUserEmail, setExpandedEstimationsUserEmail] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (status !== 'authenticated' || !canAccessAdmin) return;
-
-    const loadAdminData = async () => {
-      setLoadingData(true);
-      setLoadError('');
-
-      try {
-        const [statsRes, usersRes] = await Promise.all([
-          fetch('/api/admin/stats', { cache: 'no-store' }),
-          fetch('/api/admin/users?page=1', { cache: 'no-store' }),
-        ]);
-
-        if (!statsRes.ok || !usersRes.ok) {
-          setLoadError('Failed to load admin data.');
-          return;
-        }
-
-        const statsData = (await statsRes.json()) as AdminStats;
-        const usersData = (await usersRes.json()) as { users?: AdminUser[] };
-
-        setStats(statsData);
-        setUsers(Array.isArray(usersData.users) ? usersData.users : []);
-      } catch {
-        setLoadError('Failed to load admin data.');
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    void loadAdminData();
-  }, [status, canAccessAdmin]);
-
-  const roleLabel = (user: AdminUser) => {
-    if (user.isAdmin) return 'Admin';
-    return 'Agent';
-  };
-
-  const statusLabel = (user: AdminUser) => {
-    if (user.banned) return 'Suspended';
-    if (!user.emailVerified) return 'Pending';
-    return 'Active';
-  };
-
-  const getMetricValue = (value: number) => {
-    if (loadingData && !stats) return '...';
-    return value.toLocaleString();
-  };
-
-  const getHealthValue = () => {
-    if (!stats) {
-      if (loadingData) return '...';
-      return '0%';
-    }
-
-    const totalUsers = Math.max(1, stats.totalUsers);
-    const healthValue = Math.min(
-      100,
-      Math.round((stats.verifiedUsers / totalUsers) * 100)
-    );
-    return `${healthValue}%`;
-  };
-
-  const getStatusBadgeClass = (user: AdminUser) => {
-    if (user.banned) return 'bg-red-500/10 text-red-500';
-    if (!user.emailVerified) return 'bg-yellow-500/10 text-yellow-500';
-    return 'bg-green-500/10 text-green-500';
-  };
-
-  const toggleUserActions = (email: string) => {
-    setExpandedActionsUserEmail((previousEmail) => {
-      if (previousEmail === email) {
-        return null;
-      }
-
-      return email;
-    });
-  };
-
-  const getUserName = (user: AdminUser) => {
-    if (!user.name) {
-      return 'Unknown';
-    }
-
-    return user.name;
-  };
-
-  const handleBanUser = async (user: AdminUser) => {
-    if (user.isAdmin) {
-      setActionError('Cannot ban admin users');
-      return;
-    }
-
-    const action = user.banned ? 'unban' : 'ban';
-    setBusyUserId(user.id);
-    setActionError('');
-    setActionSuccess('');
-
-    try {
-      const res = await fetch(
-        `/api/admin/users?id=${user.id}&action=${action}`,
+  const recentUsers = [
+    {
+      name: 'Rayan M.',
+      email: 'rayan@example.com',
+      role: 'Admin',
+      status: 'Active',
+      estimations: [
         {
-          method: 'PATCH',
-        }
-      );
+          id: 'EST-1041',
+          vehicle: 'BMW X5',
+          date: '2026-03-24',
+          amount: '$1,950',
+          status: 'Approved',
+        },
+        {
+          id: 'EST-1032',
+          vehicle: 'Audi A4',
+          date: '2026-03-20',
+          amount: '$1,120',
+          status: 'Pending',
+        },
+      ],
+    },
+    {
+      name: 'Sara B.',
+      email: 'sara@example.com',
+      role: 'Manager',
+      status: 'Active',
+      estimations: [
+        {
+          id: 'EST-1028',
+          vehicle: 'Mercedes CLA',
+          date: '2026-03-18',
+          amount: '$2,340',
+          status: 'Approved',
+        },
+      ],
+    },
+    {
+      name: 'Youssef K.',
+      email: 'youssef@example.com',
+      role: 'Agent',
+      status: 'Pending',
+      estimations: [
+        {
+          id: 'EST-1019',
+          vehicle: 'Peugeot 3008',
+          date: '2026-03-11',
+          amount: '$890',
+          status: 'Review',
+        },
+        {
+          id: 'EST-1014',
+          vehicle: 'Renault Clio',
+          date: '2026-03-07',
+          amount: '$640',
+          status: 'Rejected',
+        },
+        {
+          id: 'EST-1008',
+          vehicle: 'VW Golf',
+          date: '2026-03-02',
+          amount: '$1,380',
+          status: 'Approved',
+        },
+      ],
+    },
+    {
+      name: 'Lina T.',
+      email: 'lina@example.com',
+      role: 'Agent',
+      status: 'Suspended',
+      estimations: [
+        {
+          id: 'EST-0996',
+          vehicle: 'Ford Fiesta',
+          date: '2026-02-21',
+          amount: '$520',
+          status: 'Rejected',
+        },
+      ],
+    },
+  ];
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setActionError(data.message || `Failed to ${action} user`);
-        return;
-      }
-
-      // Update the user in the local state
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, banned: action === 'ban' } : u
-        )
-      );
-      setExpandedActionsUserEmail(null);
-      setActionSuccess(
-        `User ${action === 'ban' ? 'banned' : 'unbanned'} successfully.`
-      );
-    } catch {
-      setActionError(`Failed to ${action} user`);
-    } finally {
-      setBusyUserId(null);
-    }
+  const roleLabel = (role: string) => {
+    if (role === 'Admin') return t('admin');
+    if (role === 'Manager') return t('roleManager');
+    if (role === 'Agent') return t('roleAgent');
+    return role;
   };
 
-  const handleDeleteUser = async (user: AdminUser) => {
-    if (user.isAdmin) {
-      setActionError('Cannot delete admin users');
-      return;
-    }
-
-    setActionError('');
-    setActionSuccess('');
-
-    const confirmDelete = window.confirm(
-      `Delete account for ${user.email}? This action cannot be undone.`
-    );
-
-    if (!confirmDelete) {
-      return;
-    }
-
-    setBusyUserId(user.id);
-
-    try {
-      const res = await fetch(
-        `/api/admin/users?id=${encodeURIComponent(user.id)}`,
-        { method: 'DELETE' }
-      );
-
-      const data = (await res.json().catch(() => ({}))) as {
-        message?: string;
-      };
-
-      if (!res.ok) {
-        setActionError(data.message || 'Failed to delete user.');
-        return;
-      }
-
-      setUsers((previousUsers) =>
-        previousUsers.filter((currentUser) => currentUser.id !== user.id)
-      );
-
-      setStats((previousStats) => {
-        if (!previousStats) {
-          return previousStats;
-        }
-
-        const updatedTotalUsers = Math.max(0, previousStats.totalUsers - 1);
-        const updatedVerifiedUsers = user.emailVerified
-          ? Math.max(0, previousStats.verifiedUsers - 1)
-          : previousStats.verifiedUsers;
-        const updatedUnverifiedUsers = user.emailVerified
-          ? previousStats.unverifiedUsers
-          : Math.max(0, previousStats.unverifiedUsers - 1);
-
-        return {
-          ...previousStats,
-          totalUsers: updatedTotalUsers,
-          verifiedUsers: updatedVerifiedUsers,
-          unverifiedUsers: updatedUnverifiedUsers,
-        };
-      });
-
-      setExpandedActionsUserEmail(null);
-      setActionSuccess('User deleted successfully.');
-    } catch {
-      setActionError('Failed to delete user.');
-    } finally {
-      setBusyUserId(null);
-    }
+  const statusLabel = (userStatus: string) => {
+    if (userStatus === 'Active') return t('statusActive');
+    if (userStatus === 'Pending') return t('statusPending');
+    if (userStatus === 'Suspended') return t('statusSuspended');
+    return userStatus;
   };
 
-  const handleExport = () => {
-    if (!users.length) return;
-
-    const csvHeaders = ['Name', 'Email', 'Role', 'Status', 'Estimations'];
-    const csvRows = users.map((user) => [
-      getUserName(user),
-      user.email,
-      roleLabel(user),
-      statusLabel(user),
-      user.estimateCount.toString(),
-    ]);
-
-    const csvContent = [
-      csvHeaders.join(','),
-      ...csvRows.map((row) => row.join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      `users_export_${new Date().toISOString().split('T')[0]}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const estimationStatusLabel = (estimationStatus: string) => {
+    if (estimationStatus === 'Approved') return t('statusApproved');
+    if (estimationStatus === 'Pending') return t('statusPending');
+    if (estimationStatus === 'Review') return t('statusReview');
+    if (estimationStatus === 'Rejected') return t('statusRejected');
+    return estimationStatus;
   };
-
-  const shownUsers = users;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
       {status === 'loading' && (
         <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 text-sm text-[color:var(--muted-foreground)]">
-          Checking access...
+          {t('checkingAccess')}
         </div>
       )}
 
       {status !== 'loading' && !canAccessAdmin && (
         <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
           <h1 className="mb-2 text-2xl font-bold text-[color:var(--foreground)]">
-            Access denied
+            {t('accessDeniedTitle')}
           </h1>
           <p className="mb-4 text-sm text-[color:var(--muted-foreground)]">
-            Your account is not allowlisted for the admin page.
+            {t('adminAccessAllowlisted')}
           </p>
           <Link
             href="/dashboard"
-            className="inline-flex rounded-xl border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--muted)]"
+            className="inline-flex rounded-xl border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
           >
-            Back to dashboard
+            {t('backToDashboard')}
           </Link>
         </div>
       )}
@@ -295,92 +147,55 @@ export default function AdminPage() {
         <>
           <div className="mb-12">
             <h1 className="mb-3 text-4xl font-bold text-[color:var(--foreground)]">
-              Admin Panel
+              {t('adminPanel')}
             </h1>
             <p className="text-sm text-[color:var(--muted-foreground)]">
-              Frontend preview for admin dashboard controls and monitoring.
+              {t('adminPanelDesc')}
             </p>
           </div>
 
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                Total Users
+                {t('totalUsers')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats ? stats.totalUsers.toLocaleString() : getMetricValue(0)}
+                1,284
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                Active Sessions
+                {t('activeSessions')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats
-                  ? stats.verifiedUsers.toLocaleString()
-                  : getMetricValue(0)}
+                312
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                Open Reports
+                {t('openReports')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats
-                  ? stats.unverifiedUsers.toLocaleString()
-                  : getMetricValue(0)}
+                27
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
               <p className="text-xs text-[color:var(--muted-foreground)]">
-                System Health
+                {t('systemHealth')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                {stats ? getHealthValue() : getMetricValue(0)}
+                98%
               </p>
             </div>
           </div>
 
-          {loadError && (
-            <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-500">
-              {loadError}
-            </div>
-          )}
-
-          {actionError && (
-            <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-500">
-              {actionError}
-              <button
-                onClick={() => setActionError('')}
-                className="ml-2 text-red-500 hover:text-red-600"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          {actionSuccess && (
-            <div className="mb-4 rounded-2xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-500">
-              {actionSuccess}
-              <button
-                onClick={() => setActionSuccess('')}
-                className="ml-2 text-green-500 hover:text-green-600"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[color:var(--foreground)]">
-                Recent User Activity
+                {t('recentUserActivity')}
               </h2>
-              <button
-                onClick={handleExport}
-                className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--muted)]"
-              >
-                Export
+              <button className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors">
+                {t('export')}
               </button>
             </div>
 
@@ -388,98 +203,124 @@ export default function AdminPage() {
               <table className="w-full min-w-[840px] border-separate border-spacing-y-2">
                 <thead>
                   <tr className="text-left text-xs text-[color:var(--muted-foreground)]">
-                    <th className="px-3 py-2 font-medium">Name</th>
-                    <th className="px-3 py-2 font-medium">Email</th>
-                    <th className="px-3 py-2 font-medium">Role</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="px-3 py-2 font-medium">Estimations</th>
-                    <th className="px-3 py-2 font-medium">Actions</th>
+                    <th className="px-3 py-2 font-medium">{t('name')}</th>
+                    <th className="px-3 py-2 font-medium">{t('email')}</th>
+                    <th className="px-3 py-2 font-medium">{t('roleLabel')}</th>
+                    <th className="px-3 py-2 font-medium">{t('statusLabel')}</th>
+                    <th className="px-3 py-2 font-medium">{t('estimations')}</th>
+                    <th className="px-3 py-2 font-medium">{t('actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shownUsers.map((user) => (
+                  {recentUsers.map((user) => (
                     <tr
-                      key={user.id}
+                      key={user.email}
                       className="rounded-xl bg-[color:var(--background)] text-sm text-[color:var(--foreground)]"
                     >
-                      <td className="px-3 py-3 font-medium">
-                        {getUserName(user)}
-                      </td>
+                      <td className="px-3 py-3 font-medium">{user.name}</td>
                       <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
                         {user.email}
                       </td>
-                      <td className="px-3 py-3">{roleLabel(user)}</td>
+                      <td className="px-3 py-3">{roleLabel(user.role)}</td>
                       <td className="px-3 py-3">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusBadgeClass(user)}`}
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            user.status === 'Active'
+                              ? 'bg-green-500/10 text-green-500'
+                              : user.status === 'Pending'
+                                ? 'bg-yellow-500/10 text-yellow-500'
+                                : 'bg-red-500/10 text-red-500'
+                          }`}
                         >
-                          {statusLabel(user)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium text-[color:var(--foreground)]">
-                          {user.estimateCount} Estimations
+                          {statusLabel(user.status)}
                         </span>
                       </td>
                       <td className="px-3 py-3">
                         <div className="relative inline-block">
                           <button
                             type="button"
-                            onClick={() => toggleUserActions(user.email)}
-                            className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[color:var(--muted)]"
+                            onClick={() =>
+                              setExpandedEstimationsUserEmail((prev) =>
+                                prev === user.email ? null : user.email
+                              )
+                            }
+                            className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors"
                           >
-                            View
+                            {user.estimations.length} {t('estimations')}
+                          </button>
+
+                          {expandedEstimationsUserEmail === user.email && (
+                            <div className="absolute right-0 z-20 mt-2 w-[320px] rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-3 shadow-xl">
+                              <p className="mb-2 text-xs font-semibold text-[color:var(--foreground)]">
+                                {t('estimationDetails')}
+                              </p>
+
+                              <div className="space-y-2">
+                                {user.estimations.map((estimation) => (
+                                  <div
+                                    key={estimation.id}
+                                    className="rounded-lg border border-[color:var(--border)] bg-[color:var(--background)] p-2"
+                                  >
+                                    <div className="mb-1 flex items-center justify-between gap-2">
+                                      <span className="text-xs font-semibold text-[color:var(--foreground)]">
+                                        {estimation.id}
+                                      </span>
+                                      <span className="text-[11px] text-[color:var(--muted-foreground)]">
+                                        {estimation.date}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-[color:var(--muted-foreground)]">
+                                      {estimation.vehicle}
+                                    </p>
+                                    <div className="mt-1 flex items-center justify-between">
+                                      <span className="text-xs font-semibold text-[color:var(--foreground)]">
+                                        {estimation.amount}
+                                      </span>
+                                      <span className="rounded-full bg-[color:var(--muted)] px-2 py-0.5 text-[10px] font-medium text-[color:var(--muted-foreground)]">
+                                        {estimationStatusLabel(estimation.status)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="relative inline-block">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedActionsUserEmail((prev) =>
+                                prev === user.email ? null : user.email
+                              )
+                            }
+                            className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors"
+                          >
+                            {t('view')}
                           </button>
 
                           {expandedActionsUserEmail === user.email && (
                             <div className="absolute right-0 z-20 mt-2 w-40 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-2 shadow-xl">
-                              {!user.isAdmin && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleBanUser(user)}
-                                  disabled={busyUserId === user.id}
-                                  className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-amber-500 transition-colors hover:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {busyUserId === user.id
-                                    ? 'Processing...'
-                                    : user.banned
-                                      ? 'Unban'
-                                      : 'Ban'}
-                                </button>
-                              )}
-                              {!user.isAdmin && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteUser(user)}
-                                  disabled={busyUserId === user.id}
-                                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {busyUserId === user.id
-                                    ? 'Processing...'
-                                    : 'Delete'}
-                                </button>
-                              )}
-                              {user.isAdmin && (
-                                <p className="px-3 py-2 text-xs text-[color:var(--muted-foreground)]">
-                                  Admin users cannot be modified
-                                </p>
-                              )}
+                              <button
+                                type="button"
+                                className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-amber-500 hover:bg-amber-500/10 transition-colors"
+                              >
+                                {t('ban')}
+                              </button>
+                              <button
+                                type="button"
+                                className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
+                              >
+                                {t('delete')}
+                              </button>
                             </div>
                           )}
                         </div>
                       </td>
                     </tr>
                   ))}
-                  {shownUsers.length === 0 && !loadingData && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-3 py-6 text-center text-sm text-[color:var(--muted-foreground)]"
-                      >
-                        No admin data available.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>

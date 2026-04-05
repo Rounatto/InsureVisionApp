@@ -1,18 +1,26 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { requireDb, requireAuth, validateBody, db } from "@/lib/server/api-helpers";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
 import { changePasswordSchema } from "@/lib/validations/auth";
-import { logAudit } from "@/lib/server/audit";
-import { SALT_ROUNDS } from "@/lib/constants";
+import { logAudit } from "@/lib/audit";
+import { SALT_ROUNDS, RL_CHANGE_PW } from "@/lib/constants";
+import { getClientIp } from "@/lib/rate-limit";
 import type { ErrorResponse } from "@/types/auth";
 
 export async function PATCH(req: Request) {
   try {
+    const originError = requireTrustedOrigin(req);
+    if (originError) return originError;
+
     const dbError = requireDb();
     if (dbError) return dbError;
 
     const { session, error: authError } = await requireAuth();
     if (authError) return authError;
+
+    // ── Rate limit (per user) ──────────────────────────────
+    const rlError = requireRateLimit(req, `changepw:${session.user.id}`, RL_CHANGE_PW);
+    if (rlError) return rlError;
 
     // ── Check if user is banned ─────────────────────────────
     const bannedCheck = await db.user.findUnique({
@@ -55,18 +63,20 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // ── Hash and save new password ──────────────────────────
+    // ── Hash and save new password + invalidate sessions ───
     const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
     await db.user.update({
       where: { id: session.user.id },
       data: {
         password: hashedPassword,
+        tokenVersion: { increment: 1 }, // invalidates all existing JWTs
       },
     });
 
     // ── Audit ──────────────────────────────────────────────
-    logAudit({ userId: session.user.id, action: "PASSWORD_CHANGED" });
+    const ip = getClientIp(req);
+    logAudit({ userId: session.user.id, action: "PASSWORD_CHANGED", ip });
 
     return NextResponse.json({ success: true, message: "Password changed successfully." });
   } catch (error) {

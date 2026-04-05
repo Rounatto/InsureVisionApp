@@ -23,15 +23,6 @@ export default function UserAvatar({
   loading = false,
 }: UserAvatarProps) {
   const [imageFailed, setImageFailed] = useState(false);
-
-  const getFallbackLetter = () => {
-    if (!name) {
-      return "U";
-    }
-
-    return name.charAt(0).toUpperCase();
-  };
-
   const showImage = !loading && Boolean(image) && !imageFailed;
   const showLetter = !loading && !showImage && name !== undefined;
 
@@ -47,7 +38,7 @@ export default function UserAvatar({
           onError={() => setImageFailed(true)}
         />
       )}
-      {showLetter ? getFallbackLetter() : ""}
+      {showLetter ? (name || "U").charAt(0).toUpperCase() : ""}
     </div>
   );
 }

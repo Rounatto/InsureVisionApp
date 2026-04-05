@@ -1,0 +1,8 @@
+flowchart TD
+    Start([User opens login page]) --> Enter[Enter email and password]
+    Enter --> Submit[Submit login form]
+    Submit --> Valid{Credentials valid?}
+
+    Valid -->|No| Error([Show login error])
+    Valid -->|Yes| Session[Create JWT session]
+    Session --> Redirect([Redirect to dashboard])

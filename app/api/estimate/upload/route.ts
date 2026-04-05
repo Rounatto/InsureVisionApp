@@ -5,7 +5,10 @@ import {
   db,
   requireAuth,
   requireDb,
-} from '@/lib/server/api-helpers';
+  requireRateLimit,
+  requireTrustedOrigin,
+} from '@/lib/api-helpers';
+import { RL_ESTIMATE } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
 
 const BUCKET = 'damage-photos';
@@ -17,6 +20,9 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
+    const originError = requireTrustedOrigin(req);
+    if (originError) return originError;
+
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -37,6 +43,13 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
+
+    const rlError = requireRateLimit(
+      req,
+      `estimate-upload:${session.user.id}`,
+      RL_ESTIMATE
+    );
+    if (rlError) return rlError;
 
     if (!hasSupabaseAdminEnv()) {
       return NextResponse.json<ErrorResponse>(

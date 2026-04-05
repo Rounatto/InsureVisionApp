@@ -65,31 +65,9 @@ export default function AuthInput({
 }: AuthInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
-  const getResolvedIcon = () => {
-    if (typeof icon !== "string") {
-      return icon;
-    }
-
-    return icons[icon as IconName];
-  };
-
-  const getResolvedType = () => {
-    const isPasswordInput = passwordToggle || type === "password";
-
-    if (!isPasswordInput) {
-      return type;
-    }
-
-    if (showPassword) {
-      return "text";
-    }
-
-    return "password";
-  };
-
-  const resolvedIcon = getResolvedIcon();
+  const resolvedIcon = typeof icon === "string" ? icons[icon as IconName] : icon;
   const isPassword = passwordToggle || type === "password";
-  const resolvedType = getResolvedType();
+  const resolvedType = isPassword ? (showPassword ? "text" : "password") : type;
 
   const iconSize = compact ? "w-[16px] h-[16px]" : "w-[18px] h-[18px]";
   const padRight = isPassword ? (compact ? "pr-9" : "pr-12") : "pr-5";

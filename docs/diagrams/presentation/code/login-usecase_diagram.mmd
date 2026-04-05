@@ -1,0 +1,14 @@
+flowchart LR
+    User([User])
+    Email([Email Provider])
+
+    subgraph Backend[Authentication Backend]
+        Login((Login to Account))
+        Forgot((Request Password Reset))
+        Reset((Reset Password with Link))
+    end
+
+    User --> Login
+    User --> Forgot
+    User --> Reset
+    Forgot --> Email

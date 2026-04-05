@@ -9,22 +9,12 @@ const CARS = [
   '/images/cars/Peugeot-Background-PNG-Image-removebg-preview.png',
 ];
 
-function getNextCarIndex(currentIndex: number): number {
-  const nextIndex = currentIndex + 1;
-
-  if (nextIndex >= CARS.length) {
-    return 0;
-  }
-
-  return nextIndex;
-}
-
 export const AICarScanner = () => {
   const [currentCarIndex, setCurrentCarIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentCarIndex((prev) => getNextCarIndex(prev));
+      setCurrentCarIndex((prev) => (prev + 1) % CARS.length);
     }, 7000); // Change car every 7 seconds
 
     return () => clearInterval(interval);

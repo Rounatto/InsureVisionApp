@@ -20,13 +20,7 @@ export default function ThemeSwitcher() {
   const applyMode = useCallback((nextMode: "light" | "dark") => {
     const root = document.documentElement
     root.classList.remove("theme-light", "theme-dark")
-
-    if (nextMode === "dark") {
-      root.classList.add("theme-dark")
-      return
-    }
-
-    root.classList.add("theme-light")
+    root.classList.add(nextMode === "dark" ? "theme-dark" : "theme-light")
   }, [])
 
   // Sync React state with what the blocking script already applied
@@ -36,12 +30,7 @@ export default function ThemeSwitcher() {
   }, [])
 
   const toggleMode = () => {
-    let nextMode: "light" | "dark" = "dark"
-
-    if (mode === "dark") {
-      nextMode = "light"
-    }
-
+    const nextMode = mode === "dark" ? "light" : "dark"
     setMode(nextMode)
     applyMode(nextMode)
     localStorage.setItem(THEME_STORAGE_KEY, nextMode)

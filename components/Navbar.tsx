@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import InsureVisionLogo from "@/components/InsureVisionLogo";
@@ -8,6 +8,7 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UserAvatar from "@/components/UserAvatar";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { UserIcon, ClockIcon } from "@/lib/icons";
+import { HelpCircle } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
@@ -15,20 +16,11 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const closeProfileMenu = () => {
-    setProfileOpen(false);
-  };
-
-  const goTo = (path: string) => {
-    closeProfileMenu();
-    router.push(path);
-  };
-
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/login" });
   };
 
-  useClickOutside(profileRef, closeProfileMenu);
+  useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
 
   return (
     <nav className="sticky top-0 z-40 bg-[color:var(--card)]/80 backdrop-blur-md">
@@ -68,25 +60,32 @@ export default function Navbar() {
                 {/* Menu items */}
                 <div className="py-1.5">
                   <button
-                    onClick={() => goTo("/dashboard/history")}
+                    onClick={() => { setProfileOpen(false); router.push("/dashboard/history"); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
                   >
                     <ClockIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
                     History
                   </button>
                   <button
-                    onClick={() => goTo("/dashboard/profile")}
+                    onClick={() => { setProfileOpen(false); router.push("/dashboard/profile"); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
                   >
                     <UserIcon className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
                     My Profile
+                  </button>
+                  <button
+                    onClick={() => { setProfileOpen(false); router.push("/dashboard/support"); }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[color:var(--foreground)] hover:bg-[color:var(--muted)]/50 transition-colors"
+                  >
+                    <HelpCircle className="h-[18px] w-[18px] text-[color:var(--muted-foreground)]" />
+                    Support
                   </button>
                 </div>
 
                 {/* Sign out */}
                 <div className="border-t border-[color:var(--border)] py-1.5">
                   <button
-                    onClick={() => { closeProfileMenu(); void handleSignOut(); }}
+                    onClick={() => { setProfileOpen(false); handleSignOut(); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-[18px] w-[18px]">

@@ -38,20 +38,10 @@ export default function PrimaryButton({
   className = "",
   ...rest
 }: PrimaryButtonProps) {
-  const getWidthClass = () => {
-    if (fullWidth) {
-      return "w-full";
-    }
-
-    return "px-8";
-  };
-
-  const widthClass = getWidthClass();
-
   return (
     <button
       {...rest}
-      className={`rounded-full bg-[color:var(--foreground)] ${SIZE_CLASSES[size]} font-bold text-[color:var(--background)] text-sm hover:opacity-90 active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${widthClass} ${className}`}
+      className={`rounded-full bg-[color:var(--foreground)] ${SIZE_CLASSES[size]} font-bold text-[color:var(--background)] text-sm hover:opacity-90 active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${fullWidth ? "w-full" : "px-8"} ${className}`}
     >
       {children}
     </button>

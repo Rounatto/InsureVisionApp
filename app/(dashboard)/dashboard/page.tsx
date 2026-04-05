@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
-import { Upload, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { Upload, Loader2, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
+import { downloadEstimatePdf } from '@/lib/generatePdf';
 import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
-import { downloadEstimatePdf } from '@/lib/client/generatePdf';
-
+import BannedNotification from '@/components/BannedNotification';
+import UnbannedNotification from '@/components/UnbannedNotification';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 const MAX_FILES = 8;
@@ -31,31 +33,10 @@ interface PhotoUploadState {
 
 interface EstimateResult {
   id: string;
-  predictions?: Array<{
-    photoUrl: string;
-    prediction: string;
-    confidence: number;
-    probabilities: Record<string, number>;
-  }>;
-  confidentPredictions?: Array<{
-    photoUrl: string;
-    prediction: string;
-    confidence: number;
-    probabilities: Record<string, number>;
-  }>;
-  confidenceThreshold?: number;
-  costEstimate?: {
-    model: string;
-    currency: string;
-    total: number;
-    note?: string;
-  };
+  totalCost: number;
+  parts: { name: string; cost: number; severity: string }[];
   photos?: string[];
-  summary?: string;
-}
-
-function normalizeConfidence(confidence: number): number {
-  return confidence > 1 ? confidence / 100 : confidence;
+  summary: string;
 }
 
 interface EstimateJobCreateResponse {
@@ -79,153 +60,8 @@ type EstimationUiStatus =
   | 'COMPLETED'
   | 'FAILED';
 
-function getHiddenPredictionCount(result: EstimateResult | null): number {
-  if (!result) {
-    return 0;
-  }
-
-  if (!result.predictions) {
-    return 0;
-  }
-
-  if (!result.confidentPredictions) {
-    return 0;
-  }
-
-  const hiddenCount = result.predictions.length - result.confidentPredictions.length;
-  if (hiddenCount < 0) {
-    return 0;
-  }
-
-  return hiddenCount;
-}
-
-function getEstimationProgress(
-  status: EstimationUiStatus,
-  pollAttempts: number
-): number {
-  if (status === 'QUEUED') return 10;
-
-  if (status === 'PROCESSING') {
-    if (pollAttempts >= ALMOST_DONE_POLL_ATTEMPTS) return 90;
-    return Math.min(85, 30 + pollAttempts * 10);
-  }
-
-  if (status === 'COMPLETED') return 100;
-  if (status === 'FAILED') return 90;
-
-  return 0;
-}
-
-function getEstimationLabel(
-  status: EstimationUiStatus,
-  pollAttempts: number
-): string {
-  if (status === 'QUEUED') {
-    return 'Job queued, waiting to process...';
-  }
-
-  if (status === 'PROCESSING') {
-    if (pollAttempts >= ALMOST_DONE_POLL_ATTEMPTS) {
-      return 'Almost done...';
-    }
-
-    return 'Detecting parts and classifying damage...';
-  }
-
-  if (status === 'COMPLETED') return 'Estimate completed.';
-  if (status === 'FAILED') return 'Estimation failed. Please try again.';
-
-  return '';
-}
-
-function getUploadErrorMessage(uploadError: unknown, photoNumber: number): string {
-  if (uploadError instanceof Error) {
-    return uploadError.message;
-  }
-
-  return `Photo ${photoNumber} failed to upload.`;
-}
-
-function getFailedUploadsNotice(failedMessages: string[]): string {
-  if (failedMessages.length === 0) {
-    return '';
-  }
-
-  if (failedMessages.length === 1) {
-    return failedMessages[0];
-  }
-
-  return `${failedMessages[0]} (+${failedMessages.length - 1} more photo errors)`;
-}
-
-function getSelectedPhotosLabel(fileCount: number): string {
-  if (fileCount === 1) {
-    return '1 photo selected';
-  }
-
-  return `${fileCount} photos selected`;
-}
-
-function getUploadStatusText(state?: PhotoUploadState): string {
-  if (!state || state.status === 'pending') {
-    return 'Ready';
-  }
-
-  if (state.status === 'uploaded') {
-    return 'Uploaded';
-  }
-
-  if (state.status === 'failed') {
-    return 'Failed';
-  }
-
-  return '';
-}
-
-function getProgressBarClass(status: EstimationUiStatus): string {
-  if (status === 'FAILED') {
-    return 'bg-red-500';
-  }
-
-  if (status === 'COMPLETED') {
-    return 'bg-green-500 animate-pulse';
-  }
-
-  return 'bg-[color:var(--foreground)]';
-}
-
-function getProgressLabelClass(status: EstimationUiStatus): string {
-  if (status === 'FAILED') {
-    return 'text-red-500';
-  }
-
-  return 'text-[color:var(--muted-foreground)]';
-}
-
-function getHiddenThresholdText(result: EstimateResult, hiddenCount: number): string {
-  if (hiddenCount <= 0) {
-    return '';
-  }
-
-  if (typeof result.confidenceThreshold !== 'number') {
-    return '';
-  }
-
-  const resultLabel = hiddenCount === 1 ? 'result' : 'results';
-  const thresholdValue = Math.round(result.confidenceThreshold * 100);
-  return ` ${hiddenCount} ${resultLabel} are below ${thresholdValue}% confidence.`;
-}
-
-function getNoPredictionsText(result: EstimateResult): string {
-  if (typeof result.confidenceThreshold !== 'number') {
-    return 'No predictions met the confidence threshold.';
-  }
-
-  return `No predictions met the confidence threshold (${Math.round(result.confidenceThreshold * 100)}%).`;
-}
-
 export default function Home() {
+  const { data: session } = useSession();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState('');
@@ -239,11 +75,6 @@ export default function Home() {
     Record<string, PhotoUploadState>
   >({});
 
-  const displayedPredictions =
-    result?.predictions ?? result?.confidentPredictions ?? [];
-
-  const hiddenByThresholdCount = getHiddenPredictionCount(result);
-
   useEffect(() => {
     if (result) {
       const timer = setTimeout(() => setShowResult(true), 30);
@@ -254,19 +85,36 @@ export default function Home() {
 
   const estimationInProgress = estimationStatus !== 'IDLE';
 
-  const estimationProgress = getEstimationProgress(
-    estimationStatus,
-    pollAttemptsWithoutResult
-  );
+  const estimationProgress =
+    estimationStatus === 'QUEUED'
+      ? 10
+      : estimationStatus === 'PROCESSING' &&
+          pollAttemptsWithoutResult >= ALMOST_DONE_POLL_ATTEMPTS
+        ? 90
+        : estimationStatus === 'PROCESSING'
+          ? Math.min(85, 30 + pollAttemptsWithoutResult * 10)
+          : estimationStatus === 'COMPLETED'
+            ? 100
+            : estimationStatus === 'FAILED'
+              ? 90
+              : 0;
 
-  const estimationLabel = getEstimationLabel(
-    estimationStatus,
-    pollAttemptsWithoutResult
-  );
+  const estimationLabel =
+    estimationStatus === 'QUEUED'
+      ? 'Job queued, waiting to process...'
+      : estimationStatus === 'PROCESSING' &&
+          pollAttemptsWithoutResult >= ALMOST_DONE_POLL_ATTEMPTS
+        ? 'Almost done...'
+        : estimationStatus === 'PROCESSING'
+          ? 'Analyzing damage...'
+          : estimationStatus === 'COMPLETED'
+            ? 'Estimate completed.'
+            : estimationStatus === 'FAILED'
+              ? 'Estimation failed. Please try again.'
+              : '';
 
   const addFiles = useCallback(
     (incoming: FileList | File[]) => {
-      // Validate each incoming file, skip invalid/duplicate files, then merge.
       setError('');
       const newFiles: UploadedFile[] = [];
 
@@ -467,7 +315,6 @@ export default function Home() {
   };
 
   const handleSubmit = async () => {
-    // Full flow: upload photos -> create estimation job -> poll until completed/failed.
     if (!files.length) return;
     setSubmitting(true);
     setEstimationStatus('IDLE');
@@ -519,7 +366,10 @@ export default function Home() {
             },
           }));
         } catch (uploadError) {
-          const message = getUploadErrorMessage(uploadError, photoNumber);
+          const message =
+            uploadError instanceof Error
+              ? uploadError.message
+              : `Photo ${photoNumber} failed to upload.`;
           failedMessages.push(message);
           setPhotoUploads((prev) => ({
             ...prev,
@@ -586,7 +436,6 @@ export default function Home() {
       let finalError = '';
 
       for (let attempt = 0; attempt < JOB_POLL_MAX_ATTEMPTS; attempt++) {
-        // Polling loop keeps UI status in sync while backend job is running.
         await new Promise((resolve) =>
           setTimeout(resolve, JOB_POLL_INTERVAL_MS)
         );
@@ -640,7 +489,13 @@ export default function Home() {
       }
 
       if (failedMessages.length > 0) {
-        setError(getFailedUploadsNotice(failedMessages));
+        setError(
+          `${failedMessages[0]} ${
+            failedMessages.length > 1
+              ? `(+${failedMessages.length - 1} more photo errors)`
+              : ''
+          }`
+        );
       }
 
       if (finalResult) {
@@ -663,7 +518,8 @@ export default function Home() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(ellipse_at_top,rgba(120,120,120,0.15),transparent_65%)]"
       />
-
+      <UnbannedNotification />
+      <BannedNotification />
       <div className="mb-12 text-center">
         <span className="mb-4 inline-flex rounded-full border border-[color:var(--border)] bg-[color:var(--card)] px-3 py-1 text-[11px] font-medium tracking-wide text-[color:var(--muted-foreground)]">
           AI Vehicle Estimation
@@ -672,8 +528,8 @@ export default function Home() {
           Damage Estimation
         </h1>
         <p className="mx-auto max-w-lg text-sm text-[color:var(--muted-foreground)]">
-          Upload photos of the damaged vehicle and our AI pipeline will detect
-          vehicle parts, classify damage, and generate a repair cost estimate.
+          Upload photos of the damaged vehicle and our AI will generate an
+          accurate repair cost estimate.
         </p>
       </div>
 
@@ -747,7 +603,7 @@ export default function Home() {
                 AI-assisted estimate
               </p>
               <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
-                Part detection, damage classification & cost
+                Damage parts, severity & cost
               </p>
             </div>
 
@@ -771,7 +627,7 @@ export default function Home() {
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-[color:var(--muted-foreground)]">
-              {getSelectedPhotosLabel(files.length)}
+              {files.length} photo{files.length > 1 ? 's' : ''} selected
             </p>
             <div className="flex gap-2">
               {files.length < MAX_FILES && (
@@ -838,7 +694,11 @@ export default function Home() {
                   </p>
                   {photoUploads[f.id]?.status !== 'uploading' && (
                     <p className="mt-0.5 text-[10px] text-white/90">
-                      {getUploadStatusText(photoUploads[f.id])}
+                      {photoUploads[f.id]?.status === 'uploaded' && 'Uploaded'}
+                      {photoUploads[f.id]?.status === 'failed' && 'Failed'}
+                      {(!photoUploads[f.id] ||
+                        photoUploads[f.id]?.status === 'pending') &&
+                        'Ready'}
                     </p>
                   )}
                 </div>
@@ -885,12 +745,22 @@ export default function Home() {
             <div className="mb-4">
               <div className="h-2 w-full overflow-hidden rounded-full bg-[color:var(--muted)]">
                 <div
-                  className={`h-full transition-all duration-[800ms] ease-in-out ${getProgressBarClass(estimationStatus)}`}
+                  className={`h-full transition-all duration-[800ms] ease-in-out ${
+                    estimationStatus === 'FAILED'
+                      ? 'bg-red-500'
+                      : estimationStatus === 'COMPLETED'
+                        ? 'bg-green-500 animate-pulse'
+                        : 'bg-[color:var(--foreground)]'
+                  }`}
                   style={{ width: `${estimationProgress}%` }}
                 />
               </div>
               <p
-                className={`mt-2 text-xs ${getProgressLabelClass(estimationStatus)}`}
+                className={`mt-2 text-xs ${
+                  estimationStatus === 'FAILED'
+                    ? 'text-red-500'
+                    : 'text-[color:var(--muted-foreground)]'
+                }`}
               >
                 {estimationLabel}
               </p>
@@ -933,71 +803,66 @@ export default function Home() {
             <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
               ID: {result.id}
             </p>
-            <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
-              Showing {displayedPredictions.length} detection result
-              {displayedPredictions.length === 1 ? '' : 's'}.
-              {getHiddenThresholdText(result, hiddenByThresholdCount)}
-            </p>
           </div>
+
+          <p className="text-sm text-[color:var(--muted-foreground)] mb-6">
+            {result.summary}
+          </p>
 
           <div className="space-y-3 mb-6">
-            {displayedPredictions.map((item, i) => (
-              <div
-                key={`${item.photoUrl}-${i}`}
-                className="rounded-xl border border-[color:var(--border)] px-3 py-3"
-              >
-                <p className="text-xs text-[color:var(--muted-foreground)]">
-                  Photo {i + 1}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[color:var(--foreground)]">
-                  {item.prediction}
-                </p>
+            {result.parts.map((part, i) => (
+              <div key={i} className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${
+                      part.severity === 'High'
+                        ? 'bg-red-500'
+                        : part.severity === 'Medium'
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
+                    }`}
+                  />
+                  <span className="text-sm text-[color:var(--foreground)]">
+                    {part.name}
+                  </span>
+                  <span className="text-xs text-[color:var(--muted-foreground)]">
+                    ({part.severity})
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-[color:var(--foreground)]">
+                  ${part.cost.toLocaleString()}
+                </span>
               </div>
             ))}
-
-            {displayedPredictions.length === 0 && (
-              <div className="rounded-xl border border-[color:var(--border)] px-3 py-3">
-                <p className="text-sm text-[color:var(--muted-foreground)]">
-                  {getNoPredictionsText(result)}
-                </p>
-              </div>
-            )}
           </div>
 
-          {result.costEstimate && (
-            <div className="mb-6 rounded-xl border border-[color:var(--border)] px-3 py-3">
-              <p className="text-xs text-[color:var(--muted-foreground)]">
-                Cost Estimation Model
-              </p>
-              <p className="mt-1 text-lg font-semibold text-[color:var(--foreground)]">
-                {result.costEstimate.currency} {result.costEstimate.total.toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-[color:var(--muted-foreground)]">
-                {result.costEstimate.note ?? 'Placeholder output'}
-              </p>
-            </div>
-          )}
+          <div className="border-t border-[color:var(--border)] pt-4 flex items-center justify-between">
+            <span className="text-sm font-bold text-[color:var(--foreground)]">
+              Estimated Total
+            </span>
+            <span className="text-2xl font-bold text-[color:var(--foreground)]">
+              ${result.totalCost.toLocaleString()}
+            </span>
+          </div>
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button
               onClick={() =>
                 downloadEstimatePdf({
-                  id: result.id,
-                  confidentPredictions: result.confidentPredictions,
-                  predictions: result.predictions,
-                  confidenceThreshold: result.confidenceThreshold,
-                  costEstimate: result.costEstimate,
+                  ...result,
                   photoUrls: result.photos ?? [],
+                  userName: session?.user?.name || undefined,
+                  userEmail: session?.user?.email || undefined,
                   photoCount: result.photos?.length ?? files.length,
                 })
               }
-              className="w-full rounded-full bg-[color:var(--foreground)] py-3 text-xs sm:text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-[0.98] transition-all"
+              className="flex-1 rounded-full bg-[color:var(--foreground)] py-3 text-xs sm:text-sm font-bold text-[color:var(--background)] hover:opacity-90 active:scale-[0.98] transition-all"
             >
               Download PDF
             </button>
             <button
               onClick={clearAll}
-              className="w-full rounded-full border border-[color:var(--border)] py-3 text-xs sm:text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
+              className="flex-1 rounded-full border border-[color:var(--border)] py-3 text-xs sm:text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
             >
               New Estimation
             </button>

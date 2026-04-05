@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseAdmin, hasSupabaseAdminEnv } from "@/config/supabase";
-import { requireDb, requireAuth, db } from "@/lib/server/api-helpers";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, db } from "@/lib/api-helpers";
+import { RL_AVATAR_UPLOAD } from "@/lib/constants";
 import type { ErrorResponse } from "@/types/auth";
 
 const BUCKET = "user-avatars";
@@ -10,6 +11,9 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export async function POST(req: Request) {
   try {
+    const originError = requireTrustedOrigin(req);
+    if (originError) return originError;
+
     const dbError = requireDb();
     if (dbError) return dbError;
 
@@ -28,6 +32,9 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
+
+    const rlError = requireRateLimit(req, `avatar:${session.user.id}`, RL_AVATAR_UPLOAD);
+    if (rlError) return rlError;
 
     if (!hasSupabaseAdminEnv()) {
       return NextResponse.json<ErrorResponse>(
