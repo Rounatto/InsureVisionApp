@@ -1,121 +1,174 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+interface Estimate {
+  id: string;
+  createdAt: string;
+  status: string;
+  jobId?: string;
+}
+
+interface User {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  isBanned: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  estimateCount: number;
+  estimates?: Estimate[];
+}
+
+interface AdminStats {
+  totalUsers: number;
+  activeSessions?: number;
+  openReports?: number;
+  systemHealth?: number;
+}
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const { t } = useLanguage();
   const canAccessAdmin = Boolean(session?.user?.isAdmin);
-  const [expandedActionsUserEmail, setExpandedActionsUserEmail] = useState<string | null>(null);
-  const [expandedEstimationsUserEmail, setExpandedEstimationsUserEmail] = useState<string | null>(null);
 
-  const recentUsers = [
-    {
-      name: 'Rayan M.',
-      email: 'rayan@example.com',
-      role: 'Admin',
-      status: 'Active',
-      estimations: [
-        {
-          id: 'EST-1041',
-          vehicle: 'BMW X5',
-          date: '2026-03-24',
-          amount: '$1,950',
-          status: 'Approved',
-        },
-        {
-          id: 'EST-1032',
-          vehicle: 'Audi A4',
-          date: '2026-03-20',
-          amount: '$1,120',
-          status: 'Pending',
-        },
-      ],
-    },
-    {
-      name: 'Sara B.',
-      email: 'sara@example.com',
-      role: 'Manager',
-      status: 'Active',
-      estimations: [
-        {
-          id: 'EST-1028',
-          vehicle: 'Mercedes CLA',
-          date: '2026-03-18',
-          amount: '$2,340',
-          status: 'Approved',
-        },
-      ],
-    },
-    {
-      name: 'Youssef K.',
-      email: 'youssef@example.com',
-      role: 'Agent',
-      status: 'Pending',
-      estimations: [
-        {
-          id: 'EST-1019',
-          vehicle: 'Peugeot 3008',
-          date: '2026-03-11',
-          amount: '$890',
-          status: 'Review',
-        },
-        {
-          id: 'EST-1014',
-          vehicle: 'Renault Clio',
-          date: '2026-03-07',
-          amount: '$640',
-          status: 'Rejected',
-        },
-        {
-          id: 'EST-1008',
-          vehicle: 'VW Golf',
-          date: '2026-03-02',
-          amount: '$1,380',
-          status: 'Approved',
-        },
-      ],
-    },
-    {
-      name: 'Lina T.',
-      email: 'lina@example.com',
-      role: 'Agent',
-      status: 'Suspended',
-      estimations: [
-        {
-          id: 'EST-0996',
-          vehicle: 'Ford Fiesta',
-          date: '2026-02-21',
-          amount: '$520',
-          status: 'Rejected',
-        },
-      ],
-    },
-  ];
+  const [users, setUsers] = useState<User[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [expandedEstimationsUserId, setExpandedEstimationsUserId] = useState<
+    string | null
+  >(null);
+  const [expandedActionsUserId, setExpandedActionsUserId] = useState<
+    string | null
+  >(null);
+  const [userEstimates, setUserEstimates] = useState<Estimate[]>([]);
+  const [loadingEstimates, setLoadingEstimates] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const roleLabel = (role: string) => {
-    if (role === 'Admin') return t('admin');
-    if (role === 'Manager') return t('roleManager');
-    if (role === 'Agent') return t('roleAgent');
-    return role;
+  useEffect(() => {
+    if (canAccessAdmin) {
+      fetchStats();
+      fetchUsers();
+    }
+  }, [canAccessAdmin, page]);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/admin/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
   };
 
-  const statusLabel = (userStatus: string) => {
-    if (userStatus === 'Active') return t('statusActive');
-    if (userStatus === 'Pending') return t('statusPending');
-    if (userStatus === 'Suspended') return t('statusSuspended');
-    return userStatus;
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/users?page=${page}&limit=10`);
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setUsers(data.users || []);
+      setTotalPages(data.totalPages || 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const estimationStatusLabel = (estimationStatus: string) => {
-    if (estimationStatus === 'Approved') return t('statusApproved');
-    if (estimationStatus === 'Pending') return t('statusPending');
-    if (estimationStatus === 'Review') return t('statusReview');
-    if (estimationStatus === 'Rejected') return t('statusRejected');
-    return estimationStatus;
+  const fetchUserEstimates = async (userId: string) => {
+    setLoadingEstimates(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/estimates`);
+      if (res.ok) {
+        const data = await res.json();
+        setUserEstimates(data.estimates || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch estimates:', err);
+    } finally {
+      setLoadingEstimates(false);
+    }
+  };
+
+  const handleBan = async (userId: string, banned: boolean) => {
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/ban`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ banned }),
+      });
+      if (res.ok) {
+        setUsers(
+          users.map((u) => (u.id === userId ? { ...u, isBanned: banned } : u))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to ban/unban:', err);
+    } finally {
+      setActionLoading(null);
+      setExpandedActionsUserId(null);
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setUsers(users.filter((u) => u.id !== userId));
+      }
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    } finally {
+      setActionLoading(null);
+      setExpandedActionsUserId(null);
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'json') => {
+    try {
+      const res = await fetch(`/api/admin/users/export?format=${format}`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `users.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error('Failed to export:', err);
+    }
+  };
+
+  const onToggleEstimations = (user: User) => {
+    if (expandedEstimationsUserId === user.id) {
+      setExpandedEstimationsUserId(null);
+    } else {
+      setExpandedEstimationsUserId(user.id);
+      if (!user.estimates) {
+        fetchUserEstimates(user.id);
+      }
+    }
   };
 
   return (
@@ -160,7 +213,7 @@ export default function AdminPage() {
                 {t('totalUsers')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                1,284
+                {stats?.totalUsers || '-'}
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
@@ -168,7 +221,7 @@ export default function AdminPage() {
                 {t('activeSessions')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                312
+                {stats?.activeSessions || '-'}
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
@@ -176,7 +229,7 @@ export default function AdminPage() {
                 {t('openReports')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                27
+                {stats?.openReports || '-'}
               </p>
             </div>
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5">
@@ -184,7 +237,7 @@ export default function AdminPage() {
                 {t('systemHealth')}
               </p>
               <p className="mt-2 text-2xl font-bold text-[color:var(--foreground)]">
-                98%
+                {stats?.systemHealth ? `${stats.systemHealth}%` : '-'}
               </p>
             </div>
           </div>
@@ -192,138 +245,201 @@ export default function AdminPage() {
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[color:var(--foreground)]">
-                {t('recentUserActivity')}
+                Users
               </h2>
-              <button className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors">
-                {t('export')}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => handleExport('json')}
+                  className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-xs font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors"
+                >
+                  Export JSON
+                </button>
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[840px] border-separate border-spacing-y-2">
-                <thead>
-                  <tr className="text-left text-xs text-[color:var(--muted-foreground)]">
-                    <th className="px-3 py-2 font-medium">{t('name')}</th>
-                    <th className="px-3 py-2 font-medium">{t('email')}</th>
-                    <th className="px-3 py-2 font-medium">{t('roleLabel')}</th>
-                    <th className="px-3 py-2 font-medium">{t('statusLabel')}</th>
-                    <th className="px-3 py-2 font-medium">{t('estimations')}</th>
-                    <th className="px-3 py-2 font-medium">{t('actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentUsers.map((user) => (
-                    <tr
-                      key={user.email}
-                      className="rounded-xl bg-[color:var(--background)] text-sm text-[color:var(--foreground)]"
-                    >
-                      <td className="px-3 py-3 font-medium">{user.name}</td>
-                      <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
-                        {user.email}
-                      </td>
-                      <td className="px-3 py-3">{roleLabel(user.role)}</td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            user.status === 'Active'
-                              ? 'bg-green-500/10 text-green-500'
-                              : user.status === 'Pending'
-                                ? 'bg-yellow-500/10 text-yellow-500'
-                                : 'bg-red-500/10 text-red-500'
-                          }`}
+            {error && (
+              <div className="mb-4 rounded-xl bg-red-500/10 p-3 text-sm text-red-500">
+                {error}
+              </div>
+            )}
+
+            {loading ? (
+              <div className="py-8 text-center text-[color:var(--muted-foreground)]">
+                {t('loading')}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[840px] border-separate border-spacing-y-2">
+                    <thead>
+                      <tr className="text-left text-xs text-[color:var(--muted-foreground)]">
+                        <th className="px-3 py-2 font-medium">{t('name')}</th>
+                        <th className="px-3 py-2 font-medium">{t('email')}</th>
+                        <th className="px-3 py-2 font-medium">Joined</th>
+                        <th className="px-3 py-2 font-medium">Status</th>
+                        <th className="px-3 py-2 font-medium">Estimates</th>
+                        <th className="px-3 py-2 font-medium">
+                          {t('actions')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr
+                          key={user.id}
+                          className="rounded-xl bg-[color:var(--background)] text-sm text-[color:var(--foreground)]"
                         >
-                          {statusLabel(user.status)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="relative inline-block">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedEstimationsUserEmail((prev) =>
-                                prev === user.email ? null : user.email
-                              )
-                            }
-                            className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors"
-                          >
-                            {user.estimations.length} {t('estimations')}
-                          </button>
+                          <td className="px-3 py-3 font-medium">
+                            {user.name || '-'}
+                          </td>
+                          <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
+                            {user.email}
+                          </td>
+                          <td className="px-3 py-3 text-[color:var(--muted-foreground)]">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                user.isBanned
+                                  ? 'bg-red-500/10 text-red-500'
+                                  : 'bg-green-500/10 text-green-500'
+                              }`}
+                            >
+                              {user.isBanned ? 'Banned' : 'Active'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="relative inline-block">
+                              <button
+                                type="button"
+                                onClick={() => onToggleEstimations(user)}
+                                className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors"
+                              >
+                                {user.estimateCount || 0} {t('estimations')}
+                              </button>
 
-                          {expandedEstimationsUserEmail === user.email && (
-                            <div className="absolute right-0 z-20 mt-2 w-[320px] rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-3 shadow-xl">
-                              <p className="mb-2 text-xs font-semibold text-[color:var(--foreground)]">
-                                {t('estimationDetails')}
-                              </p>
-
-                              <div className="space-y-2">
-                                {user.estimations.map((estimation) => (
-                                  <div
-                                    key={estimation.id}
-                                    className="rounded-lg border border-[color:var(--border)] bg-[color:var(--background)] p-2"
-                                  >
-                                    <div className="mb-1 flex items-center justify-between gap-2">
-                                      <span className="text-xs font-semibold text-[color:var(--foreground)]">
-                                        {estimation.id}
-                                      </span>
-                                      <span className="text-[11px] text-[color:var(--muted-foreground)]">
-                                        {estimation.date}
-                                      </span>
+                              {expandedEstimationsUserId === user.id && (
+                                <div className="absolute right-0 z-20 mt-2 w-[320px] rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-3 shadow-xl">
+                                  <p className="mb-2 text-xs font-semibold text-[color:var(--foreground)]">
+                                    User Estimates
+                                  </p>
+                                  {loadingEstimates ? (
+                                    <div className="py-4 text-center text-xs text-[color:var(--muted-foreground)]">
+                                      {t('loading')}
                                     </div>
+                                  ) : userEstimates.length === 0 ? (
                                     <p className="text-xs text-[color:var(--muted-foreground)]">
-                                      {estimation.vehicle}
+                                      No estimates
                                     </p>
-                                    <div className="mt-1 flex items-center justify-between">
-                                      <span className="text-xs font-semibold text-[color:var(--foreground)]">
-                                        {estimation.amount}
-                                      </span>
-                                      <span className="rounded-full bg-[color:var(--muted)] px-2 py-0.5 text-[10px] font-medium text-[color:var(--muted-foreground)]">
-                                        {estimationStatusLabel(estimation.status)}
-                                      </span>
+                                  ) : (
+                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                      {userEstimates.map((est) => (
+                                        <div
+                                          key={est.id}
+                                          className="rounded-lg border border-[color:var(--border)] bg-[color:var(--background)] p-2"
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="text-xs font-semibold text-[color:var(--foreground)]">
+                                              {est.jobId || est.id.slice(0, 8)}
+                                            </span>
+                                            <span className="text-[11px] text-[color:var(--muted-foreground)]">
+                                              {new Date(
+                                                est.createdAt
+                                              ).toLocaleDateString()}
+                                            </span>
+                                          </div>
+                                          <span
+                                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                              est.status === 'completed'
+                                                ? 'bg-green-500/10 text-green-500'
+                                                : est.status === 'failed'
+                                                  ? 'bg-red-500/10 text-red-500'
+                                                  : 'bg-yellow-500/10 text-yellow-500'
+                                            }`}
+                                          >
+                                            {est.status}
+                                          </span>
+                                        </div>
+                                      ))}
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="relative inline-block">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedActionsUserEmail((prev) =>
-                                prev === user.email ? null : user.email
-                              )
-                            }
-                            className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors"
-                          >
-                            {t('view')}
-                          </button>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="relative inline-block">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedActionsUserId((prev) =>
+                                    prev === user.id ? null : user.id
+                                  )
+                                }
+                                disabled={actionLoading === user.id}
+                                className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--muted)] transition-colors disabled:opacity-50"
+                              >
+                                {actionLoading === user.id
+                                  ? t('loading')
+                                  : t('actions')}
+                              </button>
 
-                          {expandedActionsUserEmail === user.email && (
-                            <div className="absolute right-0 z-20 mt-2 w-40 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-2 shadow-xl">
-                              <button
-                                type="button"
-                                className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-amber-500 hover:bg-amber-500/10 transition-colors"
-                              >
-                                {t('ban')}
-                              </button>
-                              <button
-                                type="button"
-                                className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
-                              >
-                                {t('delete')}
-                              </button>
+                              {expandedActionsUserId === user.id && (
+                                <div className="absolute right-0 z-20 mt-2 w-40 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-2 shadow-xl">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleBan(user.id, !user.isBanned)
+                                    }
+                                    className="mb-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-amber-500 hover:bg-amber-500/10 transition-colors"
+                                  >
+                                    {user.isBanned ? 'Unban' : 'Ban'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(user.id)}
+                                    className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
+                                  >
+                                    {t('delete')}
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-[color:var(--muted-foreground)]">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="rounded-xl border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--muted)] transition-colors disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
