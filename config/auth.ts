@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcrypt';
+import { cookies } from 'next/headers';
 
 import authConfig from '@/config/auth.config';
 import { db, isDatabaseConfigured } from '@/config/db';
@@ -9,14 +10,30 @@ import { loginSchema } from '@/lib/validations/auth';
 import { TOKEN_VERSION_CHECK_INTERVAL_MS } from '@/lib/constants';
 import { isAdminEmail } from '@/lib/admin';
 
+const REMEMBER_ME_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+const NON_REMEMBER_MAX_AGE_SECONDS = 12 * 60 * 60;
+const REMEMBER_ME_PREF_COOKIE = 'iv_remember_me';
+
+function readRememberPreferenceFromCookie(): boolean | undefined {
+  try {
+    const value = cookies().get(REMEMBER_ME_PREF_COOKIE)?.value;
+    if (value === '1' || value === 'true') return true;
+    if (value === '0' || value === 'false') return false;
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const { handlers, auth } = NextAuth({
   ...authConfig,
   adapter: db ? PrismaAdapter(db) : undefined,
   session: {
     strategy: 'jwt',
+    maxAge: REMEMBER_ME_MAX_AGE_SECONDS,
   },
-  // Session cookie (no persistent maxAge) so users must sign in again
-  // after closing the browser.
+  // Keep a persistent cookie by default, then use per-token TTL in the JWT
+  // callback so "Remember me" can shorten credentials sessions when unchecked.
   cookies: {
     sessionToken: {
       name:
@@ -28,6 +45,7 @@ export const { handlers, auth } = NextAuth({
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        maxAge: REMEMBER_ME_MAX_AGE_SECONDS,
       },
     },
   },
@@ -41,6 +59,7 @@ export const { handlers, auth } = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        remember: { label: 'Remember', type: 'text' },
       },
       async authorize(credentials) {
         if (!isDatabaseConfigured || !db) return null;
@@ -49,6 +68,8 @@ export const { handlers, auth } = NextAuth({
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
+        const rememberMe =
+          credentials?.remember === 'true' || credentials?.remember === true;
 
         const user = await db.user.findUnique({
           where: { email },
@@ -68,6 +89,7 @@ export const { handlers, auth } = NextAuth({
           name: user.name,
           email: user.email,
           image: user.image,
+          rememberMe,
         };
       },
     }),
@@ -137,6 +159,12 @@ export const { handlers, auth } = NextAuth({
 
       // Initial sign-in: snapshot tokenVersion
       if (user?.id) {
+        const rememberFromUser = (user as { rememberMe?: boolean }).rememberMe;
+        const rememberMe =
+          rememberFromUser ??
+          (account?.provider === 'google'
+            ? readRememberPreferenceFromCookie()
+            : undefined);
         try {
           const dbUser = await db.user.findUnique({
             where: { id: user.id },
@@ -147,6 +175,12 @@ export const { handlers, auth } = NextAuth({
           console.warn('JWT sign-in tokenVersion check skipped:', error);
           token.tokenVersion = 0;
         }
+        token.rememberMe = rememberMe ?? true;
+        token.exp =
+          Math.floor(Date.now() / 1000) +
+          (token.rememberMe
+            ? REMEMBER_ME_MAX_AGE_SECONDS
+            : NON_REMEMBER_MAX_AGE_SECONDS);
         token.isAdmin = isAdminEmail(user.email);
         token.versionCheckedAt = Date.now();
         return token;

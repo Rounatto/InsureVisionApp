@@ -1,15 +1,17 @@
-import { DefaultSession } from "next-auth";
+import { DefaultSession } from 'next-auth';
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
     user: {
       isAdmin?: boolean;
-    } & DefaultSession["user"];
+    } & DefaultSession['user'];
   }
 }
 
-declare module "next-auth/jwt" {
+declare module 'next-auth/jwt' {
   interface JWT {
     isAdmin?: boolean;
+    rememberMe?: boolean;
+    versionCheckedAt?: number;
   }
 }
