@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/server/api-helpers";
 import { loginSchema } from "@/lib/validations/auth";
 import { RL_LOGIN } from "@/lib/constants";
-import { logAudit } from "@/lib/audit";
+import { logAudit } from "@/lib/server/audit";
 import { getClientIp } from "@/lib/rate-limit";
 import type { LoginResponse, ErrorResponse } from "@/types/auth";
 // =====================================================
@@ -86,3 +86,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

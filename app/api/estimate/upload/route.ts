@@ -7,7 +7,7 @@ import {
   requireDb,
   requireRateLimit,
   requireTrustedOrigin,
-} from '@/lib/api-helpers';
+} from '@/lib/server/api-helpers';
 import { RL_ESTIMATE } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
 
@@ -139,3 +139,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

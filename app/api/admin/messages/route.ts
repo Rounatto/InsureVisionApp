@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireDb, requireAdmin, requireTrustedOrigin, validateBody, requireRateLimit, db } from "@/lib/api-helpers";
-import { logAudit } from "@/lib/audit";
+import { requireDb, requireAdmin, requireTrustedOrigin, validateBody, requireRateLimit, db } from "@/lib/server/api-helpers";
+import { logAudit } from "@/lib/server/audit";
 import { getAllAdminEmails } from "@/lib/admin";
 import { RL_ADMIN_MESSAGE } from "@/lib/constants";
 import { getClientIp } from "@/lib/rate-limit";
@@ -172,3 +172,4 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 }
+

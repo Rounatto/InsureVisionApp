@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, validateBody, db } from "@/lib/server/api-helpers";
 import { changePasswordSchema } from "@/lib/validations/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit } from "@/lib/server/audit";
 import { SALT_ROUNDS, RL_CHANGE_PW } from "@/lib/constants";
 import { getClientIp } from "@/lib/rate-limit";
 import type { ErrorResponse } from "@/types/auth";
@@ -87,3 +87,4 @@ export async function PATCH(req: Request) {
     );
   }
 }
+

@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import { waitUntil } from '@vercel/functions';
 import {
   db,
   requireAuth,
   requireDb,
   requireRateLimit,
   requireTrustedOrigin,
-} from '@/lib/api-helpers';
-import { queueEstimateJob, dispatchEstimateJob } from '@/lib/estimate/jobs';
+} from '@/lib/server/api-helpers';
+import {
+  queueEstimateJob,
+  dispatchEstimateJob,
+} from '@/lib/server/estimate/jobs';
 import { RL_ESTIMATE } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
 
@@ -87,11 +89,10 @@ export async function POST(req: Request) {
       photoCount: photoUrls.length,
     });
 
-    // Use waitUntil to fire dispatchEstimateJob safely in the background
-    const url = new URL(req.url);
-    const appBaseUrl =
-      process.env.WEBHOOK_BASE_URL || `${url.protocol}//${url.host}`;
-    waitUntil(dispatchEstimateJob(job.id, appBaseUrl));
+    // Presentation-style local pipeline: dispatch processing in background.
+    void dispatchEstimateJob(job.id).catch((err) => {
+      console.error('Estimate dispatch error:', err);
+    });
 
     return NextResponse.json(
       {
@@ -112,3 +113,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

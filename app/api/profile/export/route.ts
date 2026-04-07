@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAuth, requireRateLimit, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, requireRateLimit, db } from "@/lib/server/api-helpers";
 import { RL_PROFILE_UPDATE } from "@/lib/constants";
 import type { ErrorResponse } from "@/types/auth";
 
@@ -84,3 +84,4 @@ export async function GET(req: Request) {
     );
   }
 }
+

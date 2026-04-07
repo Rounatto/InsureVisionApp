@@ -5,8 +5,8 @@ import {
   requireTrustedOrigin,
   requireRateLimit,
   db,
-} from '@/lib/api-helpers';
-import { logAudit } from '@/lib/audit';
+} from '@/lib/server/api-helpers';
+import { logAudit } from '@/lib/server/audit';
 import { getClientIp } from '@/lib/rate-limit';
 import { RL_DELETE_ACCOUNT } from '@/lib/constants';
 import type { ErrorResponse } from '@/types/auth';
@@ -94,3 +94,4 @@ export async function DELETE(req: Request) {
     );
   }
 }
+

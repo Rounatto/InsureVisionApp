@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/server/api-helpers";
+import { sendPasswordResetEmail } from "@/lib/server/email";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
 import { RL_FORGOT_PW, RESET_TOKEN_TTL_MS } from "@/lib/constants";
-import { generateSecureToken } from "@/lib/tokens";
-import { logAudit } from "@/lib/audit";
+import { generateSecureToken } from "@/lib/server/tokens";
+import { logAudit } from "@/lib/server/audit";
 import { getClientIp } from "@/lib/rate-limit";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
@@ -78,3 +78,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAuth, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, db } from "@/lib/server/api-helpers";
 
 const QUERY_TIMEOUT_MS = 3000;
 
@@ -43,3 +43,4 @@ export async function GET() {
     return NextResponse.json({ estimates: 0, photos: 0 });
   }
 }
+

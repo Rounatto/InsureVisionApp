@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, requireAuth, requireDb } from '@/lib/api-helpers';
+import { db, requireAuth, requireDb } from '@/lib/server/api-helpers';
 import type { ErrorResponse } from '@/types/auth';
 
 /**
@@ -35,3 +35,4 @@ export async function GET(): Promise<NextResponse> {
     );
   }
 }
+

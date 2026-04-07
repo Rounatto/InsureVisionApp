@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireRateLimit, db } from "@/lib/api-helpers";
-import { hashToken } from "@/lib/tokens";
-import { logAudit } from "@/lib/audit";
+import { requireDb, requireRateLimit, db } from "@/lib/server/api-helpers";
+import { hashToken } from "@/lib/server/tokens";
+import { logAudit } from "@/lib/server/audit";
 import { getClientIp } from "@/lib/rate-limit";
 import { RL_VERIFY_EMAIL } from "@/lib/constants";
 
@@ -72,3 +72,4 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL("/login?error=server-error", req.url));
   }
 }
+

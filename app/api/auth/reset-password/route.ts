@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/server/api-helpers";
 import { resetPasswordSchema } from "@/lib/validations/auth";
 import { RL_RESET_PW, SALT_ROUNDS } from "@/lib/constants";
-import { hashToken } from "@/lib/tokens";
-import { logAudit } from "@/lib/audit";
+import { hashToken } from "@/lib/server/tokens";
+import { logAudit } from "@/lib/server/audit";
 import { getClientIp } from "@/lib/rate-limit";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
@@ -98,3 +98,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { completeEstimateJob, failEstimateJob } from '@/lib/estimate/jobs';
 import { processWebhookToOutput } from '@/lib/estimate/provider';
-import { db } from '@/lib/api-helpers';
+import { db } from '@/lib/server/api-helpers';
 
 export const runtime = 'nodejs';
 
@@ -88,3 +88,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

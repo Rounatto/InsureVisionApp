@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAuth, db } from "@/lib/api-helpers";
+import { requireDb, requireAuth, db } from "@/lib/server/api-helpers";
 import type { ErrorResponse } from "@/types/auth";
 
 const PAGE_SIZE = 50;
@@ -66,3 +66,4 @@ export async function GET(req: Request): Promise<NextResponse> {
     );
   }
 }
+

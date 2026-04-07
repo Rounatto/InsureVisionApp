@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-import { requireDb, requireRateLimit, validateBody, db } from "@/lib/api-helpers";
+import { requireDb, requireRateLimit, validateBody, db } from "@/lib/server/api-helpers";
 import { registerSchema } from "@/lib/validations/auth";
 import { RL_REGISTER, SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
-import { generateSecureToken } from "@/lib/tokens";
-import { sendVerificationEmail } from "@/lib/email";
-import { logAudit } from "@/lib/audit";
+import { generateSecureToken } from "@/lib/server/tokens";
+import { sendVerificationEmail } from "@/lib/server/email";
+import { logAudit } from "@/lib/server/audit";
 import { getClientIp } from "@/lib/rate-limit";
 import type { RegisterResponse, ErrorResponse } from "@/types/auth";
 
@@ -107,3 +107,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

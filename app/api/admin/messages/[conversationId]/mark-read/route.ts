@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAdmin, db } from "@/lib/api-helpers";
+import { requireDb, requireAdmin, db } from "@/lib/server/api-helpers";
 import type { ErrorResponse } from "@/types/auth";
 
 export async function POST(
@@ -65,3 +65,4 @@ export async function POST(
     );
   }
 }
+

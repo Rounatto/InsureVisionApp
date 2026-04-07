@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireDb, requireAdmin, db } from "@/lib/api-helpers";
-import { logAudit } from "@/lib/audit";
+import { requireDb, requireAdmin, db } from "@/lib/server/api-helpers";
+import { logAudit } from "@/lib/server/audit";
 import { getClientIp } from "@/lib/rate-limit";
 import type { ErrorResponse } from "@/types/auth";
 
@@ -84,3 +84,4 @@ export async function GET(
     );
   }
 }
+
