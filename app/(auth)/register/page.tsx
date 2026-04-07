@@ -54,8 +54,12 @@ export default function Register() {
       const data: RegisterResponse | ErrorResponse = await res.json();
 
       if (res.status === 201 && data.success) {
-        // Registration succeeded → redirect to login
-        router.push('/login');
+        // Registration succeeded → show verify-email screen like presentation flow
+        const registeredEmail =
+          'user' in data && data.user?.email ? data.user.email : email;
+        router.push(
+          `/verify-email?email=${encodeURIComponent(registeredEmail)}`
+        );
         return;
       }
 

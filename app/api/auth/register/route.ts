@@ -1,19 +1,24 @@
-import { NextResponse } from "next/server";
-import bcrypt from "bcrypt";
+import { NextResponse } from 'next/server';
+import bcrypt from 'bcrypt';
 
-import { requireDb, requireRateLimit, validateBody, db } from "@/lib/server/api-helpers";
-import { registerSchema } from "@/lib/validations/auth";
-import { RL_REGISTER, SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from "@/lib/constants";
-import { generateSecureToken } from "@/lib/server/tokens";
-import { sendVerificationEmail } from "@/lib/server/email";
-import { logAudit } from "@/lib/server/audit";
-import { getClientIp } from "@/lib/rate-limit";
-import type { RegisterResponse, ErrorResponse } from "@/types/auth";
+import {
+  requireDb,
+  requireRateLimit,
+  validateBody,
+  db,
+} from '@/lib/server/api-helpers';
+import { registerSchema } from '@/lib/validations/auth';
+import { RL_REGISTER, SALT_ROUNDS, VERIFY_TOKEN_TTL_MS } from '@/lib/constants';
+import { generateSecureToken } from '@/lib/server/tokens';
+import { sendVerificationEmail } from '@/lib/server/email';
+import { logAudit } from '@/lib/server/audit';
+import { getClientIp } from '@/lib/rate-limit';
+import type { RegisterResponse, ErrorResponse } from '@/types/auth';
 
 export async function POST(req: Request) {
   try {
     // ── Rate limit (IP-based) ──────────────────────────────
-    const rlError = requireRateLimit(req, "register", RL_REGISTER);
+    const rlError = requireRateLimit(req, 'register', RL_REGISTER);
     if (rlError) return rlError;
 
     const dbError = requireDb();
@@ -21,7 +26,10 @@ export async function POST(req: Request) {
 
     // ── Parse & validate ───────────────────────────────────
     const body = await req.json();
-    const { data: validated, error: valError } = validateBody(registerSchema, body);
+    const { data: validated, error: valError } = validateBody(
+      registerSchema,
+      body
+    );
     if (valError) return valError;
 
     const { name, email, password } = validated;
@@ -36,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
-          message: "An account with this email already exists",
+          message: 'An account with this email already exists',
         },
         { status: 409 }
       );
@@ -57,12 +65,12 @@ export async function POST(req: Request) {
       });
 
       await tx.securityToken.deleteMany({
-        where: { identifier: email, type: "EMAIL_VERIFICATION" },
+        where: { identifier: email, type: 'EMAIL_VERIFICATION' },
       });
 
       await tx.securityToken.create({
         data: {
-          type: "EMAIL_VERIFICATION",
+          type: 'EMAIL_VERIFICATION',
           hashedToken,
           identifier: email,
           expires,
@@ -72,24 +80,42 @@ export async function POST(req: Request) {
       return newUser;
     });
 
-    // ── Send verification email (non-blocking on failure) ──
+    // ── Send verification email (fail signup if delivery fails) ──
     try {
       await sendVerificationEmail(email, rawToken);
     } catch (emailError) {
-      console.error("[REGISTER_EMAIL_ERROR]", emailError);
+      console.error('[REGISTER_EMAIL_ERROR]', emailError);
+
+      // Keep auth state consistent: if verification mail cannot be sent,
+      // remove the newly created account + token and surface an error.
+      await db.$transaction(async (tx) => {
+        await tx.securityToken.deleteMany({
+          where: { identifier: email, type: 'EMAIL_VERIFICATION' },
+        });
+        await tx.user.delete({ where: { id: user.id } });
+      });
+
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          message:
+            'Unable to send verification email. Please check email configuration and try again.',
+        },
+        { status: 502 }
+      );
     }
 
     // ── Audit ──────────────────────────────────────────────
     const ip = getClientIp(req);
-    logAudit({ userId: user.id, action: "REGISTER", ip });
+    logAudit({ userId: user.id, action: 'REGISTER', ip });
 
     return NextResponse.json<RegisterResponse>(
       {
         success: true,
-        message: "Account created successfully",
+        message: 'Account created successfully',
         user: {
           id: user.id,
-          name: user.name ?? "",
+          name: user.name ?? '',
           email: user.email,
         },
       },
@@ -97,14 +123,13 @@ export async function POST(req: Request) {
     );
   } catch (error) {
     // Logging serveur (visible dans logs backend), utile pour debug prod/dev
-    console.error("[REGISTER_ERROR]", error);
+    console.error('[REGISTER_ERROR]', error);
     return NextResponse.json<ErrorResponse>(
       {
         success: false,
-        message: "Something went wrong. Please try again later.",
+        message: 'Something went wrong. Please try again later.',
       },
       { status: 500 }
     );
   }
 }
-
