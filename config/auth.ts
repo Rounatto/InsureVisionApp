@@ -14,9 +14,12 @@ const REMEMBER_ME_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const NON_REMEMBER_MAX_AGE_SECONDS = 12 * 60 * 60;
 const REMEMBER_ME_PREF_COOKIE = 'iv_remember_me';
 
-function readRememberPreferenceFromCookie(): boolean | undefined {
+async function readRememberPreferenceFromCookie(): Promise<
+  boolean | undefined
+> {
   try {
-    const value = cookies().get(REMEMBER_ME_PREF_COOKIE)?.value;
+    const cookieStore = await cookies();
+    const value = cookieStore.get(REMEMBER_ME_PREF_COOKIE)?.value;
     if (value === '1' || value === 'true') return true;
     if (value === '0' || value === 'false') return false;
     return undefined;
@@ -163,7 +166,7 @@ export const { handlers, auth } = NextAuth({
         const rememberMe =
           rememberFromUser ??
           (account?.provider === 'google'
-            ? readRememberPreferenceFromCookie()
+            ? await readRememberPreferenceFromCookie()
             : undefined);
         try {
           const dbUser = await db.user.findUnique({
