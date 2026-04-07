@@ -1,8 +1,15 @@
-import { NextResponse } from "next/server";
-import { requireDb, requireAuth, requireTrustedOrigin, requireRateLimit, validateBody, db } from "@/lib/server/api-helpers";
-import { updateProfileSchema } from "@/lib/validations/auth";
-import { RL_PROFILE_UPDATE } from "@/lib/constants";
-import type { ErrorResponse } from "@/types/auth";
+import { NextResponse } from 'next/server';
+import {
+  requireDb,
+  requireAuth,
+  requireTrustedOrigin,
+  requireRateLimit,
+  validateBody,
+  db,
+} from '@/lib/server/api-helpers';
+import { updateProfileSchema } from '@/lib/validations/auth';
+import { RL_PROFILE_UPDATE } from '@/lib/constants';
+import type { ErrorResponse } from '@/types/auth';
 
 export async function PATCH(req: Request) {
   try {
@@ -16,23 +23,36 @@ export async function PATCH(req: Request) {
     if (authError) return authError;
 
     // Check if user is banned
-    const bannedCheck = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { banned: true },
-    });
+    const bannedCheck =
+      typeof db?.user?.findUnique === 'function'
+        ? await db.user.findUnique({
+            where: { id: session.user.id },
+            select: { banned: true },
+          })
+        : null;
 
     if (bannedCheck?.banned) {
       return NextResponse.json<ErrorResponse>(
-        { success: false, message: "Your account is banned and cannot perform this action." },
+        {
+          success: false,
+          message: 'Your account is banned and cannot perform this action.',
+        },
         { status: 403 }
       );
     }
 
-    const rlError = requireRateLimit(req, `profile:${session.user.id}`, RL_PROFILE_UPDATE);
+    const rlError = requireRateLimit(
+      req,
+      `profile:${session.user.id}`,
+      RL_PROFILE_UPDATE
+    );
     if (rlError) return rlError;
 
     const body = await req.json();
-    const { data: validated, error: valError } = validateBody(updateProfileSchema, body);
+    const { data: validated, error: valError } = validateBody(
+      updateProfileSchema,
+      body
+    );
     if (valError) return valError;
 
     const { name } = validated;
@@ -45,11 +65,13 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
-    console.error("Update profile error:", error);
+    console.error('Update profile error:', error);
     return NextResponse.json<ErrorResponse>(
-      { success: false, message: "Failed to update profile. Please try again." },
+      {
+        success: false,
+        message: 'Failed to update profile. Please try again.',
+      },
       { status: 500 }
     );
   }
 }
-
