@@ -3,7 +3,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
-import { Upload, Loader2, CircleCheck, CircleX, Zap, FileText, Images } from 'lucide-react';
+import {
+  Upload,
+  Loader2,
+  CircleCheck,
+  CircleX,
+  Zap,
+  FileText,
+  Images,
+} from 'lucide-react';
 import { downloadEstimatePdf } from '@/lib/generatePdf';
 import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
 import BannedNotification from '@/components/BannedNotification';
@@ -548,7 +556,10 @@ export default function Home() {
             onClick={() => document.getElementById('file-input')?.click()}
           >
             <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 shadow-lg shadow-primary/10">
-              <Upload className="h-9 w-9 text-primary animate-bounce" style={{ animationDuration: '2s' }} />
+              <Upload
+                className="h-9 w-9 text-primary animate-bounce"
+                style={{ animationDuration: '2s' }}
+              />
             </div>
 
             <p className="text-sm font-medium text-[color:var(--foreground)] mb-1">
@@ -810,30 +821,32 @@ export default function Home() {
           </p>
 
           <div className="space-y-3 mb-6">
-            {result.parts.map((part, i) => (
-              <div key={i} className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-block h-2 w-2 rounded-full ${
-                      part.severity === 'High'
-                        ? 'bg-red-500'
-                        : part.severity === 'Medium'
-                          ? 'bg-yellow-500'
-                          : 'bg-green-500'
-                    }`}
-                  />
-                  <span className="text-sm text-[color:var(--foreground)]">
-                    {part.name}
-                  </span>
-                  <span className="text-xs text-[color:var(--muted-foreground)]">
-                    ({part.severity})
+            {(Array.isArray(result.parts) ? result.parts : []).map(
+              (part, i) => (
+                <div key={i} className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${
+                        part.severity === 'High'
+                          ? 'bg-red-500'
+                          : part.severity === 'Medium'
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                      }`}
+                    />
+                    <span className="text-sm text-[color:var(--foreground)]">
+                      {part.name}
+                    </span>
+                    <span className="text-xs text-[color:var(--muted-foreground)]">
+                      ({part.severity})
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-[color:var(--foreground)]">
+                    ${part.cost.toLocaleString()}
                   </span>
                 </div>
-                <span className="text-sm font-medium text-[color:var(--foreground)]">
-                  ${part.cost.toLocaleString()}
-                </span>
-              </div>
-            ))}
+              )
+            )}
           </div>
 
           <div className="border-t border-[color:var(--border)] pt-4 flex items-center justify-between">
