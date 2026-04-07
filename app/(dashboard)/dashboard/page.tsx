@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import {
   Upload,
   Loader2,
+  X,
   CircleCheck,
   CircleX,
   Zap,
@@ -684,20 +685,7 @@ export default function Home() {
                   onClick={() => removeFile(i)}
                   className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    className="h-3.5 w-3.5"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X className="h-3.5 w-3.5" />
                 </button>
                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1">
                   <p className="text-[10px] text-white truncate">
