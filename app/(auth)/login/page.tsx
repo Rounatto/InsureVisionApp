@@ -229,9 +229,6 @@ export default function Login() {
             <div className="flex flex-col gap-5">
               {/* Email */}
               <div>
-                <label className="block mb-2 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                  Email
-                </label>
                 <input
                   type="email"
                   placeholder="Enter your email"
@@ -245,9 +242,6 @@ export default function Login() {
 
               {/* Password */}
               <div>
-                <label className="block mb-2 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                  Password
-                </label>
                 <div className="relative w-full">
                   <input
                     type={showPassword ? 'text' : 'password'}

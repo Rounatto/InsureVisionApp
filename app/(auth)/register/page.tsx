@@ -24,6 +24,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   // Toggle visibilité pour le champ mot de passe principal
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // ─── UI State ─────────────────────────────────────────────
   // États d'interface pour feedback utilisateur
@@ -225,9 +226,6 @@ export default function Register() {
 
               {/* Name (Label dynamique, Input fixe) */}
               <div>
-                <label className="block mb-1.5 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                  Name
-                </label>
                 <input
                   type="text"
                   placeholder="Enter your full name"
@@ -249,9 +247,6 @@ export default function Register() {
 
               {/* Email (Label dynamique, Input fixe) */}
               <div>
-                <label className="block mb-1.5 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                  Email
-                </label>
                 <input
                   type="email"
                   placeholder="Enter your email"
@@ -271,13 +266,10 @@ export default function Register() {
               {/* Passwords (Labels dynamiques, Inputs fixes) */}
               <div className="flex gap-3">
                 <div className="w-1/2">
-                  <label className="block mb-1.5 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                    Password
-                  </label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
+                      placeholder="Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
@@ -303,17 +295,30 @@ export default function Register() {
                   )}
                 </div>
                 <div className="w-1/2">
-                  <label className="block mb-1.5 ml-1 text-xs font-medium text-[color:var(--foreground)]">
-                    Confirm
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={loading}
-                    className="w-full rounded-full border border-[color:var(--border)] bg-white p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder-gray-400 disabled:opacity-50"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={loading}
+                      className="w-full rounded-full border border-[color:var(--border)] bg-white p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-600 placeholder-gray-400 disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      disabled={loading}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                   {/* Erreur de mismatch avec le champ password */}
                   {fieldErrors.confirmPassword && (
                     <p className="mt-1 ml-3 text-[11px] text-red-500">
