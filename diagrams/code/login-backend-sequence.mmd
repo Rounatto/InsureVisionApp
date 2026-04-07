@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Auth Page
+    participant NextAuth as NextAuth Credentials
+    participant DB as Database
+    participant OAuth as Google OAuth
+
+    User->>UI: Enter email and password
+    UI->>NextAuth: signIn("credentials")
+    NextAuth->>DB: Load user by email
+    DB-->>NextAuth: User record
+
+    alt Invalid credentials
+        NextAuth-->>UI: Reject sign-in
+        UI-->>User: Show login error
+    else Valid credentials
+        NextAuth-->>UI: Create session
+        UI-->>User: Redirect to dashboard
+    end
+
+    User->>UI: Click Google sign-in
+    UI->>OAuth: signIn("google")
+    OAuth-->>UI: Return to callback URL

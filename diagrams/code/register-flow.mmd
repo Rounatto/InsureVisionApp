@@ -8,11 +8,12 @@ flowchart TD
     Validate -->|No| Error1([Show validation errors])
 
     Validate -->|Yes| CheckEmail{Email already used?}
-    CheckEmail -->|Yes| Error2([Show 'email exists' error])
+    CheckEmail -->|Yes| Error2([Show email exists error])
 
-    CheckEmail -->|No| Create[Create account]
-    Create --> Success([Redirect to Login])
+    CheckEmail -->|No| Create[Create account + verification token]
+    Create --> Verify[Send verification email]
+    Verify --> Success([Redirect to verify-email page])
 
     Google --> OAuth[Google authenticates user]
-    OAuth --> AutoCreate[Auto-create account]
+    OAuth --> AutoCreate[NextAuth links or creates account]
     AutoCreate --> Dashboard([Redirect to Dashboard])

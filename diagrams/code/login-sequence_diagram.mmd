@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Login Page
+    participant Auth as NextAuth + Prisma
+    participant DB as Database
+
+    User->>UI: Enter email and password
+    UI->>Auth: signIn("credentials")
+    Auth->>DB: Load user by email
+    DB-->>Auth: User result
+
+    alt Invalid credentials
+        Auth-->>UI: Reject sign-in
+        UI-->>User: Show login error
+    else Valid credentials
+        Auth-->>UI: Create session
+        UI-->>User: Redirect to dashboard
+    end
