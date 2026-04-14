@@ -4,32 +4,18 @@ import { db } from '@/lib/server/api-helpers';
 import {
   generateFallbackEstimate,
   type EstimatePrediction,
+  type CostEstimateResult,
+  type CostPart,
 } from '@/lib/server/estimate/provider';
-
-const CONFIDENCE_THRESHOLD = 0.6;
-const COST_MODEL_PLACEHOLDER_TOTAL_USD = 2500;
 
 function normalizeConfidence(confidence: number): number {
   return confidence > 1 ? confidence / 100 : confidence;
 }
 
-function isConfidentPrediction(prediction: EstimatePrediction): boolean {
-  return normalizeConfidence(prediction.confidence) >= CONFIDENCE_THRESHOLD;
-}
-
-interface CostEstimatePlaceholder {
-  model: 'cost-model-placeholder-v1';
-  currency: 'USD';
-  total: number;
-  note: string;
-}
-
 export interface EstimateJobResult {
   id: string;
-  predictions: EstimatePrediction[];
-  confidentPredictions: EstimatePrediction[];
-  confidenceThreshold: number;
-  costEstimate: CostEstimatePlaceholder;
+  totalCost: number;
+  parts: Array<{ name: string; cost: number; severity: string }>;
   photos: string[];
   summary: string;
   model?: unknown;
@@ -84,10 +70,63 @@ export async function failEstimateJob(jobId: string, error: unknown) {
   });
 }
 
+/**
+ * Convert a CostPart from the cost estimation service into the
+ * EstimatePart shape used in the database and UI.
+ */
+function costPartToEstimatePart(cp: CostPart): {
+  name: string;
+  cost: number;
+  severity: string;
+} {
+  return {
+    name: `${cp.part} — ${cp.damage_type}`,
+    cost: Math.round(cp.cost * 100) / 100,
+    severity: cp.severity,
+  };
+}
+
+/**
+ * Build a human-readable summary string from cost estimation results.
+ */
+function buildSummary(
+  costEstimate: CostEstimateResult,
+  predictions: EstimatePrediction[]
+): string {
+  // If the cost service already produced a summary, use it (unless it's a fallback marker).
+  if (
+    costEstimate.summary &&
+    !costEstimate.summary.includes('Fallback estimate')
+  ) {
+    return costEstimate.summary;
+  }
+
+  const partCount = costEstimate.parts.length;
+  const total = costEstimate.total_cost;
+
+  if (partCount === 0) {
+    return 'Damage analysis completed but no specific repair costs could be determined.';
+  }
+
+  const partDescriptions = costEstimate.parts
+    .map(
+      (p) =>
+        `${p.part} (${p.damage_type.toLowerCase()}, $${Math.round(p.cost).toLocaleString()})`
+    )
+    .join('; ');
+
+  return (
+    `AI damage analysis identified ${partCount} damaged component${partCount > 1 ? 's' : ''}. ` +
+    `Breakdown: ${partDescriptions}. ` +
+    `Estimated total repair cost: $${Math.round(total).toLocaleString()}.`
+  );
+}
+
 export async function completeEstimateJob(
   jobId: string,
   modelOutput: {
     predictions: EstimatePrediction[];
+    costEstimate: CostEstimateResult;
     model?: unknown;
   }
 ) {
@@ -101,29 +140,19 @@ export async function completeEstimateJob(
   }
 
   const estimateId = `EST-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-  const confidentPredictions = modelOutput.predictions.filter(
-    isConfidentPrediction
+
+  // Convert cost parts to EstimatePart shape
+  const parts = modelOutput.costEstimate.parts.map(costPartToEstimatePart);
+  const totalCost = modelOutput.costEstimate.total_cost;
+  const summary = buildSummary(
+    modelOutput.costEstimate,
+    modelOutput.predictions
   );
-
-  const costEstimate: CostEstimatePlaceholder = {
-    model: 'cost-model-placeholder-v1',
-    currency: 'USD',
-    total: COST_MODEL_PLACEHOLDER_TOTAL_USD,
-    note: 'Placeholder until cost-estimation model is integrated.',
-  };
-
-  const summary = JSON.stringify({
-    confidentPredictions,
-    confidenceThreshold: CONFIDENCE_THRESHOLD,
-    costEstimate,
-  });
 
   const result: EstimateJobResult = {
     id: estimateId,
-    predictions: modelOutput.predictions,
-    confidentPredictions,
-    confidenceThreshold: CONFIDENCE_THRESHOLD,
-    costEstimate,
+    totalCost: Math.round(totalCost * 100) / 100,
+    parts,
     photos: job.photoUrls,
     summary,
     model: modelOutput.model,
@@ -136,8 +165,15 @@ export async function completeEstimateJob(
           id: estimateId,
           userId: job.userId,
           summary: result.summary,
-          totalCost: costEstimate.total,
+          totalCost: result.totalCost,
           photos: result.photos,
+          parts: {
+            create: result.parts.map((p) => ({
+              name: p.name,
+              cost: p.cost,
+              severity: p.severity,
+            })),
+          },
         },
       });
 

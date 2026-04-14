@@ -2,6 +2,8 @@ export interface ModelPredictionResponse {
   prediction: string;
   confidence: number;
   probabilities: Record<string, number>;
+  /** Part label from Stage 1 YOLO detection (e.g. 'headlight', 'bumper'). */
+  partLabel?: string;
 }
 
 export type ModelPredictionResponseOrArray = ModelPredictionResponse | ModelPredictionResponse[];
@@ -168,7 +170,8 @@ function firstProbabilityMap(
 }
 
 function extractPredictionFromRecord(
-  record: Record<string, unknown>
+  record: Record<string, unknown>,
+  parentPartLabel?: string
 ): ModelPredictionResponse | null {
   const prediction = firstString(record, [
     'prediction',
@@ -203,17 +206,22 @@ function extractPredictionFromRecord(
 
   if (!predictedFromProbabilities || confidence === null) return null;
 
+  // Recover part label from current record or parent detection object.
+  const partLabel = parentPartLabel || firstString(record, ['part_label', 'partLabel', 'part']) || undefined;
+
   return {
     prediction: predictedFromProbabilities,
     confidence,
     probabilities:
       probabilities ?? { [predictedFromProbabilities]: confidence },
+    partLabel,
   };
 }
 
 function collectPredictionCandidates(
   value: unknown,
-  depth = 0
+  depth = 0,
+  parentPartLabel?: string
 ): ModelPredictionResponse[] {
   if (depth > 5 || value === null || value === undefined) return [];
 
@@ -230,12 +238,18 @@ function collectPredictionCandidates(
   const record = value as Record<string, unknown>;
   const candidates: ModelPredictionResponse[] = [];
 
-  const direct = extractPredictionFromRecord(record);
+  // Extract part_label from this detection record to pass down to nested damage objects.
+  const currentPartLabel = parentPartLabel || firstString(record, ['part_label', 'partLabel', 'part']) || undefined;
+
+  const direct = extractPredictionFromRecord(record, currentPartLabel);
   if (direct) {
     candidates.push(direct);
   } else {
     const heuristic = extractPredictionHeuristically(record);
-    if (heuristic) candidates.push(heuristic);
+    if (heuristic) {
+      if (currentPartLabel) heuristic.partLabel = currentPartLabel;
+      candidates.push(heuristic);
+    }
   }
 
   const preferredNestedKeys = [
@@ -256,14 +270,14 @@ function collectPredictionCandidates(
   ];
 
   for (const key of preferredNestedKeys) {
-    candidates.push(...collectPredictionCandidates(record[key], depth + 1));
+    candidates.push(...collectPredictionCandidates(record[key], depth + 1, currentPartLabel));
   }
 
   // Fallback scan: catch unknown nesting keys without traversing too deep.
   if (depth < 2) {
     for (const nested of Object.values(record)) {
       if (nested && typeof nested === 'object') {
-        candidates.push(...collectPredictionCandidates(nested, depth + 1));
+        candidates.push(...collectPredictionCandidates(nested, depth + 1, currentPartLabel));
       }
     }
   }
