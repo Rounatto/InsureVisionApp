@@ -39,4 +39,6 @@ next-env.d.ts
 
 # local-only files
 .vercelignore
-pnpm-lock.yaml
+
+# personal-repo safety
+.env
