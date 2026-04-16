@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import {
@@ -18,6 +18,7 @@ import { NETWORK_ERROR_MESSAGE } from '@/lib/constants';
 import BannedNotification from '@/components/BannedNotification';
 import UnbannedNotification from '@/components/UnbannedNotification';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import RepairRecommendations from '@/components/RepairRecommendations';
 
 const MAX_FILES = 8;
 const MAX_SIZE_MB = 4;
@@ -84,10 +85,23 @@ export default function Home() {
     Record<string, PhotoUploadState>
   >({});
 
+  const recommendationsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (result) {
       const timer = setTimeout(() => setShowResult(true), 30);
-      return () => clearTimeout(timer);
+      
+      const scrollTimer = setTimeout(() => {
+        recommendationsRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 1000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(scrollTimer);
+      };
     }
     setShowResult(false);
   }, [result]);
@@ -868,6 +882,16 @@ export default function Home() {
               New Estimation
             </button>
           </div>
+        </div>
+      )}
+
+      {/* 🆕 Section des recommandations */}
+      {result && (
+        <div ref={recommendationsRef}>
+          <RepairRecommendations
+            show={showResult}
+            damageSummary={result.summary}
+          />
         </div>
       )}
     </main>
