@@ -314,14 +314,23 @@ async function preparePhotos(photoUrls: string[]): Promise<PreparedPhoto[]> {
 }
 
 async function loadHeaderLogo(): Promise<string | null> {
-  try {
-    const response = await fetch('/logo.png');
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return await blobToDataUrl(blob);
-  } catch {
-    return null;
+  const candidatePaths = ['/logo.svg', '/logo.png'];
+
+  for (const path of candidatePaths) {
+    try {
+      const response = await fetch(path);
+      if (!response.ok) {
+        continue;
+      }
+
+      const blob = await response.blob();
+      return await blobToDataUrl(blob);
+    } catch {
+      // Ignore and try the next candidate path.
+    }
   }
+
+  return null;
 }
 
 function EstimateDocument({
